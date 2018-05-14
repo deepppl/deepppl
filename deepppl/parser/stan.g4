@@ -118,7 +118,6 @@ INT: 'int';
 REAL: 'real';
 VECTOR: 'vector';
 SIMPLEX: 'simplex';
-UNIT_vector: 'unit_vector';
 ORDERED: 'ordered';
 POSITIVE_ORDERED: 'positive_ordered';
 ROW_VECTOR: 'row_vector';
@@ -355,20 +354,20 @@ atom
 
 expression
     : atom
-    | <assoc=right> e1=expression '?' e2=expression ':' e3=expression
-    | e1=expression OR_OP e2=expression
-    | e1=expression AND_OP e2=expression
-    | e1=expression op=(EQ_OP|NEQ_OP) e2=expression
-    | e1=expression op=(LT_OP|LE_OP|GT_OP|GE_OP) e2=expression
-    | e1=expression op=(PLUS_OP|MINUS_OP) e2=expression
-    | e1=expression op=(MULT_OP|DIV_OP|MOD_OP) e2=expression
-    | e1=expression LEFT_DIV_OP e2=expression
-    | e1=expression op=(DOT_MULT_OP|DOT_DIV_OP) e2=expression
-    | op=(NOT_OP|PLUS_OP|MINUS_OP) expression
-    | <assoc=right> e1=expression POW_OP e2=expression
-    | expression TRANSPOSE_OP
-    | expression '(' expressionCommaListOpt ')'
     | expression '[' indexExpression ']'
+    | expression '(' expressionCommaListOpt ')'
+    | expression TRANSPOSE_OP
+    | <assoc=right> e1=expression POW_OP e2=expression
+    | op=(NOT_OP|PLUS_OP|MINUS_OP) expression
+    | e1=expression op=(DOT_MULT_OP|DOT_DIV_OP) e2=expression
+    | e1=expression LEFT_DIV_OP e2=expression
+    | e1=expression op=(MULT_OP|DIV_OP|MOD_OP) e2=expression
+    | e1=expression op=(PLUS_OP|MINUS_OP) e2=expression
+    | e1=expression op=(LT_OP|LE_OP|GT_OP|GE_OP) e2=expression
+    | e1=expression op=(EQ_OP|NEQ_OP) e2=expression
+    | e1=expression AND_OP e2=expression
+    | e1=expression OR_OP e2=expression
+    | <assoc=right> e1=expression '?' e2=expression ':' e3=expression
     ;
 
 indexExpression
