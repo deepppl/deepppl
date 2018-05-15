@@ -5,7 +5,8 @@ stanLexer.py stanParser.py: stan.g4
 
 clean:
 	-rm -f	stan.tokens stanLexer.tokens \
-		stanLexer.py stanParser.py stanListener.py
+		stanLexer.py stanParser.py stanListener.py \
+		stan.interp stanLexer.interp
 	-rm -rf __pycache__
 
 cleanall: clean

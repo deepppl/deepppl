@@ -307,7 +307,7 @@ typeConstraintList
     ;
 
 typeConstraint
-    : IDENTIFIER '=' expression
+    : IDENTIFIER '=' atom
     ;
 
 variableDecl
@@ -349,13 +349,13 @@ atom
     | variable
     | vectorExpr
     | arrayExpr
+    | atom '[' indexExpression ']'
+    | atom '(' expressionCommaListOpt ')'
     | '(' expression ')'
     ;
 
 expression
     : atom
-    | expression '[' indexExpression ']'
-    | expression '(' expressionCommaListOpt ')'
     | expression TRANSPOSE_OP
     | <assoc=right> e1=expression POW_OP e2=expression
     | op=(NOT_OP|PLUS_OP|MINUS_OP) expression
@@ -393,15 +393,20 @@ lvalue
     | IDENTIFIER '[' expressionCommaList ']'
     ;
 assignStmt
-    : lvalue EQ_OP expression ';'
+    : lvalue '=' expression ';'
     | lvalue op=(PLUS_EQ|MINUS_EQ|MULT_EQ|DIV_EQ|DOT_MULT_EQ|DOT_DIV_EQ) expression ';'
     ;
 
 /** Sampling (section 5.3) */
 
+lvalueSampling
+    : lvalue
+    | expression
+    ;
+
 samplingStmt
-    : lvalue '~' IDENTIFIER '(' expressionCommaList ')' truncation? ';'
-    | lvalue PLUS_EQ IDENTIFIER '(' IDENTIFIER '|' expressionCommaList ')' ';'
+    : lvalueSampling '~' IDENTIFIER '(' expressionCommaList ')' truncation? ';'
+    | lvalueSampling PLUS_EQ IDENTIFIER '(' IDENTIFIER '|' expressionCommaList ')' ';'
     ;
 
 truncation
@@ -459,6 +464,7 @@ statement
     | conditionalStmt
     | whileStmt
     | blockStmt
+    | callStmt
     | BREAK
     | CONTINUE
     ;
