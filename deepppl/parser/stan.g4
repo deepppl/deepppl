@@ -473,10 +473,49 @@ statementsOpt
     : statement*
     ;
 
+
+/** Functions (section 7) */
+
+functionType
+    : type_ IDENTIFIER '(' parameterCommaListopt ')'
+    | primitiveType typeConstraints? '[' ']' IDENTIFIER '(' parameterCommaListopt ')'
+    | VOID IDENTIFIER '(' parameterCommaListopt ')'
+    ;
+
+parameterDecl
+    : type_ IDENTIFIER
+    ;
+
+parameterCommaList
+    : parameterDecl (',' parameterDecl)*
+    ;
+
+parameterCommaListopt
+    : parameterCommaList?
+    ;
+
+functionStatement
+    : statement
+    | RETURN expression ';'
+    | RETURN ';'
+    ;
+
+functionStatementsOpt
+    : functionStatement*
+    ;
+
+functionDecl
+    : functionType '{' variableDeclsOpt functionStatementsOpt '}'
+    ;
+
+functionDeclsOpt
+    : functionDecl*
+    ;
+
 /** Program blocks (section 6) */
 
 functionBlock
-    : 'function' '{'  /* XXX TODO XXX */ '}'
+    : FUNCTIONS '{'  functionDeclsOpt '}'
     ;
 
 dataBlock
