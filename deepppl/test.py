@@ -1,7 +1,7 @@
 import sys
 from antlr4 import *
-from stanLexer import stanLexer
-from stanParser import stanParser
+from parser.stanLexer import stanLexer
+from parser.stanParser import stanParser
 
 def main(argv):
     input = FileStream(argv[1])
