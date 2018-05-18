@@ -293,9 +293,9 @@ matrixType
     ;
 
 type_
-    : primitiveType typeConstraints?
-    | vectorType typeConstraints? '[' expression ']'
-    | matrixType typeConstraints? '[' expression (',' expression)? ']'
+    : primitiveType typeConstraints? ('[' ']')?
+    | vectorType typeConstraints? ('[' expression ']')?
+    | matrixType typeConstraints? ('[' expression (',' expression)? ']')?
     ;
 
 typeConstraints
@@ -417,6 +417,7 @@ truncation
 
 forStmt
     : FOR '(' IDENTIFIER IN atom ':' atom ')' statement
+    | FOR '(' IDENTIFIER IN atom ')' statement
     ;
 
 
@@ -465,8 +466,8 @@ statement
     | whileStmt
     | blockStmt
     | callStmt
-    | BREAK
-    | CONTINUE
+    | BREAK ';'
+    | CONTINUE ';'
     ;
 
 statementsOpt
@@ -478,7 +479,6 @@ statementsOpt
 
 functionType
     : type_ IDENTIFIER '(' parameterCommaListopt ')'
-    | primitiveType typeConstraints? '[' ']' IDENTIFIER '(' parameterCommaListopt ')'
     | VOID IDENTIFIER '(' parameterCommaListopt ')'
     ;
 
@@ -506,6 +506,7 @@ functionStatementsOpt
 
 functionDecl
     : functionType '{' variableDeclsOpt functionStatementsOpt '}'
+    | functionType ';'
     ;
 
 functionDeclsOpt
