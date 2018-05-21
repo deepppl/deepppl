@@ -3,6 +3,9 @@ all: parser/stanLexer.py parser/stanParser.py
 parser/stanLexer.py parser/stanParser.py: parser/stan.g4
 	antlr4 -Dlanguage=Python3 parser/stan.g4
 
+test:
+	python test.py tests/good/coin.stan
+
 clean:
 	-rm -f	parser/stan.tokens parser/stanLexer.tokens \
 		parser/stanLexer.py parser/stanParser.py \
