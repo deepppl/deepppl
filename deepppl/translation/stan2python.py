@@ -21,15 +21,55 @@ from parser.stanListener import stanListener
 
 
 class Printer(stanListener):
-    def exitSamplingStmt(self, ctx):
-        print('--------------')
-        print(ctx.getText())
-        print(dir(ctx))
-        print(ctx.getTypedRuleContext(stanParser.LvalueContext, 1))
-        print(ctx.getTypedRuleContexts(stanParser.SamplingStmtContext))
-    def exitDataBlock(self, ctx):
-        print("Oh, a data!")
-    def exitParametersBlock(self, ctx):
-        print("Oh, a parameters!")
-    def exitModelBlock(self, ctx):
-        print("Oh, a model!")
+    def __init__(self):
+        self.indentation = 0
+
+    def dump(self, s):
+        print(' ' * self.indentation * 4 + s)
+
+    def enterProgram(self, ctx):
+        self.dump('import torch')
+        self.dump('from torch.distributions import Uniform, Bernoulli')
+
+    def enterDataBlock(self, ctx):
+        self.dump('\n# Data')
+
+    def enterParametersBlock(self, ctx):
+        self.dump('\n# Parameters')
+
+    def enterModelBlock(self, ctx):
+        self.dump('\n# Model')
+
+    def enterForStmt(self, ctx):
+        id = ctx.IDENTIFIER().getText()
+        if len(ctx.atom()) > 1:
+            lbound = ctx.atom()[0].getText()
+            ubound = ctx.atom()[1].getText()
+            self.dump('for ' + id + ' in range(' +
+                      lbound + ',' + ubound + '):')
+        else:
+            it = ctx.atom()[0].getText()
+            self.dump('for ' + id + ' in ' + it + ':')
+        self.indentation += 1
+
+    def exitForStmt(self, ctx):
+        self.indentation -= 1
+
+    def enterSamplingStmt(self, ctx):
+        lvalue = ctx.lvalueSampling().getText()
+        if ctx.PLUS_EQ() is not None:
+            assert False, 'Not yet implemented'
+        else:
+            assert len(ctx.IDENTIFIER()) == 1
+            id = ctx.IDENTIFIER()[0].getText()
+            expr = ctx.expressionCommaList().getText()
+            self.dump(lvalue + ' = ' + id.capitalize() +
+                      '(' + expr + ').sample()')
+
+    def enterVariableDecl(self, ctx):
+        vid = ctx.IDENTIFIER().getText()
+        if ctx.arrayDim() is not None:
+            dims = ctx.arrayDim().getText()
+            self.dump(vid + ' = torch.zeros(' + dims + ')')
+        else:
+            self.dump(vid + ' = torch.zeros([])')
