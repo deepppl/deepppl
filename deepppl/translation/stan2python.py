@@ -29,7 +29,7 @@ class Printer(stanListener):
 
     def enterProgram(self, ctx):
         self.dump('import torch')
-        self.dump('from torch.distributions import Uniform, Bernoulli')
+        self.dump('from torch.distributions import *')
 
     def enterDataBlock(self, ctx):
         self.dump('\n# Data')
