@@ -14,8 +14,23 @@ pip install antlr4-python3-runtime
 python test.py tests/good/coin.stan
 ```
 
-Output:
+Input:
+```stan
+data {
+  int<lower=0,upper=1> x[10];
+}
+parameters {
+  real<lower=0,upper=1> theta;
+}
+model {
+  theta ~ uniform(0,1);
+  for (i in 1:10)
+    x[i] ~ bernoulli(theta);
+}
 ```
+
+Output:
+```python
 import torch
 from torch.distributions import Uniform, Bernoulli
 
