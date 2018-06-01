@@ -48,6 +48,15 @@ def gatherChildrenAST(ctx):
         return ast
 
 
+def idxFromExprList(exprList):
+    if len(exprList) == 1:
+        return exprList[0]
+    else:
+        return Tuple(
+            elts=exprList,
+            ctx=Load())
+
+
 class Printer(stanListener):
     def __init__(self):
         self.indentation = 0
@@ -71,28 +80,54 @@ class Printer(stanListener):
 
     # Vector, matrix and array expressions (section 4.2)
 
+    def exitAtom(self, ctx):
+        ctx.ast = parseExpr(ctx.getText())
+
     def exitExpression(self, ctx):
         if ctx.TRANSPOSE_OP() is not None:
             assert False, "Not yet implemented"
-        if ctx.POW_OP() is not None:
+        elif ctx.POW_OP() is not None:
+            exprs = ctx.expression()
+            ctx.ast = BinOp(
+                left=exprs[0].ast,
+                op=Pow(),
+                right=exprs[1].ast,)
+        elif ctx.DOT_MULT_OP() is not None:
+            # Mult on tensors
+            exprs = ctx.expression()
+            ctx.ast = BinOp(
+                left=exprs[0].ast,
+                op=Mult(),
+                right=exprs[1].ast)
+        elif ctx.DOT_DIV_OP() is not None:
+            # Div on tensors
+            exprs = ctx.expression()
+            ctx.ast = BinOp(
+                left=exprs[0].ast,
+                op=Div(),
+                right=exprs[1].ast)
+        elif ctx.LEFT_DIV_OP() is not None:
             assert False, "Not yet implemented"
-        if ctx.DOT_MULT_OP() is not None:
-            assert False, "Not yet implemented"
-        if ctx.DOT_DIV_OP() is not None:
-            assert False, "Not yet implemented"
-        if ctx.LEFT_DIV_OP() is not None:
-            assert False, "Not yet implemented"
-        if ctx.AND_OP() is not None:
-            assert False, "Not yet implemented"
-        if ctx.OR_OP() is not None:
-            assert False, "Not yet implemented"
-        if '?' in ctx.getText():
+        elif ctx.AND_OP() is not None:
+            exprs = ctx.expression()
+            ctx.ast = BoolOp(
+                op=And(),
+                values=[
+                    exprs[0].ast,
+                    exprs[1].ast])
+        elif ctx.OR_OP() is not None:
+            exprs = ctx.expression()
+            ctx.ast = BoolOp(
+                op=Or(),
+                values=[
+                    exprs[0].ast,
+                    exprs[1].ast])
+        elif '?' in ctx.getText():
             exprs = ctx.expression()
             ctx.ast = IfExp(
                 test=exprs[0].ast,
                 body=exprs[1].ast,
-                orelse=exprs[2].ast,
-            )
+                orelse=exprs[2].ast)
         else:
             # All other cases are similar to Python syntax
             ctx.ast = parseExpr(ctx.getText())
@@ -101,10 +136,31 @@ class Printer(stanListener):
         ctx.ast = gatherChildrenAST(ctx)
 
     # Statements (section 5)
+
+    # Assignment (section 5.1)
+    def exitLvalue(self, ctx):
+        id = ctx.IDENTIFIER().getText()
+        if ctx.expressionCommaList() is not None:
+            idx = idxFromExprList(ctx.expressionCommaList().ast)
+            ctx.ast = Subscript(
+                value=Name(id=id, ctx=Load()),
+                slice=Index(value=idx),
+                ctx=Load())
+        else:
+            ctx.ast = Name(id=id, ctx=Load())
+
     # Sampling (section 5.3)
 
+    def exitLvalueSampling(self, ctx):
+        if ctx.lvalue() is not None:
+            ctx.ast = ctx.lvalue().ast
+        elif ctx.expression() is not None:
+            ctx.ast = ctx.expression().ast
+        else:
+            assert False
+
     def exitSamplingStmt(self, ctx):
-        lvalue = parseExpr(ctx.lvalueSampling().getText())
+        lvalue = ctx.lvalueSampling().ast
         if ctx.PLUS_EQ() is not None:
             assert False, 'Not yet implemented'
         else:
@@ -116,8 +172,8 @@ class Printer(stanListener):
             ctx.ast = Assign(
                 targets=[lvalue],
                 value=Call(func=Attribute(
-                    value=Call(func=Name(
-                        id=id, ctx=Load()),
+                    value=Call(
+                        func=Name(id=id, ctx=Load()),
                         args=exprList,
                         keywords=[]),
                     attr='sample',
@@ -131,9 +187,12 @@ class Printer(stanListener):
         id = ctx.IDENTIFIER().getText()
         body = ctx.statement().ast if hasattr(ctx.statement(), 'ast') else []
         if len(ctx.atom()) > 1:
-            # In Stan array indexes start at 1, not 0
-            lbound = parseExpr(ctx.atom()[0].getText() + "- 1")
-            ubound = parseExpr(ctx.atom()[1].getText())
+            # Index in Stan start at 1...
+            lbound = BinOp(
+                left=ctx.atom()[0].ast,
+                op=Sub(),
+                right=Num(n=1))
+            ubound = ctx.atom()[1].ast
             ctx.ast = For(
                 target=Name(id=id, ctx=Store()),
                 iter=Call(func=Name(
