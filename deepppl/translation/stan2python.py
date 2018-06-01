@@ -322,6 +322,7 @@ class Printer(stanListener):
                 level=0)]
         ctx.ast.body += gatherChildrenASTList(ctx)
         ast.fix_missing_locations(ctx.ast)
-        print(ast.dump(ctx.ast))
+
         astpretty.pprint(ctx.ast)
+        print('\n-----------------\n')
         print(astor.to_source(ctx.ast))
