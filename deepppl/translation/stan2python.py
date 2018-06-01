@@ -22,6 +22,7 @@ from parser.stanParser import stanParser
 from parser.stanListener import stanListener
 import astor
 import astpretty
+import torch
 
 
 def parseExpr(expr):
@@ -29,12 +30,21 @@ def parseExpr(expr):
     return node
 
 
-def gatherChildrenAST(ctx):
+def gatherChildrenASTList(ctx):
     ast = []
     if ctx.children is not None:
         for child in ctx.children:
             if hasattr(child, 'ast') and child.ast is not None:
                 ast += child.ast
+        return ast
+
+
+def gatherChildrenAST(ctx):
+    ast = []
+    if ctx.children is not None:
+        for child in ctx.children:
+            if hasattr(child, 'ast') and child.ast is not None:
+                ast.append(child.ast)
         return ast
 
 
@@ -44,23 +54,17 @@ class Printer(stanListener):
 
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
-        if ctx.arrayDim() is not None:
-            dims = parseExpr(ctx.arrayDim().getText())
-            ctx.ast = [Assign(
-                targets=[Name(id=vid, ctx=Store())],
-                value=Call(func=Attribute(
-                    value=Name(id='torch', ctx=Load()),
-                    attr='zeros', ctx=Load()),
-                    args=[dims],
-                    keywords=[]))]
-        else:
-            ctx.ast = [Assign(
-                targets=[Name(id=vid, ctx=Store())],
-                value=Call(func=Attribute(
-                    value=Name(id='torch', ctx=Load()),
-                    attr='zeros', ctx=Load()),
-                    args=[List(elts=[], ctx=Load())],
-                    keywords=[]))]
+        dims = ctx.arrayDim().ast if ctx.arrayDim() is not None else []
+        ctx.ast = Assign(
+            targets=[Name(id=vid, ctx=Store())],
+            value=Call(func=Attribute(
+                value=Name(id='torch', ctx=Load()),
+                attr='zeros', ctx=Load()),
+                args=[List(elts=dims, ctx=Load())],
+                keywords=[]))
+
+    def exitArrayDim(self, ctx):
+        ctx.ast = ctx.expressionCommaList().ast
 
     def exitVariableDeclsOpt(self, ctx):
         ctx.ast = gatherChildrenAST(ctx)
@@ -68,7 +72,30 @@ class Printer(stanListener):
     # Vector, matrix and array expressions (section 4.2)
 
     def exitExpression(self, ctx):
-        ctx.ast = [parseExpr(ctx.getText())]
+        if ctx.TRANSPOSE_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.POW_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.DOT_MULT_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.DOT_DIV_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.LEFT_DIV_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.AND_OP() is not None:
+            assert False, "Not yet implemented"
+        if ctx.OR_OP() is not None:
+            assert False, "Not yet implemented"
+        if '?' in ctx.getText():
+            exprs = ctx.expression()
+            ctx.ast = IfExp(
+                test=exprs[0].ast,
+                body=exprs[1].ast,
+                orelse=exprs[2].ast,
+            )
+        else:
+            # All other cases are similar to Python syntax
+            ctx.ast = parseExpr(ctx.getText())
 
     def exitExpressionCommaList(self, ctx):
         ctx.ast = gatherChildrenAST(ctx)
@@ -81,7 +108,10 @@ class Printer(stanListener):
         if ctx.PLUS_EQ() is not None:
             assert False, 'Not yet implemented'
         else:
-            id = ctx.IDENTIFIER()[0].getText().capitalize()
+            id = ctx.IDENTIFIER()[0].getText()
+            if hasattr(torch.distributions, id.capitalize()):
+                # Check if the distribution exists in torch.distributions
+                id = id.capitalize()
             exprList = ctx.expressionCommaList().ast
             ctx.ast = Assign(
                 targets=[lvalue],
@@ -99,11 +129,10 @@ class Printer(stanListener):
 
     def exitForStmt(self, ctx):
         id = ctx.IDENTIFIER().getText()
-        body = []
-        if hasattr(ctx.statement(), 'ast'):
-            body = ctx.statement().ast
+        body = ctx.statement().ast if hasattr(ctx.statement(), 'ast') else []
         if len(ctx.atom()) > 1:
-            lbound = parseExpr(ctx.atom()[0].getText())
+            # In Stan array indexes start at 1, not 0
+            lbound = parseExpr(ctx.atom()[0].getText() + "- 1")
             ubound = parseExpr(ctx.atom()[1].getText())
             ctx.ast = For(
                 target=Name(id=id, ctx=Store()),
@@ -137,18 +166,18 @@ class Printer(stanListener):
             assert False, "Not yet implemented"
 
     def exitStatementsOpt(self, ctx):
-        ctx.ast = gatherChildrenAST(ctx)
+        ctx.ast = gatherChildrenASTList(ctx)
 
     # Program blocks (section 6)
 
     def exitDataBlock(self, ctx):
-        ctx.ast = gatherChildrenAST(ctx)
+        ctx.ast = gatherChildrenASTList(ctx)
 
     def exitParametersBlock(self, ctx):
-        ctx.ast = gatherChildrenAST(ctx)
+        ctx.ast = gatherChildrenASTList(ctx)
 
     def exitModelBlock(self, ctx):
-        ctx.ast = gatherChildrenAST(ctx)
+        ctx.ast = gatherChildrenASTList(ctx)
 
     def exitProgram(self, ctx):
         ctx.ast = Module()
@@ -158,9 +187,8 @@ class Printer(stanListener):
                 module='torch.distributions',
                 names=[alias(name='*', asname=None)],
                 level=0)]
-        for child in ctx.children:
-            if hasattr(child, 'ast'):
-                ctx.ast.body += child.ast
+        ctx.ast.body += gatherChildrenASTList(ctx)
         ast.fix_missing_locations(ctx.ast)
+        print(ast.dump(ctx.ast))
         astpretty.pprint(ctx.ast)
         print(astor.to_source(ctx.ast))
