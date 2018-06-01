@@ -198,7 +198,7 @@ class Printer(stanListener):
                     id='range', ctx=Load()),
                     args=[lbound, ubound],
                     keywords=[]),
-                body=body,
+                body=[body],
                 orelse=[])
 
     # Conditional statements (section 5.5)
@@ -208,8 +208,8 @@ class Printer(stanListener):
         orstmt = ctx.s2.ast if ctx.s2 is not None else []
         ctx.ast = If(
             test=expr,
-            body=ctx.s1.ast,
-            orelse=orstmt,
+            body=[ctx.s1.ast],
+            orelse=[orstmt],
         )
 
     # statements
@@ -218,11 +218,11 @@ class Printer(stanListener):
         if ctx.assignStmt() is not None:
             assert False, "Not yet implemented"
         if ctx.samplingStmt() is not None:
-            ctx.ast = [ctx.samplingStmt().ast]
+            ctx.ast = ctx.samplingStmt().ast
         if ctx.forStmt() is not None:
-            ctx.ast = [ctx.forStmt().ast]
+            ctx.ast = ctx.forStmt().ast
         if ctx.conditionalStmt() is not None:
-            ctx.ast = [ctx.conditionalStmt().ast]
+            ctx.ast = ctx.conditionalStmt().ast
         if ctx.whileStmt() is not None:
             assert False, "Not yet implemented"
         if ctx.blockStmt() is not None:
@@ -235,7 +235,7 @@ class Printer(stanListener):
             assert False, "Not yet implemented"
 
     def exitStatementsOpt(self, ctx):
-        ctx.ast = gatherChildrenASTList(ctx)
+        ctx.ast = gatherChildrenAST(ctx)
 
     # Program blocks (section 6)
 
