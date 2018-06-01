@@ -135,6 +135,7 @@ class Printer(stanListener):
     # Statements (section 5)
 
     # Assignment (section 5.1)
+
     def exitLvalue(self, ctx):
         id = ctx.IDENTIFIER().getText()
         if ctx.expressionCommaList() is not None:
@@ -145,6 +146,28 @@ class Printer(stanListener):
                 ctx=Load())
         else:
             ctx.ast = Name(id=id, ctx=Load())
+
+    def exitAssignStmt(self, ctx):
+        lvalue = ctx.lvalue().ast
+        expr = ctx.expression().ast
+        if ctx.op is not None:
+            op = None
+            if ctx.PLUS_EQ() is not None:
+                op = Add()
+            if ctx.MINUS_EQ() is not None:
+                op = Sub()
+            if ctx.MULT_EQ() or ctx.DOT_MULT_EQ() is not None:
+                op = Mult()
+            if ctx.DIV_EQ() or ctx.DOT_DIV_EQ() is not None:
+                op = Div()
+            ctx.ast = AugAssign(
+                target=lvalue,
+                op=op,
+                value=expr)
+        else:
+            ctx.ast = Assign(
+                targets=[lvalue],
+                value=expr)
 
     # Sampling (section 5.3)
 
@@ -205,18 +228,18 @@ class Printer(stanListener):
 
     def exitConditionalStmt(self, ctx):
         expr = ctx.expression().ast
-        orstmt = ctx.s2.ast if ctx.s2 is not None else []
+        orstmt = [ctx.s2.ast] if ctx.s2 is not None else []
         ctx.ast = If(
             test=expr,
             body=[ctx.s1.ast],
-            orelse=[orstmt],
+            orelse=orstmt,
         )
 
     # statements
 
     def exitStatement(self, ctx):
         if ctx.assignStmt() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = ctx.assignStmt().ast
         if ctx.samplingStmt() is not None:
             ctx.ast = ctx.samplingStmt().ast
         if ctx.forStmt() is not None:
