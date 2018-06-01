@@ -87,53 +87,50 @@ class Printer(stanListener):
         if ctx.TRANSPOSE_OP() is not None:
             assert False, "Not yet implemented"
         elif ctx.POW_OP() is not None:
-            exprs = ctx.expression()
             ctx.ast = BinOp(
-                left=exprs[0].ast,
+                left=ctx.e1.ast,
                 op=Pow(),
-                right=exprs[1].ast,)
+                right=ctx.e2.ast,)
         elif ctx.DOT_MULT_OP() is not None:
             # Mult on tensors
-            exprs = ctx.expression()
             ctx.ast = BinOp(
-                left=exprs[0].ast,
+                left=ctx.e1.ast,
                 op=Mult(),
-                right=exprs[1].ast)
+                right=ctx.e2.ast)
         elif ctx.DOT_DIV_OP() is not None:
             # Div on tensors
-            exprs = ctx.expression()
             ctx.ast = BinOp(
-                left=exprs[0].ast,
+                left=ctx.e1.ast,
                 op=Div(),
-                right=exprs[1].ast)
+                right=ctx.e2.ast)
         elif ctx.LEFT_DIV_OP() is not None:
             assert False, "Not yet implemented"
         elif ctx.AND_OP() is not None:
-            exprs = ctx.expression()
             ctx.ast = BoolOp(
                 op=And(),
                 values=[
-                    exprs[0].ast,
-                    exprs[1].ast])
+                    ctx.e1.ast,
+                    ctx.e2.ast])
         elif ctx.OR_OP() is not None:
-            exprs = ctx.expression()
             ctx.ast = BoolOp(
                 op=Or(),
                 values=[
-                    exprs[0].ast,
-                    exprs[1].ast])
+                    ctx.e1.ast,
+                    ctx.e2.ast])
         elif '?' in ctx.getText():
-            exprs = ctx.expression()
             ctx.ast = IfExp(
-                test=exprs[0].ast,
-                body=exprs[1].ast,
-                orelse=exprs[2].ast)
+                test=ctx.e1.ast,
+                body=ctx.e2.ast,
+                orelse=ctx.e3.ast)
         else:
             # All other cases are similar to Python syntax
             ctx.ast = parseExpr(ctx.getText())
 
     def exitExpressionCommaList(self, ctx):
         ctx.ast = gatherChildrenAST(ctx)
+
+    def exitExpressionCommaListOpt(self, ctx):
+        ctx.ast = gatherChildrenASTList(ctx)
 
     # Statements (section 5)
 
@@ -162,6 +159,8 @@ class Printer(stanListener):
     def exitSamplingStmt(self, ctx):
         lvalue = ctx.lvalueSampling().ast
         if ctx.PLUS_EQ() is not None:
+            assert False, 'Not yet implemented'
+        elif ctx.truncation() is not None:
             assert False, 'Not yet implemented'
         else:
             id = ctx.IDENTIFIER()[0].getText()
@@ -202,6 +201,17 @@ class Printer(stanListener):
                 body=body,
                 orelse=[])
 
+    # Conditional statements (section 5.5)
+
+    def exitConditionalStmt(self, ctx):
+        expr = ctx.expression().ast
+        orstmt = ctx.s2.ast if ctx.s2 is not None else []
+        ctx.ast = If(
+            test=expr,
+            body=ctx.s1.ast,
+            orelse=orstmt,
+        )
+
     # statements
 
     def exitStatement(self, ctx):
@@ -212,7 +222,7 @@ class Printer(stanListener):
         if ctx.forStmt() is not None:
             ctx.ast = [ctx.forStmt().ast]
         if ctx.conditionalStmt() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = [ctx.conditionalStmt().ast]
         if ctx.whileStmt() is not None:
             assert False, "Not yet implemented"
         if ctx.blockStmt() is not None:
