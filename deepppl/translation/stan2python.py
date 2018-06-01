@@ -254,8 +254,27 @@ class Printer(stanListener):
         ctx.ast = If(
             test=NameConstant(value=True),
             body=body,
-            orelse=[],
-        )
+            orelse=[],)
+
+    # Functions calls (sections 5.9 and 5.10)
+
+    def exitCallStmt(self, ctx):
+        id = ctx.IDENTIFIER().getText()
+        args = ctx.expressionOrStringCommaList().ast
+        ctx.ast = Expr(
+            value=Call(
+                func=Name(id=id, ctx=Load()),
+                args=args,
+                keywords=[],))
+
+    def exitExpressionOrString(self, ctx):
+        if ctx.expression() is not None:
+            ctx.ast = ctx.expression().ast
+        else:
+            ctx.ast = Str(s=ctx.getText())
+
+    def exitExpressionOrStringCommaList(self, ctx):
+        ctx.ast = gatherChildrenAST(ctx)
 
     # statements
 
@@ -273,11 +292,11 @@ class Printer(stanListener):
         if ctx.blockStmt() is not None:
             ctx.ast = ctx.blockStmt().ast
         if ctx.callStmt() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = ctx.callStmt().ast
         if ctx.BREAK() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = Break()
         if ctx.CONTINUE() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = Continue()
 
     def exitStatementsOpt(self, ctx):
         ctx.ast = gatherChildrenAST(ctx)
