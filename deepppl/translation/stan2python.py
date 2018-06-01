@@ -235,6 +235,28 @@ class Printer(stanListener):
             orelse=orstmt,
         )
 
+    # While loops (section 5.6)
+
+    def exitWhileStmt(self, ctx):
+        expr = ctx.expression().ast
+        stmt = ctx.statement().ast
+        ctx.ast = While(
+            test=expr,
+            body=[stmt],
+            orelse=[],
+        )
+
+    # Blocks (section 5.7)
+
+    def exitBlockStmt(self, ctx):
+        body = gatherChildrenASTList(ctx)
+        # Hack: Blocks do not exist in python, replaced by `if True: ...`
+        ctx.ast = If(
+            test=NameConstant(value=True),
+            body=body,
+            orelse=[],
+        )
+
     # statements
 
     def exitStatement(self, ctx):
@@ -247,9 +269,9 @@ class Printer(stanListener):
         if ctx.conditionalStmt() is not None:
             ctx.ast = ctx.conditionalStmt().ast
         if ctx.whileStmt() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = ctx.whileStmt().ast
         if ctx.blockStmt() is not None:
-            assert False, "Not yet implemented"
+            ctx.ast = ctx.blockStmt().ast
         if ctx.callStmt() is not None:
             assert False, "Not yet implemented"
         if ctx.BREAK() is not None:
