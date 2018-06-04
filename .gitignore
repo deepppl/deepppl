@@ -10,6 +10,8 @@ deepppl/parser/stanLexer.interp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.vscode/
+.antlr/
 *.py[cod]
 *$py.class
 
