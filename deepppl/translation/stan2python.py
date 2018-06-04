@@ -143,9 +143,9 @@ class Printer(stanListener):
             ctx.ast = Subscript(
                 value=Name(id=id, ctx=Load()),
                 slice=Index(value=idx),
-                ctx=Load())
+                ctx=Store())
         else:
-            ctx.ast = Name(id=id, ctx=Load())
+            ctx.ast = Name(id=id, ctx=Store())
 
     def exitAssignStmt(self, ctx):
         lvalue = ctx.lvalue().ast
@@ -326,3 +326,4 @@ class Printer(stanListener):
         astpretty.pprint(ctx.ast)
         print('\n-----------------\n')
         print(astor.to_source(ctx.ast))
+        exec(compile(ctx.ast, filename="<ast>", mode="exec"))
