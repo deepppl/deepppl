@@ -33,16 +33,10 @@ model {
 Output:
 ```python
 import torch
-from torch.distributions import Uniform, Bernoulli
-
-# Data
+from torch.distributions import *
 x = torch.zeros([10])
-
-# Parameters
 theta = torch.zeros([])
-
-# Model
-theta = Uniform(0,1).sample()
-for i in range(1,10):
+theta = Uniform(0, 1).sample()
+for i in range(1 - 1, 10):
     x[i] = Bernoulli(theta).sample()
 ```
