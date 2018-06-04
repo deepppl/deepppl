@@ -326,4 +326,5 @@ class Printer(stanListener):
         astpretty.pprint(ctx.ast)
         print('\n-----------------\n')
         print(astor.to_source(ctx.ast))
+        print('\n-----------------\n')
         exec(compile(ctx.ast, filename="<ast>", mode="exec"))
