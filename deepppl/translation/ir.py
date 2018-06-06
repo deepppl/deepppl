@@ -72,6 +72,11 @@ class ContinueStmt(Statements):
 class Expression(Statements):
     pass
 
+class Constant(Expression):
+    def __init__(self, value = None):
+        super(Constant, self).__init__()
+        self.value = value
+
 class Tuple(Expression):
     def __init__(self, exprs = None):
         super(Tuple, self).__init__()
