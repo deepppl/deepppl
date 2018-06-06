@@ -18,7 +18,7 @@ import sys
 from antlr4 import *
 from parser.stanLexer import stanLexer
 from parser.stanParser import stanParser
-from translation.stan2python import Printer
+from translation.stan2ir import StanToIR
 
 def main(argv):
     input = FileStream(argv[1])
@@ -27,7 +27,7 @@ def main(argv):
     parser = stanParser(stream)
     tree = parser.program()
     # print(tree.toStringTree(recog=parser))
-    printer = Printer()
+    printer = StanToIR()
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
 
