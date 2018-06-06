@@ -27,13 +27,6 @@ else:
     from ir import *
 
 
-def parseExpr(expr):
-    print('parse')
-    print(expr)
-    node = ast.parse(expr).body[0].value
-    return node
-
-
 def gatherChildrenIRList(ctx):
     ast = []
     if ctx.children is not None:
@@ -74,8 +67,26 @@ class StanToIR(stanListener):
 
     # Vector, matrix and array expressions (section 4.2)
 
+
+    def exitConstant(self, ctx):
+        if ctx.IntegerLiteral() is not None:
+            f = int
+        elif ctx.RealLiteral() is not None:
+            f = float
+        else:
+            assert False, "Unknonwn literal"
+        ctx.ir = Constant(value = f(ctx.getText()))
+
+    def exitVariable(self, ctx):
+        ctx.ir = Variable(id = ctx.getText())
+
     def exitAtom(self, ctx):
-        ctx.ir = parseExpr(ctx.getText())
+        if ctx.constant() is not None:
+            ctx.ir = ctx.constant().ir
+        elif ctx.variable() is not None:
+            ctx.ir = ctx.variable().ir
+        else:
+            assert False, "Not yet implemented atom"
 
     def exitExpression(self, ctx):
         if ctx.atom() is not None:
@@ -84,7 +95,6 @@ class StanToIR(stanListener):
         if ctx.TRANSPOSE_OP() is not None:
             assert False, "Not yet implemented"
         else:
-            print(ctx.getText())
             left = ctx.e1.ir
             right = ctx.e2.ir
             op = None
@@ -176,8 +186,8 @@ class StanToIR(stanListener):
         id = ctx.IDENTIFIER().getText()
         body = ctx.statement().ir if hasattr(ctx.statement(), 'ir') else None
         atom = ctx.atom()
-        from_ = atom[0]
-        to_ = atom[1] if len(atom) > 1 else None
+        from_ = atom[0].ir
+        to_ = atom[1].ir if len(atom) > 1 else None
         ctx.ir = ForStmt(id = id, 
                         from_ = from_, 
                         to_ = to_, 
