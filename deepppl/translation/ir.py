@@ -1,11 +1,17 @@
 class IR(object):
     def is_variable_decl(self):
         return False
+
+    def accept(self, visitor):
+        raise NotImplementedError
     
 class Program(IR):
     def __init__(self, body = []):
         super(Program, self).__init__()
         self.body = body
+
+    def accept(self, visitor):
+        return visitor.visitProgam(self)
 
 class ProgramBlocks(IR):
     pass
@@ -24,6 +30,10 @@ class AssignStmt(Statements):
         super(AssignStmt, self).__init__()
         self.target = target
         self.value = value
+    
+    def accept(self, visitor):
+        return visitor.visitAssign(self)
+    
 
 class SamplingStmt(Statements):
     def __init__(self, target = None, id = None, args = None):
@@ -31,6 +41,9 @@ class SamplingStmt(Statements):
         self.target = target
         self.id = id
         self.args = args
+
+    def accept(self, visitor):
+        return visitor.visitSampling(self)   
 
 class ForStmt(Statements):
     def __init__(self, id = None, from_ = None, to_ = None, body = None):
@@ -40,6 +53,9 @@ class ForStmt(Statements):
         self.to_ = to_
         self.body = body
 
+    def accept(self, visitor):
+        return visitor.visitFor(self)   
+
 class ConditionalStmt(Statements):
     def __init__(self, test = None, true = None, false = None):
         super(ConditionalStmt, self).__init__()
@@ -47,22 +63,34 @@ class ConditionalStmt(Statements):
         self.true = true
         self.false = false
 
+    def accept(self, visitor):
+        return visitor.visitConditional(self)   
+
 class WhileStmt(Statements):
     def __init__(self, test = None, body = None):
         super(WhileStmt, self).__init__()
         self.test = test
         self.body = body
 
+    def accept(self, visitor):
+        return visitor.visitWhile(self)   
+
 class BlockStmt(Statements):
     def __init__(self, body = None):
         super(BlockStmt, self).__init__()
         self.body = body
+
+    def accept(self, visitor):
+        return visitor.visitBlock(self)   
 
 class CallStmt(Statements):
     def __init__(self, id = None, args = None):
         super(CallStmt, self).__init__()
         self.id = id
         self.args = args
+
+    def accept(self, visitor):
+        return visitor.visitCall(self)   
 
 class BreakStmt(Statements):
     pass
@@ -78,15 +106,32 @@ class Constant(Expression):
         super(Constant, self).__init__()
         self.value = value
 
+    def accept(self, visitor):
+        return visitor.visitConstant(self)   
+
 class Tuple(Expression):
     def __init__(self, exprs = None):
         super(Tuple, self).__init__()
         self.exprs = exprs
 
+    def accept(self, visitor):
+        return visitor.visitTuple(self)   
+
 class Str(Expression):
     def __init__(self, value = None):
         super(Str, self).__init__()
         self.value = value
+
+    def accept(self, visitor):
+        return visitor.visitStr(self)
+
+class List(Expression):
+    def __init__(self, elements = []):
+        super(List, self).__init__()
+        self.elements = elements
+
+    def accept(self, visitor):
+        return visitor.visitList(self)  
 
 class BinaryOperator(Expression):
     def __init__(self, left = None, op = None, right = None):
@@ -95,11 +140,17 @@ class BinaryOperator(Expression):
         self.right = right
         self.op = op
 
+    def accept(self, visitor):
+        return visitor.visitBinary(self)   
+
 class Subscript(Expression):
     def __init__(self, id = None, index = None):
         super(Subscript, self).__init__()
         self.id = id
         self.index = index
+
+    def accept(self, visitor):
+        return visitor.visitSubscript(self)   
 
 class VariableDecl(IR):
     def __init__(self, id = None, dim = None, init = None):
@@ -115,8 +166,14 @@ class VariableDecl(IR):
     def set_data(self):
         self.data = True
 
+    def accept(self, visitor):
+        return visitor.visitVariableDecl(self)   
+
 class Variable(Expression):
     def __init__(self, id = None):
         super(Variable, self).__init__()
         self.id = id
+
+    def accept(self, visitor):
+        return visitor.visitVariable(self)   
 
