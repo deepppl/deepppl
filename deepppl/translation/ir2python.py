@@ -54,7 +54,7 @@ class ISDataVisitor(IRVisitor):
 
     def checkContext(self, id):
         ctx = self.ir2py.context
-        return id in ctx and ctx[id]
+        return id in ctx and ctx[id].data
 
     def visitVariable(self, var):
         return self.checkContext(var.id)
@@ -100,8 +100,12 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitCall(self, call):
         ## TODO id is a string!
-        id = call.id
+        id = ast.Name(id = call.id, ctx=ast.Load())
         args = call.args.accept(self)
+        if args:
+            args = [x for x in args.elts]
+        else:
+            args = []
         return  ast.Call(func=id,
                         args=args,
                         keywords=[])
@@ -117,7 +121,7 @@ class Ir2PythonVisitor(IRVisitor):
                                                         ctx= ast.Load()),
                                         args = [from_, to_],
                                         keywords=[]),
-                        body = [body],
+                        body = [ast.Expr(body)], ## XXX
                         orelse = [])       
 
     def visitSubscript(self, subscript):
@@ -152,7 +156,7 @@ class Ir2PythonVisitor(IRVisitor):
                     args=[],
                     keywords=keywords)
         if is_data:
-            return call       
+            return call
         else:
             return ast.Assign(
                 targets=[target],
