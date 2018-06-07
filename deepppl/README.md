@@ -12,7 +12,7 @@ pip install astpretty astor
 # Test
 
 ```
-python test.py tests/good/coin.stan
+python dpplc.py tests/good/coin.stan
 ```
 
 Input:
