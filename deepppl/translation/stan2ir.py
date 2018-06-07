@@ -265,6 +265,9 @@ class StanToIR(stanListener):
 
     def exitDataBlock(self, ctx):
         ctx.ir = gatherChildrenIRList(ctx)
+        for ir in ctx.ir:
+            if ir.is_variable_decl():
+                ir.set_data()
 
     def exitParametersBlock(self, ctx):
         ctx.ir = gatherChildrenIRList(ctx)

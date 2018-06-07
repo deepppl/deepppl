@@ -1,5 +1,6 @@
 class IR(object):
-    pass
+    def is_variable_decl(self):
+        return False
     
 class Program(IR):
     def __init__(self, body = []):
@@ -106,6 +107,13 @@ class VariableDecl(IR):
         self.id = id
         self.dim = dim
         self.init = init
+        self.data = False
+
+    def is_variable_decl(self):
+        return True
+
+    def set_data(self):
+        self.data = True
 
 class Variable(Expression):
     def __init__(self, id = None):
