@@ -21,28 +21,30 @@ from parser.stanListener import stanListener
 import astor
 import astpretty
 import torch
+import ipdb
 if __name__ is not None and "." in __name__:
     from .ir import *
+    from .ir2python import *
 else:
     from ir import *
 
 
 def gatherChildrenIRList(ctx):
-    ast = []
+    irs = []
     if ctx.children is not None:
         for child in ctx.children:
             if hasattr(child, 'ir') and child.ir is not None:
-                ast += child.ir
-        return ast
+                irs += child.ir
+        return irs
 
 
 def gatherChildrenIR(ctx):
-    ast = []
+    irs = []
     if ctx.children is not None:
         for child in ctx.children:
             if hasattr(child, 'ir') and child.ir is not None:
-                ast.append(child.ir)
-        return ast
+                irs.append(child.ir)
+        return irs
 
 
 def idxFromExprList(exprList):
@@ -56,11 +58,11 @@ def idxFromExprList(exprList):
 class StanToIR(stanListener):
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
-        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else []
+        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
         ctx.ir = VariableDecl(id = vid, dim = dims)
 
     def exitArrayDim(self, ctx):
-        ctx.ir = ctx.expressionCommaList().ir
+        ctx.ir = List(elements = ctx.expressionCommaList().ir)
 
     def exitVariableDeclsOpt(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)
@@ -121,6 +123,8 @@ class StanToIR(stanListener):
                 assert False, "Not yet implemented"
 
     def exitExpressionCommaList(self, ctx):
+        ## TODO: check wheter we want to build a list of statements
+        ## or a List node
         ctx.ir = gatherChildrenIR(ctx)
 
     def exitExpressionCommaListOpt(self, ctx):
@@ -224,7 +228,7 @@ class StanToIR(stanListener):
 
     def exitCallStmt(self, ctx):
         id = ctx.IDENTIFIER().getText()
-        args = ctx.expressionOrStringCommaList().ir
+        args = List(elements = ctx.expressionOrStringCommaList().ir)
         ctx.ir = CallStmt(id = id, args = args)
 
     def exitExpressionOrString(self, ctx):
@@ -278,3 +282,13 @@ class StanToIR(stanListener):
     def exitProgram(self, ctx):
         body = gatherChildrenIRList(ctx)
         ctx.ir = Program(body = body)
+        import ipdb
+        visitor = Ir2PythonVisitor()
+        body2 = [x.accept(visitor) for x in body]
+        module = ast.Module()
+        module.body = [x for x in body2 if x]
+        ast.fix_missing_locations(module)
+        astpretty.pprint(module)
+        ipdb.set_trace()
+        astor.to_source(module)
+        
