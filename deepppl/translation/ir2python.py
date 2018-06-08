@@ -71,6 +71,11 @@ class Ir2PythonVisitor(IRVisitor):
         self.ast = []
         self.is_data_visitor = ISDataVisitor(self)
 
+    def _ensureStmt(self, node):
+        if isinstance(node, ast.stmt):
+            return node
+        else:
+            return ast.Expr(node)
 
     def visitConstant(self, const):
         return ast.Num(const.value)
@@ -118,12 +123,13 @@ class Ir2PythonVisitor(IRVisitor):
         from_, to_, body = [x.accept(self) for x in \
                                     (forstmt.from_, forstmt.to_,
                                     forstmt.body)]
+        body = self._ensureStmt(body)
         return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
                         iter = ast.Call(func = ast.Name(id = 'range', 
                                                         ctx= ast.Load()),
                                         args = [from_, to_],
                                         keywords=[]),
-                        body = [ast.Expr(body)], ## XXX
+                        body = [body], ## XXX
                         orelse = [])       
 
     def visitSubscript(self, subscript):
@@ -165,7 +171,8 @@ class Ir2PythonVisitor(IRVisitor):
                 value = call)
 
     def visitProgram(self, ir):
-        body = [element.accept(self) for element in ir.body]
+        to_ast = lambda element: self._ensureStmt(element.accept(self))
+        body = [to_ast(element) for element in ir.body]
         module = ast.Module()
         module.body = [
             ast.Import(names=[ast.alias(name='torch', asname=None)]),
