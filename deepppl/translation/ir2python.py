@@ -83,6 +83,9 @@ class PythonASTHelper(object):
     def loadAttr(self, obj, attr):
         return ast.Attribute(value = obj, attr = attr, ctx = ast.Load())
 
+    def import_(self, name, asname = None):
+        return ast.Import(names=[ast.alias(name=name, asname=asname)])
+
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor).__init__()
@@ -100,11 +103,28 @@ class Ir2PythonVisitor(IRVisitor):
     def loadName(self, name):
         return self.helper.loadName(name)
 
+    def import_(self, name, asname = None):
+        return self.helper.import_(name, asname = asname)
+
     def loadAttr(self, obj, attr):
         return self.helper.loadAttr(obj, attr)
 
     def call(self, id,  args = [], keywords = []):
         return self.helper.call(id, args = args, keywords = keywords)
+
+    def targetToName(self, target):
+        if isinstance(target, ast.Name):
+            return ast.Str(target.id)
+        elif isinstance(target, ast.Subscript):
+            base = self.targetToName(target.value)
+            arg = target.slice.value
+            format = self.loadAttr(ast.Str('{}'), 'format')
+            formatted = self.call(format, args = [arg,])
+            return ast.BinOp(left = base,
+                             right = formatted,
+                             op = ast.Add())
+        else:
+            assert False, "Don't know how to stringfy: {}".format(target)
 
     def visitConstant(self, const):
         return ast.Num(const.value)
@@ -185,9 +205,13 @@ class Ir2PythonVisitor(IRVisitor):
             keywords = [ast.keyword(arg='obs', value = target)]
         else:
             keywords = []
-        dist = self.call(self.loadName(id), args=args)
-        sample = self.loadAttr(dist, 'sample')
-        call = self.call(sample, keywords=keywords)
+        target_name = self.targetToName(target)
+        sample = self.loadAttr('pyro', 'sample')
+        dist = self.call(self.loadAttr('dist', self.loadName(id)),
+                         args = args)
+        call = self.call(sample,
+                        args = [target_name, dist],
+                        keywords=keywords)
         if is_data:
             return call
         else:
@@ -200,11 +224,9 @@ class Ir2PythonVisitor(IRVisitor):
         body = [to_ast(element) for element in ir.body]
         module = ast.Module()
         module.body = [
-            ast.Import(names=[ast.alias(name='torch', asname=None)]),
-            ast.ImportFrom(
-                module='torch.distributions',
-                names=[ast.alias(name='*', asname=None)],
-                level=0)]
+            self.import_('torch'),
+            self.import_('pyro'),
+            self.import_('pyro.distributions', 'dist')]
         module.body += [x for x in body if x]
         ast.fix_missing_locations(module)
         astpretty.pprint(module)
