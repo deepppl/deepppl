@@ -1,8 +1,10 @@
 import ast
 import torch
+import astpretty
+import astor
 
 class IRVisitor(object):
-    def visitProgam(self, ir):
+    def visitProgram(self, ir):
         raise NotImplementedError
 
     def visitAssign(self, ir):
@@ -161,7 +163,26 @@ class Ir2PythonVisitor(IRVisitor):
             return ast.Assign(
                 targets=[target],
                 value = call)
+
+    def visitProgram(self, ir):
+        body = [element.accept(self) for element in ir.body]
+        module = ast.Module()
+        module.body = [
+            ast.Import(names=[ast.alias(name='torch', asname=None)]),
+            ast.ImportFrom(
+                module='torch.distributions',
+                names=[ast.alias(name='*', asname=None)],
+                level=0)]
+        module.body += [x for x in body if x]
+        ast.fix_missing_locations(module)
+        astpretty.pprint(module)
+        print(astor.to_source(module))
             
+
+
+def ir2python(ir):
+    visitor = Ir2PythonVisitor()
+    ir.accept(visitor)
 
 
 

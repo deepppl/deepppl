@@ -19,6 +19,7 @@ from antlr4 import *
 from parser.stanLexer import stanLexer
 from parser.stanParser import stanParser
 from translation.stan2ir import StanToIR
+from translation.ir2python import ir2python
 
 def main(argv):
     input = FileStream(argv[1])
@@ -30,6 +31,7 @@ def main(argv):
     printer = StanToIR()
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
+    ir2python(tree.ir)
 
 if __name__ == '__main__':
     main(sys.argv)
