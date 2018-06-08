@@ -49,17 +49,13 @@ class IRVisitor(object):
     def visitVariable(self, ir):
         raise NotImplementedError
 
-class ISDataVisitor(IRVisitor):
+class TargetVisitor(IRVisitor):
     def __init__(self, ir2py):
-        super(ISDataVisitor, self).__init__()
+        super(TargetVisitor, self).__init__()
         self.ir2py = ir2py
 
-    def checkContext(self, id):
-        ctx = self.ir2py.context
-        return id in ctx and ctx[id].data
-
     def visitVariable(self, var):
-        return self.checkContext(var.id)
+        return var.id
 
     def visitSubscript(self, subs):
         return subs.id.accept(self)
@@ -89,16 +85,17 @@ class PythonASTHelper(object):
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor).__init__()
-        self.context = {}
+        self.data_names = set()
         self.ast = []
-        self.is_data_visitor = ISDataVisitor(self)
+        self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
 
     def is_data(self, ir):
-        return ir.accept(self.is_data_visitor)
+        target = ir.accept(self.target_name_visitor)
+        return target in self.data_names
 
     def loadName(self, name):
         return self.helper.loadName(name)
@@ -130,7 +127,8 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.Num(const.value)
 
     def visitVariableDecl(self, decl):
-        self.context[decl.id] = decl
+        if decl.data:
+            self.data_names.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
         if decl.init:
             assert not decl.data, "Data cannot be initialized"
@@ -189,7 +187,7 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.Subscript(
                 value = id,
                 slice=ast.Index(value=idx_z),
-                ctx=ast.Store())
+                ctx=ast.Load())
 
     def visitSampling(self, sampling):
         target = sampling.target.accept(self)
@@ -206,8 +204,8 @@ class Ir2PythonVisitor(IRVisitor):
         else:
             keywords = []
         target_name = self.targetToName(target)
-        sample = self.loadAttr('pyro', 'sample')
-        dist = self.call(self.loadAttr('dist', self.loadName(id)),
+        sample = self.loadAttr(self.loadName('pyro'), 'sample')
+        dist = self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
         call = self.call(sample,
                         args = [target_name, dist],
@@ -216,13 +214,14 @@ class Ir2PythonVisitor(IRVisitor):
             return call
         else:
             return ast.Assign(
-                targets=[target],
+                targets=[ast.Name(id = target.id, ctx = ast.Store())],
                 value = call)
 
     def buildModel(self, body):
+        args = [ast.arg(name, None) for name in self.data_names]
         model = ast.FunctionDef(
             name = 'model',
-            args = ast.arguments(args = [],
+            args = ast.arguments(args = args,
                                  vararg = None,
                                  kwonlyargs = [],
                                  kw_defaults=[],
@@ -230,28 +229,30 @@ class Ir2PythonVisitor(IRVisitor):
                                  defaults=[]),
             body = body,
             decorator_list = [],
-            returns = []
+            returns = None
         )
         return model
 
     def visitProgram(self, ir):
-        to_ast = lambda element: self._ensureStmt(element.accept(self))
-        body = [to_ast(element) for element in ir.body]
+        python_nodes = [element.accept(self) for element in ir.body]
+        body = [self._ensureStmt(node) for node in python_nodes if node]
         module = ast.Module()
         module.body = [
             self.import_('torch'),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
-        module.body.append(self.buildModel([x for x in body if x]))
+        module.body.append(self.buildModel([x for x in body]))
         ast.fix_missing_locations(module)
         astpretty.pprint(module)
         print(astor.to_source(module))
+        return module
+
             
 
 
 def ir2python(ir):
     visitor = Ir2PythonVisitor()
-    ir.accept(visitor)
+    return ir.accept(visitor)
 
 
 

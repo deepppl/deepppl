@@ -21,6 +21,11 @@ from parser.stanParser import stanParser
 from translation.stan2ir import StanToIR
 from translation.ir2python import ir2python
 
+
+import torch
+import pyro
+import pyro.distributions as dist
+
 def main(argv):
     input = FileStream(argv[1])
     lexer = stanLexer(input)
@@ -31,7 +36,15 @@ def main(argv):
     printer = StanToIR()
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
-    ir2python(tree.ir)
+    return ir2python(tree.ir)
 
 if __name__ == '__main__':
-    main(sys.argv)
+    import pandas as pd
+    ast_ = main(sys.argv)
+    co = compile(ast_, "<ast>", 'exec')
+    eval(co)
+    x = torch.Tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+    posterior = pyro.infer.Importance(model, num_samples=1000)
+    marginal = pyro.infer.EmpiricalMarginal(posterior.run(x), sites='theta')
+    serie = pd.Series([marginal().item() for _ in range(1000)])
+    print(serie.describe())
