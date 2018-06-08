@@ -151,7 +151,10 @@ class Ir2PythonVisitor(IRVisitor):
         body, from_, to_ = [x.accept(self) for x in (forstmt.body,
                                                     forstmt.from_,
                                                     forstmt.to_)]
-        interval = [from_, to_]
+        incl_to = ast.BinOp(left = to_, 
+                            right = ast.Num(1), 
+                            op = ast.Add())
+        interval = [from_, incl_to]
         iter = self.call(self.loadName('range'), 
                                 interval)
         body = self._ensureStmt(body)
@@ -162,10 +165,10 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitSubscript(self, subscript):
         id, idx = [x.accept(self) for x in (subscript.id, subscript.index)]
-        ## TODO: transform index to zero-based
+        idx_z = ast.BinOp(left = idx, right = ast.Num(1), op = ast.Sub())
         return ast.Subscript(
                 value = id,
-                slice=ast.Index(value=idx),
+                slice=ast.Index(value=idx_z),
                 ctx=ast.Store())
 
     def visitSampling(self, sampling):
