@@ -219,6 +219,21 @@ class Ir2PythonVisitor(IRVisitor):
                 targets=[target],
                 value = call)
 
+    def buildModel(self, body):
+        model = ast.FunctionDef(
+            name = 'model',
+            args = ast.arguments(args = [],
+                                 vararg = None,
+                                 kwonlyargs = [],
+                                 kw_defaults=[],
+                                 kwarg=None,
+                                 defaults=[]),
+            body = body,
+            decorator_list = [],
+            returns = []
+        )
+        return model
+
     def visitProgram(self, ir):
         to_ast = lambda element: self._ensureStmt(element.accept(self))
         body = [to_ast(element) for element in ir.body]
@@ -227,7 +242,7 @@ class Ir2PythonVisitor(IRVisitor):
             self.import_('torch'),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
-        module.body += [x for x in body if x]
+        module.body.append(self.buildModel([x for x in body if x]))
         ast.fix_missing_locations(module)
         astpretty.pprint(module)
         print(astor.to_source(module))
