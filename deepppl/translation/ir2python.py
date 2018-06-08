@@ -64,18 +64,47 @@ class ISDataVisitor(IRVisitor):
     def visitSubscript(self, subs):
         return subs.id.accept(self)
 
+"Helper class for common `ast` objects"
+class PythonASTHelper(object):
+    def ensureStmt(self, node):
+        if isinstance(node, ast.stmt):
+            return node
+        else:
+            return ast.Expr(node)
+
+    def call(self, func, args = [], keywords = []):
+        return ast.Call(func = func,
+                        args=args,
+                        keywords=keywords)
+
+    def loadName(self, name):
+        return ast.Name(id = name, ctx = ast.Load())
+
+    def loadAttr(self, obj, attr):
+        return ast.Attribute(value = obj, attr = attr, ctx = ast.Load())
+
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor).__init__()
         self.context = {}
         self.ast = []
         self.is_data_visitor = ISDataVisitor(self)
+        self.helper = PythonASTHelper()
 
     def _ensureStmt(self, node):
-        if isinstance(node, ast.stmt):
-            return node
-        else:
-            return ast.Expr(node)
+        return self.helper.ensureStmt(node)
+
+    def is_data(self, ir):
+        return ir.accept(self.is_data_visitor)
+
+    def loadName(self, name):
+        return self.helper.loadName(name)
+
+    def loadAttr(self, obj, attr):
+        return self.helper.loadAttr(obj, attr)
+
+    def call(self, id,  args = [], keywords = []):
+        return self.helper.call(id, args = args, keywords = keywords)
 
     def visitConstant(self, const):
         return ast.Num(const.value)
@@ -86,49 +115,48 @@ class Ir2PythonVisitor(IRVisitor):
         if decl.init:
             assert not decl.data, "Data cannot be initialized"
             init = decl.init.accept(self)
+            torch_ = self.loadName('torch')
+            zeros_fn = self.loadAttr(torch_, 'zeros')
+            dims = [ast.List(elts=dims, ctx=ast.Load())]
+            zeros = self.call(zeros_fn, args = dims)
             return ast.Assign(
                     targets=[ast.Name(id=decl.id, ctx=ast.Store())],
-                    value=ast.Call(func=ast.Attribute(
-                        value=ast.Name(id='torch', ctx=ast.Load()),
-                        attr='zeros', ctx=ast.Load()),
-                        args=[ast.List(elts=dims, ctx=ast.Load())],
-                        keywords=[]))
+                    value=zeros)
         return None
 
-    def is_data(self, ir):
-        return ir.accept(self.is_data_visitor)
 
     def visitList(self, list):
         return ast.List(elts= [x.accept(self) for x in list.elements],
                         ctx = ast.Load())
 
     def visitVariable(self, var):
-        return ast.Name(id = var.id, ctx = ast.Load())
+        return self.loadName(var.id)
 
     def visitCall(self, call):
+        return self._call(call.id, call.args)
+
+    def _call(self, id_, args_):
         ## TODO id is a string!
-        id = ast.Name(id = call.id, ctx=ast.Load())
-        args = call.args.accept(self)
+        id = self.loadName(id_)
+        args = args_.accept(self)
         if args:
             args = [x for x in args.elts]
         else:
             args = []
-        return  ast.Call(func=id,
-                        args=args,
-                        keywords=[])
+        return self.call(id, args=args)
 
     def visitFor(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
-        from_, to_, body = [x.accept(self) for x in \
-                                    (forstmt.from_, forstmt.to_,
-                                    forstmt.body)]
+        body, from_, to_ = [x.accept(self) for x in (forstmt.body,
+                                                    forstmt.from_,
+                                                    forstmt.to_)]
+        interval = [from_, to_]
+        iter = self.call(self.loadName('range'), 
+                                interval)
         body = self._ensureStmt(body)
         return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
-                        iter = ast.Call(func = ast.Name(id = 'range', 
-                                                        ctx= ast.Load()),
-                                        args = [from_, to_],
-                                        keywords=[]),
+                        iter = iter,
                         body = [body], ## XXX
                         orelse = [])       
 
@@ -154,15 +182,9 @@ class Ir2PythonVisitor(IRVisitor):
             keywords = [ast.keyword(arg='obs', value = target)]
         else:
             keywords = []
-        call = ast.Call(func= ast.Attribute(
-                    value=ast.Call(
-                        func= ast.Name(id=id, ctx=ast.Load()),
-                        args=args,
-                        keywords=[]),
-                    attr='sample',
-                    ctx=ast.Load()),
-                    args=[],
-                    keywords=keywords)
+        dist = self.call(self.loadName(id), args=args)
+        sample = self.loadAttr(dist, 'sample')
+        call = self.call(sample, keywords=keywords)
         if is_data:
             return call
         else:
