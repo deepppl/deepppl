@@ -11,7 +11,7 @@ class Program(IR):
         self.body = body
 
     def accept(self, visitor):
-        return visitor.visitProgam(self)
+        return visitor.visitProgram(self)
 
 class ProgramBlocks(IR):
     pass

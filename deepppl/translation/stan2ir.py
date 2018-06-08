@@ -282,13 +282,4 @@ class StanToIR(stanListener):
     def exitProgram(self, ctx):
         body = gatherChildrenIRList(ctx)
         ctx.ir = Program(body = body)
-        import ipdb
-        visitor = Ir2PythonVisitor()
-        body2 = [x.accept(visitor) for x in body]
-        module = ast.Module()
-        module.body = [x for x in body2 if x]
-        ast.fix_missing_locations(module)
-        astpretty.pprint(module)
-        ipdb.set_trace()
-        astor.to_source(module)
-        
+
