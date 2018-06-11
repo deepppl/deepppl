@@ -3,7 +3,7 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - pip install -r deepppl/requirements.txt
+  - pip install --progress-bar -r deepppl/requirements.txt
 # command to run tests
 script:
   - python dpplc.py tests/good/coin.stan # or py.test for Python versions 3.5 and below
