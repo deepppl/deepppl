@@ -7,12 +7,13 @@ pip install torch torchvision
 brew install antlr
 pip install antlr4-python3-runtime
 pip install astpretty astor
+pip install ipdb
 ```
 
 # Test
 
 ```
-python test.py tests/good/coin.stan
+python dpplc.py tests/good/coin.stan
 ```
 
 Input:
