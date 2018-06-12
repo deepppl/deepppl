@@ -44,7 +44,7 @@ def test_coin_vectorized():
 
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(strict=True)
 def test_coin_reverted_lines():
     """Inside a `block`, stan semantics do not requires lines to be 
     ordered.
