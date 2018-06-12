@@ -16,6 +16,7 @@
 
 import dpplc
 import ast
+import pytest
 
 def code_to_normalized(code):
     return ast.dump(ast.parse(code))
@@ -23,18 +24,9 @@ def code_to_normalized(code):
 
 def test_coin():
     filename = r'tests/good/coin.stan'
-    target_code = """
-import torch
-import pyro
-import pyro.distributions as dist
-
-
-def model(x):
-    theta = pyro.sample('theta', dist.Uniform(0, 1))
-    for i in range(1, 10 + 1):
-        pyro.sample('x' + '{}'.format(i - 1), dist.Bernoulli(theta), obs=x[
-            i - 1])
-""" 
+    target_file = r'tests/target_py/coin.py'
+    with open(target_file) as f:
+        target_code = f.read() 
     target = code_to_normalized(target_code)
     
     compiled = dpplc.stan2astpyFile(filename)
@@ -42,16 +34,25 @@ def model(x):
 
 def test_coin_vectorized():
     filename = r'tests/good/coin_vectorized.stan'
-    target_code = """
-import torch
-import pyro
-import pyro.distributions as dist
+    target_file = r'tests/target_py/coin_vectorized.py'
+    with open(target_file) as f:
+        target_code = f.read() 
+    target = code_to_normalized(target_code)
+    
+    compiled = dpplc.stan2astpyFile(filename)
+    assert code_to_normalized(compiled) == target
 
 
-def model(x):
-    theta = pyro.sample('theta', dist.Uniform(0, 1))
-    pyro.sample('x', dist.Bernoulli(theta), obs=x)
-""" 
+
+@pytest.mark.xfail
+def test_coin_reverted_lines():
+    """Inside a `block`, stan semantics do not requires lines to be 
+    ordered.
+    """
+    filename = r'tests/good/coin_reverted.stan'
+    target_file = r'tests/target_py/coin_vectorized.py'
+    with open(target_file) as f:
+        target_code = f.read() 
     target = code_to_normalized(target_code)
     
     compiled = dpplc.stan2astpyFile(filename)
