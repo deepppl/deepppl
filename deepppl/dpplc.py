@@ -26,17 +26,23 @@ import torch
 import pyro
 import pyro.distributions as dist
 
-def main(argv):
-    input = FileStream(argv[1])
-    lexer = stanLexer(input)
+def stan2astpy(stream):
+    lexer = stanLexer(stream)
     stream = CommonTokenStream(lexer)
     parser = stanParser(stream)
     tree = parser.program()
-    # print(tree.toStringTree(recog=parser))
-    printer = StanToIR()
+    toIr = StanToIR()
     walker = ParseTreeWalker()
-    walker.walk(printer, tree)
+    walker.walk(toIr, tree)
     return ir2python(tree.ir)
+
+def stan2astpyFile(filename):
+    stream = FileStream(filename)
+    return stan2astpy(stream)
+
+def main(argv):
+    return stan2astpyFile(argv[1])
+
 
 if __name__ == '__main__':
     import pandas as pd
