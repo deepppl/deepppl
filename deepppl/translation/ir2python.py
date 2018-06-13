@@ -66,6 +66,8 @@ class PythonASTHelper(object):
         if isinstance(node, ast.stmt):
             return node
         else:
+            if type(node) == type([]):
+                return [self.ensureStmt(x) for x in node]
             return ast.Expr(node)
 
     def call(self, func, args = [], keywords = []):
@@ -176,19 +178,22 @@ class Ir2PythonVisitor(IRVisitor):
         iter = self.call(self.loadName('range'), 
                                 interval)
         body = self._ensureStmt(body)
+        ## XXX
+        body = body if type(body) == type([]) else [body] 
         return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
                         iter = iter,
-                        body = [body], ## XXX
+                        body = body, 
                         orelse = [])
 
     def visitConditional(self, conditional):
         test, true = [x.accept(self) for x in (conditional.test,
                                                conditional.true)]
         true = self._ensureStmt(true)
+        true = true if type(true) == type([]) else [true]
         false = conditional.false.accept(self) if conditional.false else []
         if false:
             false = self._ensureStmt(false)
-        return ast.If(test=test, body=[true], orelse=false)
+        return ast.If(test=test, body=true, orelse=false)
 
 
     def visitBlock(self, block):
