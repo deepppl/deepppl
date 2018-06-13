@@ -7,25 +7,25 @@ class IRVisitor(object):
     def visitProgram(self, ir):
         raise NotImplementedError
 
-    def visitAssign(self, ir):
+    def visitAssignStmt(self, ir):
         raise NotImplementedError
 
-    def visitSampling(self, ir):
+    def visitSamplingStmt(self, ir):
         raise NotImplementedError
 
-    def visitFor(self, ir):
+    def visitForStmt(self, ir):
         raise NotImplementedError
 
-    def visitConditional(self, ir):
+    def visitConditionalStmt(self, ir):
         raise NotImplementedError
 
-    def visitWhile(self, ir):
+    def visitWhileStmt(self, ir):
         raise NotImplementedError
 
-    def visitBlock(self, ir):
+    def visitBlockStmt(self, ir):
         raise NotImplementedError
 
-    def visitCall(self, ir):
+    def visitCallStmt(self, ir):
         raise NotImplementedError
 
     def visitConstant(self, ir):
@@ -37,7 +37,7 @@ class IRVisitor(object):
     def visitStr(self, ir):
         raise NotImplementedError
 
-    def visitBinary(self, ir):
+    def visitBinaryOperator(self, ir):
         raise NotImplementedError
 
     def visitSubscript(self, ir):
@@ -152,7 +152,7 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariable(self, var):
         return self.loadName(var.id)
 
-    def visitCall(self, call):
+    def visitCallStmt(self, call):
         return self._call(call.id, call.args)
 
     def _call(self, id_, args_):
@@ -165,7 +165,7 @@ class Ir2PythonVisitor(IRVisitor):
             args = []
         return self.call(id, args=args)
 
-    def visitFor(self, forstmt):
+    def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
         body, from_, to_ = [x.accept(self) for x in (forstmt.body,
@@ -185,7 +185,7 @@ class Ir2PythonVisitor(IRVisitor):
                         body = body, 
                         orelse = [])
 
-    def visitConditional(self, conditional):
+    def visitConditionalStmt(self, conditional):
         test, true = [x.accept(self) for x in (conditional.test,
                                                conditional.true)]
         true = self._ensureStmt(true)
@@ -196,10 +196,10 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.If(test=test, body=true, orelse=false)
 
 
-    def visitBlock(self, block):
+    def visitBlockStmt(self, block):
         return [x.accept(self) for x in block.body]
 
-    def visitBinary(self, binaryop):
+    def visitBinaryOperator(self, binaryop):
         left, right, op = [x.accept(self) for x in (binaryop.left, 
                                                     binaryop.right,
                                                     binaryop.op)]
@@ -252,7 +252,7 @@ class Ir2PythonVisitor(IRVisitor):
                 slice=ast.Index(value=idx_z),
                 ctx=ast.Load())
 
-    def visitSampling(self, sampling):
+    def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
         args = [arg.accept(self) for arg in sampling.args]
         id = sampling.id
