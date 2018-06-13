@@ -203,6 +203,12 @@ class Ir2PythonVisitor(IRVisitor):
         left, right, op = [x.accept(self) for x in (binaryop.left, 
                                                     binaryop.right,
                                                     binaryop.op)]
+        if isinstance(op, ast.cmpop):
+            return ast.Compare(left = left, 
+                               ops = [op], 
+                               comparators =[right])
+        elif isinstance(op, ast.boolop):
+            return ast.BoolOp(op = op, values = [left, right])
         return ast.BinOp(left = left, right = right, op = op)
 
     def visitPlus(self, dummy):
