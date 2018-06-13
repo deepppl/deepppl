@@ -177,3 +177,56 @@ class Variable(Expression):
     def accept(self, visitor):
         return visitor.visitVariable(self)   
 
+class Operator(object):
+    def accept(self, visitor):
+        return visitor.visitOperator(self)  
+
+class Plus(Operator):
+    def accept(self, visitor):
+        return visitor.visitPlus(self)  
+
+class Minus(Operator):
+    def accept(self, visitor):
+        return visitor.visitMinus(self)  
+
+class Pow(Operator):
+    def accept(self, visitor):
+        return visitor.visitPow(self)  
+
+class Mult(Operator):
+    def accept(self, visitor):
+        return visitor.visitMult(self)  
+
+class Div(Operator):
+    def accept(self, visitor):
+        return visitor.visitDiv(self)  
+
+class And(Operator):
+    def accept(self, visitor):
+        return visitor.visitAnd(self)  
+
+class Or(Operator):
+    def accept(self, visitor):
+        return visitor.visitOr(self)
+
+class LE(Operator):
+    def accept(self, visitor):
+        return visitor.visitLE(self)
+
+class GE(Operator):
+    def accept(self, visitor):
+        return visitor.visitGE(self)
+
+class LT(Operator):
+    def accept(self, visitor):
+        return visitor.visitLT(self)
+
+class GT(Operator):
+    def accept(self, visitor):
+        return visitor.visitGT(self)
+
+class EQ(Operator):
+    def accept(self, visitor):
+        return visitor.visitEQ(self)
+
+

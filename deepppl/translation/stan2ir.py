@@ -13,7 +13,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
  """
- 
+
 import sys
 import ast
 from antlr4 import *
@@ -46,6 +46,8 @@ def gatherChildrenIR(ctx):
                 irs.append(child.ir)
         return irs
 
+def is_active(f):
+    return f() is not None
 
 def idxFromExprList(exprList):
     if len(exprList) == 1:
@@ -83,10 +85,12 @@ class StanToIR(stanListener):
         ctx.ir = Variable(id = ctx.getText())
 
     def exitAtom(self, ctx):
-        if ctx.constant() is not None:
+        if is_active(ctx.constant):
             ctx.ir = ctx.constant().ir
-        elif ctx.variable() is not None:
+        elif is_active(ctx.variable):
             ctx.ir = ctx.variable().ir
+        elif is_active(ctx.expression):
+            ctx.ir = ctx.expression().ir
         else:
             assert False, "Not yet implemented atom"
 
@@ -99,28 +103,40 @@ class StanToIR(stanListener):
         else:
             left = ctx.e1.ir
             right = ctx.e2.ir
-            op = None
-            if ctx.POW_OP() is not None:
-                op = Pow
-            elif ctx.DOT_MULT_OP() is not None:
-                op = Mult
-            elif ctx.DOT_DIV_OP() is not None:
-                op = Div
-            elif ctx.LEFT_DIV_OP() is not None:
+            if is_active(ctx.LEFT_DIV_OP):
                 assert False, "Not yet implemented"
-            elif ctx.AND_OP() is not None:
-                op = And
-            elif ctx.OR_OP() is not None:
-                op = OR
-            if not (op is None):
-                ctx.ir = BinaryOperator(left, right, op)
+            mapping = {
+                ctx.PLUS_OP : Plus,
+                ctx.MINUS_OP : Minus,
+                ctx.POW_OP : Pow,
+                ctx.OR_OP : Or,
+                ctx.AND_OP : And,
+                ctx.GT_OP : GT,
+                ctx.LT_OP : LT,
+                ctx.GE_OP : GE,
+                ctx.LE_OP : LE,
+                ctx.EQ_OP : EQ,
+                ctx.DOT_DIV_OP : Div,
+                ctx.DIV_OP : Div,
+                ctx.DOT_MULT_OP : Mult,
+                ctx.MULT_OP : Mult}
+            op = None
+            for src in mapping:
+                if is_active(src):
+                    op = mapping[src]()
+                    break
+            if op is not None:
+                ctx.ir = BinaryOperator(left = left, 
+                                        right = right, 
+                                        op = op)
             elif '?' in ctx.getText():
                 false = ctx.e3.ir
                 ctx.ir = ConditionalStmt(test = left, 
                                         true = right,
                                         false = false)
             else:
-                assert False, "Not yet implemented"
+                text = ctx.getText()
+                assert False, "Not yet implemented: {}".format(text)
 
     def exitExpressionCommaList(self, ctx):
         ## TODO: check wheter we want to build a list of statements
