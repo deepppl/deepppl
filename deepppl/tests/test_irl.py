@@ -32,6 +32,16 @@ def test_coin():
     compiled = dpplc.stan2astpyFile(filename)
     assert code_to_normalized(compiled) == target
 
+def test_operators():
+    filename = r'tests/good/operators.stan'
+    target_file = r'tests/target_py/coin.py'
+    with open(target_file) as f:
+        target_code = f.read() 
+    target = code_to_normalized(target_code)
+    
+    compiled = dpplc.stan2astpyFile(filename)
+    assert code_to_normalized(compiled) == target
+
 def test_coin_vectorized():
     filename = r'tests/good/coin_vectorized.stan'
     target_file = r'tests/target_py/coin_vectorized.py'
