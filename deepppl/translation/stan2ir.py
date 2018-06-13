@@ -126,7 +126,9 @@ class StanToIR(stanListener):
                     op = mapping[src]()
                     break
             if op is not None:
-                ctx.ir = BinaryOperator(left, right, op)
+                ctx.ir = BinaryOperator(left = left, 
+                                        right = right, 
+                                        op = op)
             elif '?' in ctx.getText():
                 false = ctx.e3.ir
                 ctx.ir = ConditionalStmt(test = left, 

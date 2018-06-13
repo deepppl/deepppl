@@ -34,7 +34,7 @@ def test_coin():
 
 def test_operators():
     filename = r'tests/good/operators.stan'
-    target_file = r'tests/target_py/coin.py'
+    target_file = r'tests/target_py/operators.py'
     with open(target_file) as f:
         target_code = f.read() 
     target = code_to_normalized(target_code)

@@ -211,22 +211,22 @@ class Or(Operator):
 
 class LE(Operator):
     def accept(self, visitor):
-        return visitor.visitOr(self)
+        return visitor.visitLE(self)
 
 class GE(Operator):
     def accept(self, visitor):
-        return visitor.visitOr(self)
+        return visitor.visitGE(self)
 
 class LT(Operator):
     def accept(self, visitor):
-        return visitor.visitOr(self)
+        return visitor.visitLT(self)
 
 class GT(Operator):
     def accept(self, visitor):
-        return visitor.visitOr(self)
+        return visitor.visitGT(self)
 
 class EQ(Operator):
     def accept(self, visitor):
-        return visitor.visitOr(self)
+        return visitor.visitEQ(self)
 
 

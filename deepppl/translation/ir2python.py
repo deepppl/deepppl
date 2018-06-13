@@ -179,7 +179,59 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
                         iter = iter,
                         body = [body], ## XXX
-                        orelse = [])       
+                        orelse = [])
+
+    def visitConditional(self, conditional):
+        test, true = [x.accept(self) for x in (conditional.test,
+                                               conditional.true)]
+        true = self._ensureStmt(true)
+        false = conditional.false.accept(self) if conditional.false else []
+        if false:
+            false = self._ensureStmt(false)
+        return ast.If(test=test, body=[true], orelse=false)
+
+
+    def visitBlock(self, block):
+        return [x.accept(self) for x in block.body]
+
+    def visitBinary(self, binaryop):
+        left, right, op = [x.accept(self) for x in (binaryop.left, 
+                                                    binaryop.right,
+                                                    binaryop.op)]
+        return ast.BinOp(left = left, right = right, op = op)
+
+    def visitPlus(self, dummy):
+        return ast.Add()
+
+    def visitMinus(self, dummy):
+        return ast.Sub()
+
+    def visitMult(self, dummy):
+        return ast.Mult()
+
+    def visitDiv(self, dummy):
+        return ast.Div()
+
+    def visitAnd(self, dummy):
+        return ast.And()
+
+    def visitOr(self, dummy):
+        return ast.Or()
+
+    def visitLE(self, dummy):
+        return ast.LtE()
+
+    def visitGE(self, dummy):
+        return ast.GtE()
+
+    def visitLT(self, dummy):
+        return ast.Lt()
+
+    def visitGT(self, dummy):
+        return ast.Gt()
+
+    def visitEQ(self, dummy):
+        return ast.Eq()
 
     def visitSubscript(self, subscript):
         id, idx = [x.accept(self) for x in (subscript.id, subscript.index)]

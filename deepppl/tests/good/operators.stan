@@ -25,6 +25,8 @@ model {
   for (i in 1:10)
   {
       if ((1 <= 10) && (1 > 5 || 2 < 1))
+      {
         x[i] ~ bernoulli(theta);
+      }
   }
 }
