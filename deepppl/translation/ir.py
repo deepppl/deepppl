@@ -1,11 +1,14 @@
-class IR(object):
+class IRMeta(type):
+    def __init__(cls, *args, **kwargs):
+        selector = 'return visitor.visit{}(self)'.format(cls.__name__)
+        accept_code = "def accept(self, visitor):\n\t{}".format(selector)
+        l = {}
+        exec(accept_code, globals(), l)
+        setattr(cls, "accept", l["accept"])
+
+class IR(metaclass=IRMeta):
     def is_variable_decl(self):
         return False
-
-    def accept(self, visitor):
-        selector = 'visit{}'.format(self.__class__.__name__)
-        method = getattr(visitor, selector)
-        return method(self)
     
 class Program(IR):
     def __init__(self, body = []):
