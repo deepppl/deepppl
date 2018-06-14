@@ -66,9 +66,13 @@ class PythonASTHelper(object):
         if isinstance(node, ast.stmt):
             return node
         else:
-            if type(node) == type([]):
-                return [self.ensureStmt(x) for x in node]
             return ast.Expr(node)
+
+    def ensureStmtList(self, listOrNode):
+        if type(listOrNode) == type([]):
+            return [self.ensureStmt(x) for x in listOrNode if x is not None]
+        else:
+            return [self.ensureStmt(listOrNode)]
 
     def call(self, func, args = [], keywords = []):
         return ast.Call(func = func,
@@ -95,6 +99,9 @@ class Ir2PythonVisitor(IRVisitor):
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
 
+    def _ensureStmtList(self, listOrNode):
+        return self.helper.ensureStmtList(listOrNode)
+
     def is_data(self, ir):
         target = ir.accept(self.target_name_visitor)
         return target in self.data_names
@@ -110,6 +117,10 @@ class Ir2PythonVisitor(IRVisitor):
 
     def call(self, id,  args = [], keywords = []):
         return self.helper.call(id, args = args, keywords = keywords)
+
+    def _visitAll(self, iterable):
+        filter = lambda x: (x is not None) or None
+        return [filter(x) and x.accept(self) for x in iterable ]
 
     def targetToName(self, target):
         if isinstance(target, ast.Name):
@@ -146,7 +157,8 @@ class Ir2PythonVisitor(IRVisitor):
 
 
     def visitList(self, list):
-        return ast.List(elts= [x.accept(self) for x in list.elements],
+        elts = self._visitAll(list.elements)
+        return ast.List(elts= elts,
                         ctx = ast.Load())
 
     def visitVariable(self, var):
@@ -159,50 +171,42 @@ class Ir2PythonVisitor(IRVisitor):
         ## TODO id is a string!
         id = self.loadName(id_)
         args = args_.accept(self)
-        if args:
-            args = [x for x in args.elts]
-        else:
-            args = []
+        args = args.elts if args else []
         return self.call(id, args=args)
 
     def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
-        body, from_, to_ = [x.accept(self) for x in (forstmt.body,
-                                                    forstmt.from_,
-                                                    forstmt.to_)]
+        body, from_, to_ = self._visitAll((forstmt.body,
+                                        forstmt.from_,
+                                        forstmt.to_))
         incl_to = ast.BinOp(left = to_, 
                             right = ast.Num(1), 
                             op = ast.Add())
         interval = [from_, incl_to]
         iter = self.call(self.loadName('range'), 
                                 interval)
-        body = self._ensureStmt(body)
-        ## XXX
-        body = body if type(body) == type([]) else [body] 
+        body = self._ensureStmtList(body)
         return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
                         iter = iter,
                         body = body, 
                         orelse = [])
 
     def visitConditionalStmt(self, conditional):
-        test, true = [x.accept(self) for x in (conditional.test,
-                                               conditional.true)]
-        true = self._ensureStmt(true)
-        true = true if type(true) == type([]) else [true]
+        test, true = self._visitAll((conditional.test,
+                                   conditional.true))
         false = conditional.false.accept(self) if conditional.false else []
-        if false:
-            false = self._ensureStmt(false)
+        true, false = [self._ensureStmtList(x) for x in (true, false)]
         return ast.If(test=test, body=true, orelse=false)
 
 
     def visitBlockStmt(self, block):
-        return [x.accept(self) for x in block.body]
+        return self._visitAll(block.body)
 
     def visitBinaryOperator(self, binaryop):
-        left, right, op = [x.accept(self) for x in (binaryop.left, 
-                                                    binaryop.right,
-                                                    binaryop.op)]
+        left, right, op = self._visitAll((binaryop.left, 
+                                        binaryop.right,
+                                        binaryop.op))
         if isinstance(op, ast.cmpop):
             return ast.Compare(left = left, 
                                ops = [op], 
@@ -245,7 +249,7 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.Eq()
 
     def visitSubscript(self, subscript):
-        id, idx = [x.accept(self) for x in (subscript.id, subscript.index)]
+        id, idx = self._visitAll((subscript.id, subscript.index))
         idx_z = ast.BinOp(left = idx, right = ast.Num(1), op = ast.Sub())
         return ast.Subscript(
                 value = id,
@@ -274,7 +278,7 @@ class Ir2PythonVisitor(IRVisitor):
                         args = [target_name, dist],
                         keywords=keywords)
         if is_data:
-            return call
+            return ast.Expr(value = call)
         else:
             return ast.Assign(
                 targets=[ast.Name(id = target.id, ctx = ast.Store())],
@@ -298,13 +302,13 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitProgram(self, ir):
         python_nodes = [element.accept(self) for element in ir.body]
-        body = [self._ensureStmt(node) for node in python_nodes if node]
+        body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
             self.import_('torch'),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
-        module.body.append(self.buildModel([x for x in body]))
+        module.body.append(self.buildModel(body))
         ast.fix_missing_locations(module)
         astpretty.pprint(module)
         print(astor.to_source(module))
