@@ -149,6 +149,7 @@ FUNCTIONS: 'functions';
 MODEL: 'model';
 DATA: 'data';
 NETWORK: 'network';
+PRIOR: 'prior';
 GUIDE: 'guide';
 PARAMETERS: 'parameters';
 QUANTITIES: 'quantities';
@@ -337,6 +338,10 @@ netVariableDecl
     : IDENTIFIER IDENTIFIER ';'
     ;
 
+netLValue
+    : IDENTIFIER ('.' IDENTIFIER)*
+    ;
+
 arrayDim
     : '[' expressionCommaList ']'
     ;
@@ -432,6 +437,7 @@ assignStmt
 lvalueSampling
     : lvalue
     | expression
+    | netLValue
     ;
 
 samplingStmt
@@ -557,8 +563,12 @@ networkBlock
     : NETWORK '{' netVariableDeclsOpt '}'
     ;
 
+priorBlock
+    : PRIOR '{' samplingStmt* '}'
+    ;
+
 guideBlock
-    : GUIDE '{' variableDeclsOpt statementsOpt'}'
+    : GUIDE '{' samplingStmt* '}'
     ;
 
 transformedDataBlock
@@ -588,6 +598,7 @@ program
         parametersBlock?
         transformedParametersBlock?
         networkBlock?
+        priorBlock?
         guideBlock?
         modelBlock?
         generatedQuantitiesBlock?
