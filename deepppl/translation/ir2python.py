@@ -167,6 +167,17 @@ class Ir2PythonVisitor(IRVisitor):
     def visitCallStmt(self, call):
         return self._call(call.id, call.args)
 
+    def visitAssignStmt(self, ir):
+        target, value = self._visitAll((ir.target, ir.value))
+        return self._assign(target, value)
+
+
+    def _assign(self, target, value):
+        assert isinstance(target, ast.Name), "Only `Name` can be `lvalue`"
+        return ast.Assign(
+                targets=[ast.Name(id = target.id, ctx = ast.Store())],
+                value = value)
+
     def _call(self, id_, args_):
         ## TODO id is a string!
         id = self.loadName(id_)
@@ -280,9 +291,7 @@ class Ir2PythonVisitor(IRVisitor):
         if is_data:
             return ast.Expr(value = call)
         else:
-            return ast.Assign(
-                targets=[ast.Name(id = target.id, ctx = ast.Store())],
-                value = call)
+            return self._assign(target, call)
 
     def buildModel(self, body):
         args = [ast.arg(name, None) for name in self.data_names]
