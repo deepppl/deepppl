@@ -94,8 +94,11 @@ class StanToIR(stanListener):
             assert False, "Not yet implemented atom"
 
     def exitExpression(self, ctx):
-        if ctx.atom() is not None:
+        if is_active(ctx.atom):
             ctx.ir = ctx.atom().ir
+            return
+        if is_active(ctx.callExpr):
+            ctx.ir = ctx.callExpr().ir
             return
         if ctx.TRANSPOSE_OP() is not None:
             assert False, "Not yet implemented"
@@ -241,10 +244,13 @@ class StanToIR(stanListener):
 
     # Functions calls (sections 5.9 and 5.10)
 
-    def exitCallStmt(self, ctx):
+    def exitCallExpr(self, ctx):
         id = ctx.IDENTIFIER().getText()
         args = List(elements = ctx.expressionOrStringCommaList().ir)
         ctx.ir = CallStmt(id = id, args = args)
+
+    def exitCallStmt(self, ctx):
+        ctx.ir = ctx.callExpr().ir
 
     def exitExpressionOrString(self, ctx):
         if ctx.expression() is not None:

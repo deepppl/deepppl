@@ -366,12 +366,16 @@ atom
     | vectorExpr
     | arrayExpr
     | atom '[' indexExpression ']'
-    | atom '(' expressionCommaListOpt ')'
     | '(' expression ')'
+    ;
+
+callExpr
+    : IDENTIFIER '(' expressionOrStringCommaList ')'
     ;
 
 expression
     : atom
+    | callExpr
     | expression TRANSPOSE_OP
     | <assoc=right> e1=expression POW_OP e2=expression
     | op=(NOT_OP|PLUS_OP|MINUS_OP) expression
@@ -460,7 +464,7 @@ blockStmt
 /** Functions calls (sections 5.9 and 5.10) */
 
 callStmt
-    : IDENTIFIER '(' expressionOrStringCommaList ')' ';'
+    : callExpr ';'
     ;
 
 expressionOrString
