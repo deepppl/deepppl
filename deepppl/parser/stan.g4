@@ -148,6 +148,8 @@ COV_MATRIX: 'cov_matrix';
 FUNCTIONS: 'functions';
 MODEL: 'model';
 DATA: 'data';
+NETWORK: 'network';
+GUIDE: 'guide';
 PARAMETERS: 'parameters';
 QUANTITIES: 'quantities';
 TRANSFORMED: 'transformed';
@@ -331,12 +333,20 @@ variableDecl
     | type_ IDENTIFIER arrayDim? '=' expression ';'
     ;
 
+netVariableDecl
+    : IDENTIFIER IDENTIFIER ';'
+    ;
+
 arrayDim
     : '[' expressionCommaList ']'
     ;
 
 variableDeclsOpt
     : variableDecl*
+    ;
+
+netVariableDeclsOpt
+    : netVariableDecl*
     ;
 
 /** Numeric Litterals (section 4.1) */
@@ -543,6 +553,14 @@ dataBlock
     : DATA '{' variableDeclsOpt '}'
     ;
 
+networkBlock
+    : NETWORK '{' netVariableDeclsOpt '}'
+    ;
+
+guideBlock
+    : GUIDE '{' variableDeclsOpt statementsOpt'}'
+    ;
+
 transformedDataBlock
     : TRANSFORMED DATA '{' variableDeclsOpt statementsOpt '}'
     ;
@@ -569,6 +587,8 @@ program
         transformedDataBlock?
         parametersBlock?
         transformedParametersBlock?
+        networkBlock?
+        guideBlock?
         modelBlock?
         generatedQuantitiesBlock?
     ;
