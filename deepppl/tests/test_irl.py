@@ -79,3 +79,13 @@ def test_coin_reverted_lines():
     assert code_to_normalized(compiled) == target
 
 
+def test_mlp():
+    filename = r'tests/good/mlp.stan'
+    target_file = r'tests/target_py/coin_vectorized.py'
+    with open(target_file) as f:
+        target_code = f.read() 
+    target = code_to_normalized(target_code)
+    
+    compiled = dpplc.stan2astpyFile(filename)
+    assert code_to_normalized(compiled) == target
+
