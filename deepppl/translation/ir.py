@@ -16,9 +16,20 @@ class Program(IR):
         self.body = body
 
 class ProgramBlocks(IR):
-    pass
+    def __init__(self, body = []):
+        super(ProgramBlocks, self).__init__()
+        self.body = body
 
 class Model(ProgramBlocks):
+    pass
+
+class Guide(ProgramBlocks):
+    pass
+
+class Prior(ProgramBlocks):
+    pass
+
+class Parameters(ProgramBlocks):
     pass
 
 class Data(ProgramBlocks):
@@ -135,6 +146,11 @@ class Variable(Expression):
     def __init__(self, id = None):
         super(Variable, self).__init__()
         self.id = id
+
+class NetVariable(Expression):
+    def __init__(self, ids =  []):
+        super(NetVariable, self).__init__()
+        self.ids = ids
 
 class Operator(Expression):
     pass

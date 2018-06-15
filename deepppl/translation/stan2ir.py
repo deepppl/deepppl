@@ -182,12 +182,18 @@ class StanToIR(stanListener):
     # Sampling (section 5.3)
 
     def exitLvalueSampling(self, ctx):
-        if ctx.lvalue() is not None:
+        if is_active(ctx.lvalue):
             ctx.ir = ctx.lvalue().ir
-        elif ctx.expression() is not None:
+        elif is_active(ctx.expression):
             ctx.ir = ctx.expression().ir
+        elif is_active(ctx.netLValue):
+            ctx.ir = ctx.netLValue().ir
         else:
             assert False
+
+    def exitNetLValue(self, ctx):
+        ids = [x.getText() for x in ctx.IDENTIFIER()]
+        ctx.ir = NetVariable(ids = ids)
 
     def exitSamplingStmt(self, ctx):
         lvalue = ctx.lvalueSampling().ir
@@ -289,18 +295,33 @@ class StanToIR(stanListener):
     # Program blocks (section 6)
 
     def exitDataBlock(self, ctx):
-        ctx.ir = gatherChildrenIRList(ctx)
-        for ir in ctx.ir:
+        body = gatherChildrenIRList(ctx)
+        for ir in body:
             if ir.is_variable_decl():
                 ir.set_data()
+        ctx.ir = Data(body = body)
 
     def exitParametersBlock(self, ctx):
-        ctx.ir = gatherChildrenIRList(ctx)
+        body = gatherChildrenIRList(ctx)
+        ctx.ir = Parameters(body = body)
+
+    def exitGuideBlock(self, ctx):
+        body = gatherChildrenIR(ctx)
+        ctx.ir = Guide(body = body)
+
+    def exitPriorBlock(self, ctx):
+        # TODO: unify gatherChildrenIRList: check for StatemetnsOpt
+        body = gatherChildrenIR(ctx)
+        ctx.ir = Prior(body = body)
 
     def exitModelBlock(self, ctx):
-        ctx.ir = gatherChildrenIRList(ctx)
+        body = gatherChildrenIRList(ctx)
+        ctx.ir = Model(body= body)
 
     def exitProgram(self, ctx):
-        body = gatherChildrenIRList(ctx)
+        body = []
+        for child in ctx.children:
+            if hasattr(child, 'ir') and child.ir is not None:
+                body += child.ir.body
         ctx.ir = Program(body = body)
 
