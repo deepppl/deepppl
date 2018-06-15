@@ -90,7 +90,7 @@ class PythonASTHelper(object):
 
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
-        super(Ir2PythonVisitor).__init__()
+        super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
         self.ast = []
         self.target_name_visitor = TargetVisitor(self)

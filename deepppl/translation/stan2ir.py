@@ -16,7 +16,6 @@
 
 import sys
 import ast
-from antlr4 import *
 from parser.stanListener import stanListener
 import astor
 import astpretty
@@ -26,7 +25,7 @@ if __name__ is not None and "." in __name__:
     from .ir import *
     from .ir2python import *
 else:
-    from ir import *
+    assert False
 
 
 def gatherChildrenIRList(ctx):
@@ -164,13 +163,13 @@ class StanToIR(stanListener):
         if ctx.op is not None:
             op = None
             if ctx.PLUS_EQ() is not None:
-                op = Add
+                op = Plus()
             if ctx.MINUS_EQ() is not None:
-                op = Sub
+                op = Minus()
             if ctx.MULT_EQ() or ctx.DOT_MULT_EQ() is not None:
-                op = Mult
+                op = Mult()
             if ctx.DIV_EQ() or ctx.DOT_DIV_EQ() is not None:
-                op = Div
+                op = Div()
             if op:
                 expr = BinaryOperator(left = lvalue, op = op, right = expr)
         ctx.ir = AssignStmt(
@@ -251,7 +250,7 @@ class StanToIR(stanListener):
         if ctx.expression() is not None:
             ctx.ir = ctx.expression().ir
         else:
-            ctx.ir = Str(s=ctx.getText())
+            ctx.ir = Str(value=ctx.getText())
 
     def exitExpressionOrStringCommaList(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)
