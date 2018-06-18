@@ -38,15 +38,34 @@ prior
     mlp.l2.bias ~  Normal(0, 1);
 }
 
+guide{
+    real l1wloc;
+    real l1wscale;
+    real l1bloc;
+    real l1bscale;
+    real l2wloc;
+    real l2wscale;
+    real l2bloc;
+    real l2bscale;
+
+    l1wloc ~ Normal(0,1);
+    l1wscale ~ Normal(0,1);
+    mlp.l1.weight ~  Normal(l1wloc, l1wscale);
+    l1bloc ~ Normal(0,1);
+    l1bscale ~ Normal(0,1);
+    mlp.l1.bias ~ Normal(l1bloc, l1bscale);
+    l2wloc ~ Normal(0,1);
+    l2wscale ~ Normal(0,1);
+    mlp.l2.weight ~ Normal(l2wloc, l2wscale);
+    l2bloc ~ Normal(0,1);
+    l2bscale ~ Normal(0,1);
+    mlp.l2.bias ~ Normal(l2bloc, l2bscale);
+}
+
 model {
     real logits[batch_size];
-    logits = mpl(imgs);
+    logits = mlp(imgs);
     labels ~ Categorical(logits);
 }
 
-guide{
-    mlp.l1.weight ~  Normal(0, 1);
-    mlp.l1.bias ~ Normal(0, 1);
-    mlp.l2.weight ~ Normal(0, 1);
-    mlp.l2.bias ~  Normal(0, 1);  
-}
+

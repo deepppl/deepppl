@@ -572,7 +572,7 @@ priorBlock
     ;
 
 guideBlock
-    : GUIDE '{' samplingStmt* '}'
+    : GUIDE '{' variableDeclsOpt samplingStmt* '}'
     ;
 
 transformedDataBlock
