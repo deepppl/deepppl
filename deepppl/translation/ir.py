@@ -175,6 +175,11 @@ class NetVariable(Expression):
         self.name = name
         self.ids = ids
 
+    def getid(self):
+        return self.name + '.'.join(self.ids)
+
+    id = property(getid)
+
 class Operator(Expression):
     pass
 

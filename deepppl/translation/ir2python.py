@@ -96,6 +96,8 @@ class Ir2PythonVisitor(IRVisitor):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
         self._in_prior = False
+        self._in_guide = False
+        self._guide_params = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
@@ -146,6 +148,8 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         if decl.data:
             self.data_names.add(decl.id)
+        if self._in_guide:
+            self._guide_params.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
         if decl.init:
             assert not decl.data, "Data cannot be initialized"
@@ -296,8 +300,17 @@ class Ir2PythonVisitor(IRVisitor):
         
         dist = self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
-        if self._in_prior:
+        if self._in_prior or (self._in_guide and sampling.target.id not in self._guide_params):
             call = dist
+        elif self._in_guide:
+            sample = self.call(self.loadAttr(dist, 'sample'))
+            target_name = self.targetToName(target)
+            call = self.call(self.loadAttr(self.loadName('pyro'), 'param'),
+                            args = [
+                                    target_name,
+                                    sample,
+                                    ## XXX possible constraints
+                            ])
         else:
             sample = self.loadAttr(self.loadName('pyro'), 'sample')
             target_name = self.targetToName(target)
@@ -311,7 +324,8 @@ class Ir2PythonVisitor(IRVisitor):
 
 
     def visitNetVariable(self, var):
-        name = self.loadName('prior_{}'.format(var.name))
+        prefix = 'prior' if self._in_prior else 'guide'
+        name = self.loadName('{}_{}'.format(prefix, var.name))
         value = '.'.join(var.ids)  ##XXX
         return ast.Subscript(
                 value = name,
@@ -336,49 +350,94 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitPrior(self, prior):
         self._in_prior = True
-        name = prior.body[0].target.name
-        name_prior = 'prior_' + name ## XXX
-        ## TODO: only one nn is suported in here.
-        answer = self._visitAll(prior.body)
-        body = [self._assign(self.loadName(name_prior), 
-                            ast.Dict(keys = [], values=[])),]
-        body += answer
-        rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
-        lifted_name = 'lifted_' + name
-        body += [
-            self._assign(self.loadName(lifted_name),
-                         self.call(rand_mod, 
-                                    args = [ast.Str(name), 
-                                            self.loadName(name),
-                                            self.loadName(name_prior)])),
-            ast.Return(value = self.call(self.loadName(lifted_name)))
-        ]
+        try:
+            name = prior.body[0].target.name
+            name_prior = 'prior_' + name ## XXX
+            ## TODO: only one nn is suported in here.
+            answer = self._visitAll(prior.body)
+            body = [self._assign(self.loadName(name_prior), 
+                                ast.Dict(keys = [], values=[])),]
+            body += answer
+            rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+            lifted_name = 'lifted_' + name
+            body += [
+                self._assign(self.loadName(lifted_name),
+                            self.call(rand_mod, 
+                                        args = [ast.Str(name), 
+                                                self.loadName(name),
+                                                self.loadName(name_prior)])),
+                ast.Return(value = self.call(self.loadName(lifted_name)))
+            ]
 
-            # lifted_module = pyro.random_module("mlp", mlp, priors)
-            # return lifted_module()
-        
-        f = ast.FunctionDef(
-            name = name_prior,
-            args = ast.arguments(args = [],
-                                 vararg = None,
-                                 kwonlyargs = [],
-                                 kw_defaults=[],
-                                 kwarg=None,
-                                 defaults=[]),
-            body = body,
-            decorator_list = [],
-            returns = None
-        )
-        self._in_prior = False
+                # lifted_module = pyro.random_module("mlp", mlp, priors)
+                # return lifted_module()
+            
+            f = ast.FunctionDef(
+                name = name_prior,
+                args = ast.arguments(args = [],
+                                    vararg = None,
+                                    kwonlyargs = [],
+                                    kw_defaults=[],
+                                    kwarg=None,
+                                    defaults=[]),
+                body = body,
+                decorator_list = [],
+                returns = None
+            )
+        finally:
+            self._in_prior = False
         self._priors = {name : name_prior}
-        return [f]
+        return f
 
 
     def visitGuide(self, guide):
-        return None
+        self._in_guide = True
+        try:
+            name = guide.body[-1].target.name
+            ## TODO: only one nn is suported in here.
+            name_guide = 'guide_' + name ## XXX
+            body = guide.body
+            if body and type(body[0]) == type([]):
+                self._visitAll(body[0])
+                answer = self._visitAll(body[1:])
+            else:
+                answer = self._visitAll(body)
+            args = [ast.arg(name, None) for name in sorted(self.data_names)]
+            body = [self._assign(self.loadName(name_guide), 
+                                ast.Dict(keys = [], values=[])),]
+            body += answer
+            rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+            lifted_name = 'lifted_' + name
+            body += [
+                self._assign(self.loadName(lifted_name),
+                            self.call(rand_mod, 
+                                        args = [ast.Str(name), 
+                                                self.loadName(name),
+                                                self.loadName(name_guide)])),
+                ast.Return(value = self.call(self.loadName(lifted_name)))
+            ]
+
+                # lifted_module = pyro.random_module("mlp", mlp, priors)
+                # return lifted_module()
+            
+            f = ast.FunctionDef(
+                name = name_guide,
+                args = ast.arguments(args = args,
+                                    vararg = None,
+                                    kwonlyargs = [],
+                                    kw_defaults=[],
+                                    kwarg=None,
+                                    defaults=[]),
+                body = body,
+                decorator_list = [],
+                returns = None
+            )
+        finally:
+            self._in_guide = False
+        return f
 
     def buildModel(self, body):
-        args = [ast.arg(name, None) for name in self.data_names]
+        args = [ast.arg(name, None) for name in sorted(self.data_names)]
         pre_body = []
         for prior in self._priors:
             pre_body.append(
