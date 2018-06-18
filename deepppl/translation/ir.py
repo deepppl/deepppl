@@ -14,11 +14,33 @@ class Program(IR):
     def __init__(self, body = []):
         super(Program, self).__init__()
         self.body = body
+        self.addBlocks(body)
+
+    def addBlocks(self, blocks):
+        for block in blocks:
+            name = block.blockName()
+            if getattr(self, name, None) is not None:
+                assert False, "trying to set :{} twice.".format(name)
+            setattr(self, name, block)
+    
+    def blocks(self):
+        ## impose an evaluation order
+        blockNames = ['data', 'parameters', 'guide', 'prior', 'model']
+        for name in blockNames:
+            block = getattr(self, name, None)
+            if block is not None:
+                yield block
+
+
+        
 
 class ProgramBlocks(IR):
     def __init__(self, body = []):
         super(ProgramBlocks, self).__init__()
         self.body = body
+
+    def blockName(self):
+        return self.__class__.__name__.lower()
 
 class Model(ProgramBlocks):
     pass
@@ -148,8 +170,9 @@ class Variable(Expression):
         self.id = id
 
 class NetVariable(Expression):
-    def __init__(self, ids =  []):
+    def __init__(self, name = None, ids =  []):
         super(NetVariable, self).__init__()
+        self.name = name
         self.ids = ids
 
 class Operator(Expression):

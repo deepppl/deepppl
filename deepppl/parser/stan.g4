@@ -339,7 +339,11 @@ netVariableDecl
     ;
 
 netLValue
-    : IDENTIFIER ('.' IDENTIFIER)*
+    : netName ('.' IDENTIFIER)*
+    ;
+
+netName
+    : IDENTIFIER
     ;
 
 arrayDim
