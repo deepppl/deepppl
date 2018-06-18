@@ -79,6 +79,18 @@ def test_coin_reverted_lines():
     assert code_to_normalized(compiled) == target
 
 
+@pytest.mark.xfail(strict=True)
+def test_coin_guide():
+    """ Variational inference can be used without a NN."""
+    filename = r'tests/good/coin_guide.stan'
+    target_file = r'tests/target_py/coin.py'
+    with open(target_file) as f:
+        target_code = f.read() 
+    target = code_to_normalized(target_code)
+    
+    compiled = dpplc.stan2astpyFile(filename)
+    assert code_to_normalized(compiled) == target
+
 def test_mlp():
     filename = r'tests/good/mlp.stan'
     target_file = r'tests/target_py/mlp.py'
