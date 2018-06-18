@@ -57,6 +57,9 @@ class TargetVisitor(IRVisitor):
     def visitVariable(self, var):
         return var.id
 
+    def visitNetVariable(self, var):
+        return var.name + '.'.join(var.ids)
+
     def visitSubscript(self, subs):
         return subs.id.accept(self)
 
@@ -92,7 +95,8 @@ class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
-        self.ast = []
+        self._in_prior = False
+        self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
 
@@ -173,10 +177,18 @@ class Ir2PythonVisitor(IRVisitor):
 
 
     def _assign(self, target, value):
-        assert isinstance(target, ast.Name), "Only `Name` can be `lvalue`"
-        return ast.Assign(
-                targets=[ast.Name(id = target.id, ctx = ast.Store())],
-                value = value)
+        if isinstance(target, ast.Name):
+            return ast.Assign(
+                    targets=[ast.Name(id = target.id, ctx = ast.Store())],
+                    value = value)
+        elif isinstance(target, ast.Subscript):
+            target = ast.Subscript(value = target.value,
+                                  slice = target.slice,
+                                  ctx = ast.Store())
+            return ast.Assign(
+                    targets=[target],
+                    value = value)
+        assert False, "Don't know how to assign to {}".format(target)
 
     def _call(self, id_, args_):
         ## TODO id is a string!
@@ -281,17 +293,31 @@ class Ir2PythonVisitor(IRVisitor):
             keywords = [ast.keyword(arg='obs', value = target)]
         else:
             keywords = []
-        target_name = self.targetToName(target)
-        sample = self.loadAttr(self.loadName('pyro'), 'sample')
+        
         dist = self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
-        call = self.call(sample,
-                        args = [target_name, dist],
-                        keywords=keywords)
+        if self._in_prior:
+            call = dist
+        else:
+            sample = self.loadAttr(self.loadName('pyro'), 'sample')
+            target_name = self.targetToName(target)
+            call = self.call(sample,
+                            args = [target_name, dist],
+                            keywords=keywords)
         if is_data:
             return ast.Expr(value = call)
         else:
             return self._assign(target, call)
+
+
+    def visitNetVariable(self, var):
+        name = self.loadName('prior_{}'.format(var.name))
+        value = '.'.join(var.ids)  ##XXX
+        return ast.Subscript(
+                value = name,
+                slice = ast.Index(value = ast.Str(value)),
+                ctx = ast.Load()
+        )
 
 
     def visitData(self, data):
@@ -309,16 +335,31 @@ class Ir2PythonVisitor(IRVisitor):
         return self.buildModel(body)
 
     def visitPrior(self, prior):
-        return None
+        self._in_prior = True
+        name = prior.body[0].target.name
+        name_prior = 'prior_' + name ## XXX
+        ## TODO: only one nn is suported in here.
+        answer = self._visitAll(prior.body)
+        body = [self._assign(self.loadName(name_prior), 
+                            ast.Dict(keys = [], values=[])),]
+        body += answer
+        rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+        lifted_name = 'lifted_' + name
+        body += [
+            self._assign(self.loadName(lifted_name),
+                         self.call(rand_mod, 
+                                    args = [ast.Str(name), 
+                                            self.loadName(name),
+                                            self.loadName(name_prior)])),
+            ast.Return(value = self.call(self.loadName(lifted_name)))
+        ]
 
-    def visitGuide(self, guide):
-        return None
-
-    def buildModel(self, body):
-        args = [ast.arg(name, None) for name in self.data_names]
-        model = ast.FunctionDef(
-            name = 'model',
-            args = ast.arguments(args = args,
+            # lifted_module = pyro.random_module("mlp", mlp, priors)
+            # return lifted_module()
+        
+        f = ast.FunctionDef(
+            name = name_prior,
+            args = ast.arguments(args = [],
                                  vararg = None,
                                  kwonlyargs = [],
                                  kw_defaults=[],
@@ -328,16 +369,38 @@ class Ir2PythonVisitor(IRVisitor):
             decorator_list = [],
             returns = None
         )
+        self._in_prior = False
+        self._priors = {name : name_prior}
+        return [f]
+
+
+    def visitGuide(self, guide):
+        return None
+
+    def buildModel(self, body):
+        args = [ast.arg(name, None) for name in self.data_names]
+        pre_body = []
+        for prior in self._priors:
+            pre_body.append(
+                self._assign(self.loadName(prior),
+                             self.call(self.loadName(self._priors[prior])))
+            )
+        model = ast.FunctionDef(
+            name = 'model',
+            args = ast.arguments(args = args,
+                                 vararg = None,
+                                 kwonlyargs = [],
+                                 kw_defaults=[],
+                                 kwarg=None,
+                                 defaults=[]),
+            body = pre_body + body,
+            decorator_list = [],
+            returns = None
+        )
         return model
 
     def visitProgram(self, program):
-        python_nodes = []
-        ## impose an evaluation order
-        blocks = ['data', 'parameters', 'guide', 'prior', 'model']
-        for block_name in blocks:
-            block = getattr(program, block_name, None)
-            if block is not None:
-                python_nodes.append(block.accept(self))
+        python_nodes = self._visitAll(program.blocks())
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
