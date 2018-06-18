@@ -191,9 +191,11 @@ class StanToIR(stanListener):
         else:
             assert False
 
+
     def exitNetLValue(self, ctx):
+        name = ctx.netName().getText()
         ids = [x.getText() for x in ctx.IDENTIFIER()]
-        ctx.ir = NetVariable(ids = ids)
+        ctx.ir = NetVariable(name = name, ids = ids)
 
     def exitSamplingStmt(self, ctx):
         lvalue = ctx.lvalueSampling().ir
@@ -322,6 +324,6 @@ class StanToIR(stanListener):
         body = []
         for child in ctx.children:
             if hasattr(child, 'ir') and child.ir is not None:
-                body += child.ir.body
+                body.append(child.ir)
         ctx.ir = Program(body = body)
 

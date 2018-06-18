@@ -293,6 +293,27 @@ class Ir2PythonVisitor(IRVisitor):
         else:
             return self._assign(target, call)
 
+
+    def visitData(self, data):
+        ## TODO: implement data behavior
+        self._visitAll(data.body)
+        return None
+
+    def visitParameters(self, params):
+        ## TODO: implement parameters behavior in here.
+        return None
+
+    def visitModel(self, model):
+        body = self._visitAll(model.body)
+        body = self._ensureStmtList(body)
+        return self.buildModel(body)
+
+    def visitPrior(self, prior):
+        return None
+
+    def visitGuide(self, guide):
+        return None
+
     def buildModel(self, body):
         args = [ast.arg(name, None) for name in self.data_names]
         model = ast.FunctionDef(
@@ -309,15 +330,21 @@ class Ir2PythonVisitor(IRVisitor):
         )
         return model
 
-    def visitProgram(self, ir):
-        python_nodes = [element.accept(self) for element in ir.body]
+    def visitProgram(self, program):
+        python_nodes = []
+        ## impose an evaluation order
+        blocks = ['data', 'parameters', 'guide', 'prior', 'model']
+        for block_name in blocks:
+            block = getattr(program, block_name, None)
+            if block is not None:
+                python_nodes.append(block.accept(self))
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
             self.import_('torch'),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
-        module.body.append(self.buildModel(body))
+        module.body += body
         ast.fix_missing_locations(module)
         astpretty.pprint(module)
         print(astor.to_source(module))
