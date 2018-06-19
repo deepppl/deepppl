@@ -26,15 +26,23 @@ import torch
 import pyro
 import pyro.distributions as dist
 
-def stan2astpy(stream):
+def streamToParsetree(stream):
     lexer = stanLexer(stream)
     stream = CommonTokenStream(lexer)
     parser = stanParser(stream)
     tree = parser.program()
+    return tree
+
+def parsetreeToIR(tree):
     toIr = StanToIR()
     walker = ParseTreeWalker()
     walker.walk(toIr, tree)
-    return ir2python(tree.ir)
+    return tree.ir
+
+def stan2astpy(stream):
+    tree = streamToParsetree(stream)
+    ir = parsetreeToIR(tree)
+    return ir2python(ir)
 
 def stan2astpyFile(filename):
     stream = FileStream(filename)
