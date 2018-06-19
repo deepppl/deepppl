@@ -2,7 +2,7 @@ import ast
 import torch
 import astpretty
 import astor
-from .ir import NetVariable, Program, ForStmt, ConditionalStmt
+from .ir import NetVariable, Program, ForStmt, ConditionalStmt, AssignStmt
 
 class IRVisitor(object):
     def defaultVisit(self, node):
@@ -55,6 +55,10 @@ class VariableAnnotationsVisitor(IRVisitor):
         body = self._visitAll(program.blocks())
         return Program(body)
 
+    def visitAssignStmt(self, ir):
+        target, value = self._visitAll((ir.target, ir.value))
+        return AssignStmt(target = target, value = value)
+
     def visitForStmt(self, forstmt):
         id = forstmt.id
         self._addVariable(id)
@@ -97,7 +101,6 @@ class VariableAnnotationsVisitor(IRVisitor):
         return decl
 
     def visitVariable(self, var):
-        assert False
         name = var.id
         if name not in self.ctx:
             assert False, "Use of undeclared variable:{name}".format(name)
@@ -209,6 +212,7 @@ class Ir2PythonVisitor(IRVisitor):
                         ctx = ast.Load())
 
     def visitVariable(self, var):
+        assert var.id is not None
         return self.loadName(var.id)
 
     def visitCallStmt(self, call):
@@ -216,7 +220,17 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitAssignStmt(self, ir):
         target, value = self._visitAll((ir.target, ir.value))
-        return self._assign(target, value)
+        if ir.target.is_variable() and ir.target.is_guide_var():
+            target_name = self.targetToName(target)
+            call = self.call(self.loadAttr(self.loadName('pyro'), 'param'),
+                            args = [
+                                    target_name,
+                                    value,
+                                    ## XXX possible constraints
+                            ])
+            return self._assign(target, call)
+        else:
+            return self._assign(target, value)
 
 
     def _assign(self, target, value):
@@ -339,7 +353,7 @@ class Ir2PythonVisitor(IRVisitor):
         
         dist = self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
-        if self._in_prior or (self._in_guide and sampling.target.id not in self._guide_params):
+        if self._in_prior or (self._in_guide and not sampling.target.is_params_var()):
             call = dist
         elif self._in_guide:
             sample = self.call(self.loadAttr(dist, 'sample'))
