@@ -2,53 +2,20 @@ import ast
 import torch
 import astpretty
 import astor
-from .ir import NetVariable
+from .ir import NetVariable, Program, ForStmt, ConditionalStmt
 
 class IRVisitor(object):
-    def visitProgram(self, ir):
+    def defaultVisit(self, node):
         raise NotImplementedError
 
-    def visitAssignStmt(self, ir):
-        raise NotImplementedError
+    def __getattr__(self, attr):
+        if attr.startswith('visit'):
+            return self.defaultVisit
+        return self.__getattribute__(attr)
 
-    def visitSamplingStmt(self, ir):
-        raise NotImplementedError
-
-    def visitForStmt(self, ir):
-        raise NotImplementedError
-
-    def visitConditionalStmt(self, ir):
-        raise NotImplementedError
-
-    def visitWhileStmt(self, ir):
-        raise NotImplementedError
-
-    def visitBlockStmt(self, ir):
-        raise NotImplementedError
-
-    def visitCallStmt(self, ir):
-        raise NotImplementedError
-
-    def visitConstant(self, ir):
-        raise NotImplementedError
-
-    def visitTuple(self, ir):
-        raise NotImplementedError
-
-    def visitStr(self, ir):
-        raise NotImplementedError
-
-    def visitBinaryOperator(self, ir):
-        raise NotImplementedError
-
-    def visitSubscript(self, ir):
-        raise NotImplementedError
-
-    def visitVariableDecl(self, ir):
-        raise NotImplementedError
-
-    def visitVariable(self, ir):
-        raise NotImplementedError
+    def _visitAll(self, iterable):
+        filter = lambda x: (x is not None) or None
+        return [filter(x) and x.accept(self) for x in iterable ]
 
 class TargetVisitor(IRVisitor):
     def __init__(self, ir2py):
@@ -63,6 +30,80 @@ class TargetVisitor(IRVisitor):
 
     def visitSubscript(self, subs):
         return subs.id.accept(self)
+
+
+class VariableAnnotationsVisitor(IRVisitor):
+    def __init__(self):
+        super(VariableAnnotationsVisitor, self).__init__()
+        self.ctx = {}
+        self.block = None
+
+    def defaultVisit(self, node):
+        return node
+
+    def _addVariable(self, name):
+        if name in self.ctx:
+            assert False, "Variable: {} already declared.".format(name)
+        self.ctx[name] = self.block
+
+    def _delVariable(self, name):
+        if not name in self.ctx:
+            assert False, "Trying to delete an inexistent variable:{}.".format(name)
+        del self.ctx[name]
+    
+    def visitProgram(self, program):
+        body = self._visitAll(program.blocks())
+        return Program(body)
+
+    def visitForStmt(self, forstmt):
+        id = forstmt.id
+        self._addVariable(id)
+        body, from_, to_ = self._visitAll((forstmt.body,
+                                        forstmt.from_,
+                                        forstmt.to_))
+        self._delVariable(id)
+        return ForStmt(id = id, from_ = from_ , to_ = to_, body = body)
+
+    def visitConditionalStmt(self, conditional):
+        test, true, false = self._visitAll((conditional.test, 
+                                            conditional.true, 
+                                            conditional.false))
+        return ConditionalStmt(test = test, true = true, false = false)
+    
+
+    def visitProgramBlock(self, block):
+        self.block = block
+        block.body = self._visitAll(block.body)
+        return block
+
+    def visitData(self, data):
+        return self.visitProgramBlock(data)
+
+    def visitModel(self, model):
+        return self.visitProgramBlock(model)
+
+    def visitParameters(self, params):
+        return self.visitProgramBlock(params)
+
+    def visitGuide(self, guide):
+        return self.visitProgramBlock(guide)
+
+    def visitPrior(self, prior):
+        return self.visitProgramBlock(prior)
+        
+    def visitVariableDecl(self, decl):
+        name = decl.id
+        self._addVariable(name)
+        return decl
+
+    def visitVariable(self, var):
+        assert False
+        name = var.id
+        if name not in self.ctx:
+            assert False, "Use of undeclared variable:{name}".format(name)
+        var.block = self.ctx[name].blockName()
+        return var
+
 
 "Helper class for common `ast` objects"
 class PythonASTHelper(object):
@@ -125,10 +166,6 @@ class Ir2PythonVisitor(IRVisitor):
     def call(self, id,  args = [], keywords = []):
         return self.helper.call(id, args = args, keywords = keywords)
 
-    def _visitAll(self, iterable):
-        filter = lambda x: (x is not None) or None
-        return [filter(x) and x.accept(self) for x in iterable ]
-
     def targetToName(self, target):
         if isinstance(target, ast.Name):
             return ast.Str(target.id)
@@ -153,6 +190,7 @@ class Ir2PythonVisitor(IRVisitor):
             self._guide_params.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
         if decl.init:
+            ## XXX
             assert not decl.data, "Data cannot be initialized"
             init = decl.init.accept(self)
             torch_ = self.loadName('torch')
@@ -478,6 +516,8 @@ class Ir2PythonVisitor(IRVisitor):
 
 
 def ir2python(ir):
+    annotator = VariableAnnotationsVisitor()
+    ir = ir.accept(annotator)
     visitor = Ir2PythonVisitor()
     return ir.accept(visitor)
 
