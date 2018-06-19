@@ -308,7 +308,7 @@ class StanToIR(stanListener):
         ctx.ir = Parameters(body = body)
 
     def exitGuideBlock(self, ctx):
-        body = gatherChildrenIR(ctx)
+        body = gatherChildrenIRList(ctx)
         ctx.ir = Guide(body = body)
 
     def exitPriorBlock(self, ctx):

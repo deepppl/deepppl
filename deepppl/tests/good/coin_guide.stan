@@ -23,8 +23,10 @@ parameters {
 
 
 guide {
-  alpha_q ~ 15;
-  beta_q ~ 15;
+  real<lower=0>  alpha_q;
+  real<lower=0>  beta_q;
+  alpha_q = 15;
+  beta_q = 15;
   theta ~ beta(alpha_q, beta_q);
 }
 
