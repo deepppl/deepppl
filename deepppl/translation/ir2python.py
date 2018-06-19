@@ -2,6 +2,7 @@ import ast
 import torch
 import astpretty
 import astor
+from .ir import NetVariable
 
 class IRVisitor(object):
     def visitProgram(self, ir):
@@ -393,32 +394,33 @@ class Ir2PythonVisitor(IRVisitor):
     def visitGuide(self, guide):
         self._in_guide = True
         try:
-            name = guide.body[-1].target.name
+            ## Hack!!! XXX
+            ## a guide needs to know if it's working with a nn module
+            ## as it should create the guide's dictionary and lift it
+            body = guide.body
+            is_net = isinstance(body[-1].target, NetVariable)
+            name = guide.body[-1].target.name if is_net else  ''
             ## TODO: only one nn is suported in here.
             name_guide = 'guide_' + name ## XXX
-            body = guide.body
-            if body and type(body[0]) == type([]):
-                self._visitAll(body[0])
-                answer = self._visitAll(body[1:])
-            else:
-                answer = self._visitAll(body)
-            args = [ast.arg(name, None) for name in sorted(self.data_names)]
-            body = [self._assign(self.loadName(name_guide), 
-                                ast.Dict(keys = [], values=[])),]
-            body += answer
-            rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
-            lifted_name = 'lifted_' + name
-            body += [
-                self._assign(self.loadName(lifted_name),
-                            self.call(rand_mod, 
-                                        args = [ast.Str(name), 
-                                                self.loadName(name),
-                                                self.loadName(name_guide)])),
-                ast.Return(value = self.call(self.loadName(lifted_name)))
-            ]
 
-                # lifted_module = pyro.random_module("mlp", mlp, priors)
-                # return lifted_module()
+            args = [ast.arg(name, None) for name in sorted(self.data_names)]
+            inner_body = [x for x in self._visitAll(body) if x is not None]
+            if is_net:
+                body = [self._assign(self.loadName(name_guide), 
+                                    ast.Dict(keys = [], values=[])),]
+                body += inner_body
+                rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+                lifted_name = 'lifted_' + name
+                body += [
+                    self._assign(self.loadName(lifted_name),
+                                self.call(rand_mod, 
+                                            args = [ast.Str(name), 
+                                                    self.loadName(name),
+                                                    self.loadName(name_guide)])),
+                    ast.Return(value = self.call(self.loadName(lifted_name)))
+                ]
+            else:
+                body = inner_body
             
             f = ast.FunctionDef(
                 name = name_guide,
