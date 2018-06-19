@@ -39,8 +39,9 @@ class ProgramBlocks(IR):
         super(ProgramBlocks, self).__init__()
         self.body = body
 
-    def blockName(self):
-        return self.__class__.__name__.lower()
+    @classmethod
+    def blockName(cls):
+        return cls.__name__.lower()
 
 class Model(ProgramBlocks):
     pass
@@ -168,6 +169,19 @@ class Variable(Expression):
     def __init__(self, id = None):
         super(Variable, self).__init__()
         self.id = id
+        self.block = None
+
+    def is_data(self):
+        return self.block == Data.blockName()
+
+    def is_params(self):
+        return self.block == Parameters.blockName()
+
+    def is_guide(self):
+        return self.block == Guide.blockName()
+
+    def is_prior(self):
+        return self.block == Prior.blockName()
 
 class NetVariable(Expression):
     def __init__(self, name = None, ids =  []):
