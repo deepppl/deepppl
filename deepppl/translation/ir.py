@@ -9,6 +9,9 @@ class IRMeta(type):
 class IR(metaclass=IRMeta):
     def is_variable_decl(self):
         return False
+
+    def is_variable(self):
+        return False
     
 class Program(IR):
     def __init__(self, body = []):
@@ -171,16 +174,19 @@ class Variable(Expression):
         self.id = id
         self.block = None
 
-    def is_data(self):
+    def is_variable(self):
+        return True
+
+    def is_data_var(self):
         return self.block == Data.blockName()
 
-    def is_params(self):
+    def is_params_var(self):
         return self.block == Parameters.blockName()
 
-    def is_guide(self):
+    def is_guide_var(self):
         return self.block == Guide.blockName()
 
-    def is_prior(self):
+    def is_prior_var(self):
         return self.block == Prior.blockName()
 
 class NetVariable(Expression):
