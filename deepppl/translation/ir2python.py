@@ -2,7 +2,9 @@ import ast
 import torch
 import astpretty
 import astor
-from .ir import NetVariable, Program, ForStmt, ConditionalStmt, AssignStmt
+from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
+                AssignStmt, SamplingStmt, Subscript, BlockStmt,\
+                CallStmt, List
 
 class IRVisitor(object):
     def defaultVisit(self, node):
@@ -68,6 +70,28 @@ class VariableAnnotationsVisitor(IRVisitor):
         self._delVariable(id)
         return ForStmt(id = id, from_ = from_ , to_ = to_, body = body)
 
+    def visitSubscript(self, subscript):
+        id, idx = self._visitAll((subscript.id, subscript.index))
+        return Subscript(id = id, index = idx)
+
+    def visitList(self, list):
+        elements = self._visitAll(list.elements)
+        return List(elements = elements)
+
+    def visitCallStmt(self, call):
+        args = call.args.accept(self)
+        return CallStmt(id = call.id, args = args)
+
+    def visitBlockStmt(self, block):
+        body = self._visitAll(block.body)
+        return BlockStmt(body)
+
+    def visitSamplingStmt(self, sampling):
+        target = sampling.target.accept(self)
+        args = self._visitAll(sampling.args)
+        return SamplingStmt(target = target, args = args,
+                            id = sampling.id)
+
     def visitConditionalStmt(self, conditional):
         test, true, false = self._visitAll((conditional.test, 
                                             conditional.true, 
@@ -96,6 +120,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         return self.visitProgramBlock(prior)
         
     def visitVariableDecl(self, decl):
+        decl.dim = decl.dim.accept(self) if decl.dim else None
         name = decl.id
         self._addVariable(name)
         return decl
@@ -212,7 +237,7 @@ class Ir2PythonVisitor(IRVisitor):
                         ctx = ast.Load())
 
     def visitVariable(self, var):
-        assert var.id is not None
+        assert var.block is not None
         return self.loadName(var.id)
 
     def visitCallStmt(self, call):
@@ -353,17 +378,9 @@ class Ir2PythonVisitor(IRVisitor):
         
         dist = self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
-        if self._in_prior or (self._in_guide and not sampling.target.is_params_var()):
+        if self._in_prior or (self._in_guide and \
+                             not (sampling.target.is_variable() and sampling.target.is_params_var())):
             call = dist
-        elif self._in_guide:
-            sample = self.call(self.loadAttr(dist, 'sample'))
-            target_name = self.targetToName(target)
-            call = self.call(self.loadAttr(self.loadName('pyro'), 'param'),
-                            args = [
-                                    target_name,
-                                    sample,
-                                    ## XXX possible constraints
-                            ])
         else:
             sample = self.loadAttr(self.loadName('pyro'), 'sample')
             target_name = self.targetToName(target)
