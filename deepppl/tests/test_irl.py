@@ -63,7 +63,6 @@ def test_coin_reverted_lines():
     normalize_and_compare(filename, target_file)
 
 
-@pytest.mark.xfail(strict=True)
 def test_coin_guide():
     """ Variational inference can be used without a NN."""
     filename = r'tests/good/coin_guide.stan'
