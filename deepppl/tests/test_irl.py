@@ -22,45 +22,34 @@ def code_to_normalized(code):
     return ast.dump(ast.parse(code))
 
 
-def test_coin():
-    filename = r'tests/good/coin.stan'
-    target_file = r'tests/target_py/coin.py'
+def normalize_and_compare(src_file, target_file):
     with open(target_file) as f:
         target_code = f.read() 
     target = code_to_normalized(target_code)
     
-    compiled = dpplc.stan2astpyFile(filename)
+    compiled = dpplc.stan2astpyFile(src_file)
     assert code_to_normalized(compiled) == target
+
+def test_coin():
+    filename = r'tests/good/coin.stan'
+    target_file = r'tests/target_py/coin.py'
+    normalize_and_compare(filename, target_file)
+
 
 def test_operators():
     filename = r'tests/good/operators.stan'
     target_file = r'tests/target_py/operators.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    normalize_and_compare(filename, target_file)
 
 def test_operators_expr():
     filename = r'tests/good/operators-expr.stan'
     target_file = r'tests/target_py/operators-expr.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    normalize_and_compare(filename, target_file)
 
 def test_coin_vectorized():
     filename = r'tests/good/coin_vectorized.stan'
     target_file = r'tests/target_py/coin_vectorized.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    normalize_and_compare(filename, target_file)
 
 
 
@@ -71,32 +60,17 @@ def test_coin_reverted_lines():
     """
     filename = r'tests/good/coin_reverted.stan'
     target_file = r'tests/target_py/coin_vectorized.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    normalize_and_compare(filename, target_file)
 
 
-
+@pytest.mark.xfail(strict=True)
 def test_coin_guide():
     """ Variational inference can be used without a NN."""
     filename = r'tests/good/coin_guide.stan'
-    target_file = r'tests/target_py/coin.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    target_file = r'tests/target_py/coin_guide.py'
+    normalize_and_compare(filename, target_file)
 
 def test_mlp():
     filename = r'tests/good/mlp.stan'
     target_file = r'tests/target_py/mlp.py'
-    with open(target_file) as f:
-        target_code = f.read() 
-    target = code_to_normalized(target_code)
-    
-    compiled = dpplc.stan2astpyFile(filename)
-    assert code_to_normalized(compiled) == target
+    normalize_and_compare(filename, target_file)
