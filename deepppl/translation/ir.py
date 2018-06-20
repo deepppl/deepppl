@@ -368,6 +368,7 @@ class NetVariable(Expression):
         super(NetVariable, self).__init__()
         self.name = name
         self.ids = ids
+        self.block_name = None
 
     @property
     def id(self):

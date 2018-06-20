@@ -72,6 +72,10 @@ class VariableAnnotationsVisitor(IRVisitor):
         self._delVariable(id)
         return answer
 
+    def visitNetVariable(self, netvar):
+        answer = NetVariable(name = netvar.name, ids = netvar.ids)
+        answer.block_name = self.block.blockName()
+        return answer
 
     def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
@@ -142,9 +146,6 @@ class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
-        self._in_prior = False
-        self._in_guide = False
-        self._guide_params = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
@@ -225,8 +226,6 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         if decl.data:
             self.data_names.add(decl.id)
-        if self._in_guide:
-            self._guide_params.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
         if decl.init:
             ## XXX
@@ -387,8 +386,7 @@ class Ir2PythonVisitor(IRVisitor):
         return self._assign(target, call)
 
     def visitNetVariable(self, var):
-        prefix = 'prior' if self._in_prior else 'guide'
-        name = self.loadName('{}_{}'.format(prefix, var.name))
+        name = self.loadName('{}_{}'.format(var.block_name, var.name))
         value = '.'.join(var.ids)  ##XXX
         return ast.Subscript(
                 value = name,
@@ -411,74 +409,59 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
+    def liftModule(self, name, dict_name):
+        rand_mod = self._pyroattr('random_module')
+        lifted_name = 'lifted_' + name
+        lifted = self.loadName(lifted_name)
+        lifter = self.call(rand_mod, 
+                    args = [ast.Str(name), 
+                            self.loadName(name),
+                            self.loadName(dict_name)])
+        return [
+                self._assign(lifted, lifter),
+                ast.Return(value = self.call(lifted))]
+
+    def lifterBody(self, block, name, dict_name):
+        inner_body = [x for x in self._visitChildren(block) if x is not None]
+        body = [self._assign(self.loadName(dict_name), 
+                            ast.Dict(keys = [], values=[])),]
+        body += inner_body
+        body += self.liftModule(name, dict_name)
+        return body
+
     def visitPrior(self, prior):
-        self._in_prior = True
-        try:
-            name = prior.body[0].target.name
-            name_prior = 'prior_' + name ## XXX
-            ## TODO: only one nn is suported in here.
-            answer = self._visitChildren(prior)
-            body = [self._assign(self.loadName(name_prior), 
-                                ast.Dict(keys = [], values=[])),]
-            body += answer
-            rand_mod = self._pyroattr('random_module')
-            lifted_name = 'lifted_' + name
-            body += [
-                self._assign(self.loadName(lifted_name),
-                            self.call(rand_mod, 
-                                        args = [ast.Str(name), 
-                                                self.loadName(name),
-                                                self.loadName(name_prior)])),
-                ast.Return(value = self.call(self.loadName(lifted_name)))
-            ]
-            
-            f = self._funcDef(name = name_prior, body = body)
-        finally:
-            self._in_prior = False
+        name = prior.body[0].target.name
+        name_prior = 'prior_' + name ## XXX
+        ## TODO: only one nn is suported in here.
+        body = self.lifterBody(prior, name, name_prior)
+        f = self._funcDef(name = name_prior, body = body)
         self._priors = {name : name_prior}
         return f
 
 
     def visitGuide(self, guide):
-        self._in_guide = True
-        try:
-            ## Hack!!! XXX
-            ## a guide needs to know if it's working with a nn module
-            ## as it should create the guide's dictionary and lift it
-            body = guide.body
-            is_net = isinstance(body[-1].target, NetVariable)
-            name = guide.body[-1].target.name if is_net else  ''
-            ## TODO: only one nn is suported in here.
-            name_guide = 'guide_' + name ## XXX
+        ## Hack!!! XXX
+        ## a guide needs to know if it's working with a nn module
+        ## as it should create the guide's dictionary and lift it
+        is_net = guide.body[-1].target.is_net_var()
+        name = guide.body[-1].target.name if is_net else  ''
+        ## TODO: only one nn is suported in here.
+        name_guide = 'guide_' + name ## XXX
 
-            args = [ast.arg(name, None) for name in sorted(self.data_names)]
-            inner_body = [x for x in self._visitAll(body) if x is not None]
-            if is_net:
-                body = [self._assign(self.loadName(name_guide), 
-                                    ast.Dict(keys = [], values=[])),]
-                body += inner_body
-                rand_mod = self._pyroattr('random_module')
-                lifted_name = 'lifted_' + name
-                body += [
-                    self._assign(self.loadName(lifted_name),
-                                self.call(rand_mod, 
-                                            args = [ast.Str(name), 
-                                                    self.loadName(name),
-                                                    self.loadName(name_guide)])),
-                    ast.Return(value = self.call(self.loadName(lifted_name)))
-                ]
-            else:
-                body = inner_body
-            
-            f = self._funcDef(name = name_guide, 
-                              args = args, 
-                              body = body)
-        finally:
-            self._in_guide = False
+        if is_net:
+            body = self.lifterBody(guide, name, name_guide)
+        else:
+            body = [x for x in self._visitChildren(guide) if x is not None]
+
+        f = self._funcDef(name = name_guide, 
+                            args = self.modelArgs(), 
+                            body = body)
         return f
 
+    def modelArgs(self):
+        return [ast.arg(name, None) for name in sorted(self.data_names)]
+
     def buildModel(self, body):
-        args = [ast.arg(name, None) for name in sorted(self.data_names)]
         pre_body = []
         for prior in self._priors:
             pre_body.append(
@@ -487,7 +470,7 @@ class Ir2PythonVisitor(IRVisitor):
             )
         model = self._funcDef(
                             name = 'model',
-                            args = args,
+                            args = self.modelArgs(),
                             body = pre_body + body)
         return model
 
