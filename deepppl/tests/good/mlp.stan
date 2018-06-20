@@ -49,16 +49,16 @@ guide{
     real l2bscale;
 
     l1wloc = randn(0,1);
-    l1wscale = randn(0,1);
+    l1wscale = exp(randn());
     mlp.l1.weight ~  Normal(l1wloc, l1wscale);
     l1bloc = randn(0,1);
-    l1bscale = randn(0,1);
+    l1bscale = exp(randn());
     mlp.l1.bias ~ Normal(l1bloc, l1bscale);
     l2wloc = randn(0,1);
-    l2wscale = randn(0,1);
+    l2wscale = exp(randn());
     mlp.l2.weight ~ Normal(l2wloc, l2wscale);
-    l2bloc = randn(0,1);
-    l2bscale = randn(0,1);
+    l2bloc = randn();
+    l2bscale = exp(randn());
     mlp.l2.bias ~ Normal(l2bloc, l2bscale);
 }
 
