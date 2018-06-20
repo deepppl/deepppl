@@ -13,6 +13,9 @@ class IR(metaclass=IRMeta):
     def is_variable(self):
         return False
 
+    def is_net_var(self):
+        return False
+
     @property
     def children(self):
         return []
@@ -70,20 +73,40 @@ class ProgramBlocks(IR):
     def blockName(cls):
         return cls.__name__.lower()
 
+    def is_data(self):
+        return False
+
+    def is_model(self):
+        return False
+
+    def is_guide(self):
+        return False
+
+    def is_prior(self):
+        return False
+
+    def is_parameters(self):
+        return False
+
 class Model(ProgramBlocks):
-    pass
+    def is_model(self):
+        return True
 
 class Guide(ProgramBlocks):
-    pass
+    def is_guide(self):
+        return True
 
 class Prior(ProgramBlocks):
-    pass
+    def is_prior(self):
+        return True
 
 class Parameters(ProgramBlocks):
-    pass
+    def is_parameters(self):
+        return True
 
 class Data(ProgramBlocks):
-    pass
+    def is_data(self):
+        return True
 
 class Statements(IR):
     pass
@@ -116,6 +139,15 @@ class SamplingStmt(Statements):
     @children.setter
     def children(self, children):
         [self.target, self.args] = children
+
+class SamplingDeclaration(SamplingStmt):
+    pass
+
+class SamplingObserved(SamplingStmt):
+    pass
+
+class SamplingParameters(SamplingStmt):
+    pass
 
 class ForStmt(Statements):
     def __init__(self, id = None, from_ = None, to_ = None, body = None):
@@ -198,7 +230,17 @@ class ContinueStmt(Statements):
     pass
 
 class Expression(Statements):
-    pass
+    def is_data_var(self):
+        return all(x.is_data_var() for x in self.children)
+
+    def is_params_var(self):
+        return (x.is_params_var() for x in self.children)
+
+    def is_guide_var(self):
+        return (x.is_guide_var() for x in self.children)
+
+    def is_prior_var(self):
+        return (x.is_prior_var() for x in self.children)
 
 class Constant(Expression):
     def __init__(self, value = None):
@@ -266,6 +308,18 @@ class Subscript(Expression):
     def children(self, children):
         [self.id, self.index] = children
 
+    def is_data_var(self):
+        return self.id.is_data_var()
+
+    def is_params_var(self):
+        return self.id.is_params_var()
+
+    def is_guide_var(self):
+        return self.id.is_guide_var()
+
+    def is_prior_var(self):
+        return self.id.is_prior_var()
+
 class VariableDecl(IR):
     def __init__(self, id = None, dim = None, init = None):
         super(VariableDecl, self).__init__()
@@ -292,22 +346,22 @@ class Variable(Expression):
     def __init__(self, id = None):
         super(Variable, self).__init__()
         self.id = id
-        self.block = None
+        self.block_name = None
 
     def is_variable(self):
         return True
 
     def is_data_var(self):
-        return self.block == Data.blockName()
+        return self.block_name == Data.blockName()
 
     def is_params_var(self):
-        return self.block == Parameters.blockName()
+        return self.block_name == Parameters.blockName()
 
     def is_guide_var(self):
-        return self.block == Guide.blockName()
+        return self.block_name == Guide.blockName()
 
     def is_prior_var(self):
-        return self.block == Prior.blockName()
+        return self.block_name == Prior.blockName()
 
 class NetVariable(Expression):
     def __init__(self, name = None, ids =  []):
@@ -315,10 +369,13 @@ class NetVariable(Expression):
         self.name = name
         self.ids = ids
 
-    def getid(self):
+    @property
+    def id(self):
         return self.name + '.'.join(self.ids)
 
-    id = property(getid)
+    def is_net_var(self):
+        return True
+    
 
 class Operator(Expression):
     pass

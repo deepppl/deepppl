@@ -3,8 +3,9 @@ import torch
 import astpretty
 import astor
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
-                AssignStmt, SamplingStmt, Subscript, BlockStmt,\
-                CallStmt, List
+                AssignStmt, Subscript, BlockStmt,\
+                CallStmt, List, SamplingDeclaration, SamplingObserved,\
+                SamplingParameters
 
 class IRVisitor(object):
     def defaultVisit(self, node):
@@ -75,8 +76,15 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
         args = self._visitAll(sampling.args)
-        return SamplingStmt(target = target, args = args,
-                            id = sampling.id)
+        if (self.block.is_prior() or self.block.is_guide()) and target.is_net_var():
+            method = SamplingDeclaration
+        elif target.is_data_var():
+            method = SamplingObserved
+        elif target.is_params_var():
+            method = SamplingParameters
+        else:
+            assert False, "Don't know how to sample this:{}".format(sampling)
+        return method(target = target, args = args, id = sampling.id)
 
     def visitProgramBlock(self, block):
         self.block = block
@@ -98,7 +106,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         name = var.id
         if name not in self.ctx:
             assert False, "Use of undeclared variable:{name}".format(name)
-        var.block = self.ctx[name].blockName()
+        var.block_name = self.ctx[name].blockName()
         return var
 
 
@@ -242,7 +250,7 @@ class Ir2PythonVisitor(IRVisitor):
                         ctx = ast.Load())
 
     def visitVariable(self, var):
-        assert var.block is not None
+        assert var.block_name is not None
         return self.loadName(var.id)
 
     def visitCallStmt(self, call):
@@ -342,37 +350,41 @@ class Ir2PythonVisitor(IRVisitor):
                 slice=ast.Index(value=idx_z),
                 ctx=ast.Load())
 
-    def visitSamplingStmt(self, sampling):
-        target = sampling.target.accept(self)
+    def samplingDist(self, sampling):
         args = [arg.accept(self) for arg in sampling.args]
         id = sampling.id
         if hasattr(torch.distributions, id.capitalize()):
             # Check if the distribution exists in torch.distributions
             id = id.capitalize()
-        ## if target is data, then we observe on that variable
-        is_data = self.is_data(sampling.target)
-
-        if is_data:
-            keywords = [ast.keyword(arg='obs', value = target)]
-        else:
-            keywords = []
-        
-        dist = self.call(self.loadAttr(self.loadName('dist'), id),
+        return self.call(self.loadAttr(self.loadName('dist'), id),
                          args = args)
-        if self._in_prior or (self._in_guide and \
-                             not (sampling.target.is_variable() and sampling.target.is_params_var())):
-            call = dist
-        else:
-            sample = self._pyroattr('sample')
-            target_name = self.targetToName(target)
-            call = self.call(sample,
-                            args = [target_name, dist],
-                            keywords=keywords)
-        if is_data:
-            return ast.Expr(value = call)
-        else:
-            return self._assign(target, call)
 
+    def visitSamplingDeclaration(self, sampling):
+        """This node represents when a variable is declared to have a given distribution"""
+        target = sampling.target.accept(self)
+        dist = self.samplingDist(sampling)
+        return self._assign(target, dist)
+
+    def samplingCall(self, sampling, target, keywords = []):
+        dist = self.samplingDist(sampling)
+        sample = self._pyroattr('sample')
+        target_name = self.targetToName(target)
+        return self.call(sample,
+                        args = [target_name, dist],
+                        keywords=keywords)
+
+    def visitSamplingObserved(self, sampling):
+        """Sample statement on data."""
+        target = sampling.target.accept(self)
+        keyword = ast.keyword(arg='obs', value = target)
+        call = self.samplingCall(sampling, target, keywords = [keyword])
+        return ast.Expr(value = call)
+
+    def visitSamplingParameters(self, sampling):
+        """Sample a parameter."""
+        target = sampling.target.accept(self)
+        call = self.samplingCall(sampling, target)
+        return self._assign(target, call)
 
     def visitNetVariable(self, var):
         prefix = 'prior' if self._in_prior else 'guide'
