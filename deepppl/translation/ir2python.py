@@ -44,7 +44,9 @@ class VariableAnnotationsVisitor(IRVisitor):
         self.block = None
 
     def defaultVisit(self, node):
-        return node
+        answer = node
+        answer.children = self._visitChildren(node)
+        return answer
 
     def _addVariable(self, name):
         if name in self.ctx:
@@ -58,41 +60,17 @@ class VariableAnnotationsVisitor(IRVisitor):
     
     def visitProgram(self, program):
         answer = Program()
-        answer.children = self._visitAll(program.children)
-        return answer
-
-    def visitAssignStmt(self, ir):
-        answer = AssignStmt()
-        answer.children = self._visitChildren(ir)
+        answer.children = self._visitChildren(program)
         return answer
 
     def visitForStmt(self, forstmt):
         id = forstmt.id
         answer = ForStmt(id = id)
         self._addVariable(id)
-        answer.children = self._visitAll(forstmt.children)
+        answer.children = self._visitChildren(forstmt)
         self._delVariable(id)
         return answer
 
-    def visitSubscript(self, subscript):
-        answer = Subscript()
-        answer.children = self._visitAll(subscript.children)
-        return answer
-
-    def visitList(self, list):
-        answer = List()
-        answer.children = self._visitAll(list.children)
-        return answer
-
-    def visitCallStmt(self, call):
-        answer = CallStmt(id = call.id)
-        answer.children = self._visitAll(call.children)
-        return answer
-
-    def visitBlockStmt(self, block):
-        answer = BlockStmt()
-        answer.children = self._visitAll(block.children)
-        return answer
 
     def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
@@ -100,31 +78,15 @@ class VariableAnnotationsVisitor(IRVisitor):
         return SamplingStmt(target = target, args = args,
                             id = sampling.id)
 
-    def visitConditionalStmt(self, conditional):
-        answer = ConditionalStmt()
-        answer.children = self._visitAll(conditional.children)
-        return answer
-    
-
     def visitProgramBlock(self, block):
         self.block = block
-        block.children = self._visitAll(block.children)
-        return block
+        return self.defaultVisit(block)
 
-    def visitData(self, data):
-        return self.visitProgramBlock(data)
-
-    def visitModel(self, model):
-        return self.visitProgramBlock(model)
-
-    def visitParameters(self, params):
-        return self.visitProgramBlock(params)
-
-    def visitGuide(self, guide):
-        return self.visitProgramBlock(guide)
-
-    def visitPrior(self, prior):
-        return self.visitProgramBlock(prior)
+    visitData = visitProgramBlock
+    visitModel = visitProgramBlock
+    visitParameters = visitProgramBlock
+    visitGuide = visitProgramBlock
+    visitPrior = visitProgramBlock
         
     def visitVariableDecl(self, decl):
         decl.dim = decl.dim.accept(self) if decl.dim else None
