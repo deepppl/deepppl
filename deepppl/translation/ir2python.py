@@ -213,7 +213,7 @@ class Ir2PythonVisitor(IRVisitor):
         return self._call(call.id, call.args)
 
     def visitAssignStmt(self, ir):
-        target, value = self._visitAll((ir.target, ir.value))
+        target, value = self._visitChildren(ir)
         if ir.target.is_variable() and ir.target.is_guide_var():
             target_name = self.targetToName(target)
             call = self.call(self.loadAttr(self.loadName('pyro'), 'param'),
@@ -251,9 +251,7 @@ class Ir2PythonVisitor(IRVisitor):
     def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
-        body, from_, to_ = self._visitAll((forstmt.body,
-                                        forstmt.from_,
-                                        forstmt.to_))
+        from_, to_, body = self._visitChildren(forstmt)
         incl_to = ast.BinOp(left = to_, 
                             right = ast.Num(1), 
                             op = ast.Add())
@@ -278,9 +276,7 @@ class Ir2PythonVisitor(IRVisitor):
         return self._visitAll(block.body)
 
     def visitBinaryOperator(self, binaryop):
-        left, right, op = self._visitAll((binaryop.left, 
-                                        binaryop.right,
-                                        binaryop.op))
+        left, right, op = self._visitChildren(binaryop)
         if isinstance(op, ast.cmpop):
             return ast.Compare(left = left, 
                                ops = [op], 
@@ -323,7 +319,7 @@ class Ir2PythonVisitor(IRVisitor):
         return ast.Eq()
 
     def visitSubscript(self, subscript):
-        id, idx = self._visitAll((subscript.id, subscript.index))
+        id, idx = self._visitChildren(subscript)
         idx_z = ast.BinOp(left = idx, right = ast.Num(1), op = ast.Sub())
         return ast.Subscript(
                 value = id,
@@ -375,7 +371,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitData(self, data):
         ## TODO: implement data behavior
-        self._visitAll(data.body)
+        self._visitChildren(data)
         return None
 
     def visitParameters(self, params):
@@ -383,7 +379,7 @@ class Ir2PythonVisitor(IRVisitor):
         return None
 
     def visitModel(self, model):
-        body = self._visitAll(model.body)
+        body = self._visitChildren(model)
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
@@ -393,7 +389,7 @@ class Ir2PythonVisitor(IRVisitor):
             name = prior.body[0].target.name
             name_prior = 'prior_' + name ## XXX
             ## TODO: only one nn is suported in here.
-            answer = self._visitAll(prior.body)
+            answer = self._visitChildren(prior)
             body = [self._assign(self.loadName(name_prior), 
                                 ast.Dict(keys = [], values=[])),]
             body += answer
@@ -499,7 +495,7 @@ class Ir2PythonVisitor(IRVisitor):
         return model
 
     def visitProgram(self, program):
-        python_nodes = self._visitAll(program.blocks())
+        python_nodes = self._visitChildren(program)
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
