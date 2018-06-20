@@ -16,6 +16,10 @@ class IR(metaclass=IRMeta):
     @property
     def children(self):
         return []
+
+    @children.setter
+    def children(self, children):
+        assert not children, "Setting children to object without children"
     
 class Program(IR):
     def __init__(self, body = []):
