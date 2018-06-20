@@ -19,6 +19,9 @@ class IRVisitor(object):
         filter = lambda x: (x is not None) or None
         return [filter(x) and x.accept(self) for x in iterable ]
 
+    def _visitChildren(self, node):
+        return self._visitAll(node.children)
+
 class TargetVisitor(IRVisitor):
     def __init__(self, ir2py):
         super(TargetVisitor, self).__init__()
@@ -54,37 +57,42 @@ class VariableAnnotationsVisitor(IRVisitor):
         del self.ctx[name]
     
     def visitProgram(self, program):
-        body = self._visitAll(program.blocks())
-        return Program(body)
+        answer = Program()
+        answer.children = self._visitAll(program.children)
+        return answer
 
     def visitAssignStmt(self, ir):
-        target, value = self._visitAll((ir.target, ir.value))
-        return AssignStmt(target = target, value = value)
+        answer = AssignStmt()
+        answer.children = self._visitChildren(ir)
+        return answer
 
     def visitForStmt(self, forstmt):
         id = forstmt.id
+        answer = ForStmt(id = id)
         self._addVariable(id)
-        body, from_, to_ = self._visitAll((forstmt.body,
-                                        forstmt.from_,
-                                        forstmt.to_))
+        answer.children = self._visitAll(forstmt.children)
         self._delVariable(id)
-        return ForStmt(id = id, from_ = from_ , to_ = to_, body = body)
+        return answer
 
     def visitSubscript(self, subscript):
-        id, idx = self._visitAll((subscript.id, subscript.index))
-        return Subscript(id = id, index = idx)
+        answer = Subscript()
+        answer.children = self._visitAll(subscript.children)
+        return answer
 
     def visitList(self, list):
-        elements = self._visitAll(list.elements)
-        return List(elements = elements)
+        answer = List()
+        answer.children = self._visitAll(list.children)
+        return answer
 
     def visitCallStmt(self, call):
-        args = call.args.accept(self)
-        return CallStmt(id = call.id, args = args)
+        answer = CallStmt(id = call.id)
+        answer.children = self._visitAll(call.children)
+        return answer
 
     def visitBlockStmt(self, block):
-        body = self._visitAll(block.body)
-        return BlockStmt(body)
+        answer = BlockStmt()
+        answer.children = self._visitAll(block.children)
+        return answer
 
     def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
@@ -93,15 +101,14 @@ class VariableAnnotationsVisitor(IRVisitor):
                             id = sampling.id)
 
     def visitConditionalStmt(self, conditional):
-        test, true, false = self._visitAll((conditional.test, 
-                                            conditional.true, 
-                                            conditional.false))
-        return ConditionalStmt(test = test, true = true, false = false)
+        answer = ConditionalStmt()
+        answer.children = self._visitAll(conditional.children)
+        return answer
     
 
     def visitProgramBlock(self, block):
         self.block = block
-        block.body = self._visitAll(block.body)
+        block.children = self._visitAll(block.children)
         return block
 
     def visitData(self, data):

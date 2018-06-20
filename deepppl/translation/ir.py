@@ -12,12 +12,24 @@ class IR(metaclass=IRMeta):
 
     def is_variable(self):
         return False
+
+    @property
+    def children(self):
+        return []
     
 class Program(IR):
     def __init__(self, body = []):
         super(Program, self).__init__()
         self.body = body
         self.addBlocks(body)
+
+    @property
+    def children(self):
+        return self.blocks()
+
+    @children.setter
+    def children(self, blocks):
+        self.addBlocks(blocks)
 
     def addBlocks(self, blocks):
         for block in blocks:
@@ -40,6 +52,14 @@ class Program(IR):
 class ProgramBlocks(IR):
     def __init__(self, body = []):
         super(ProgramBlocks, self).__init__()
+        self.body = body
+
+    @property
+    def children(self):
+        return self.body
+
+    @children.setter
+    def children(self, body):
         self.body = body
 
     @classmethod
@@ -69,7 +89,14 @@ class AssignStmt(Statements):
         super(AssignStmt, self).__init__()
         self.target = target
         self.value = value
-    
+
+    @property
+    def children(self):
+        return [self.target, self.value]
+
+    @children.setter
+    def children(self, children):
+        [self.target, self.value] = children
 
 class SamplingStmt(Statements):
     def __init__(self, target = None, id = None, args = None):
@@ -77,6 +104,14 @@ class SamplingStmt(Statements):
         self.target = target
         self.id = id
         self.args = args
+
+    @property
+    def children(self):
+        return [self.target, self.args]
+
+    @children.setter
+    def children(self, children):
+        [self.target, self.args] = children
 
 class ForStmt(Statements):
     def __init__(self, id = None, from_ = None, to_ = None, body = None):
@@ -86,6 +121,15 @@ class ForStmt(Statements):
         self.to_ = to_
         self.body = body
 
+
+    @property
+    def children(self):
+        return [self.from_, self.to_, self.body]
+
+    @children.setter
+    def children(self, children):
+        [self.from_, self.to_, self.body] = children
+
 class ConditionalStmt(Statements):
     def __init__(self, test = None, true = None, false = None):
         super(ConditionalStmt, self).__init__()
@@ -93,23 +137,55 @@ class ConditionalStmt(Statements):
         self.true = true
         self.false = false
 
+    @property
+    def children(self):
+        return [self.test, self.true, self.false]
+
+    @children.setter
+    def children(self, children):
+        [self.test, self.true, self.false] = children
+
 class WhileStmt(Statements):
     def __init__(self, test = None, body = None):
         super(WhileStmt, self).__init__()
         self.test = test
         self.body = body
 
+    @property
+    def children(self):
+        return [self.test, self.body]
+
+    @children.setter
+    def children(self, children):
+        [self.test, self.body] = children
+
 class BlockStmt(Statements):
     def __init__(self, body = None):
         super(BlockStmt, self).__init__()
         self.body = body
+
+    @property
+    def children(self):
+        return self.body
+
+    @children.setter
+    def children(self, children):
+        self.body = children
 
 class CallStmt(Statements):
     def __init__(self, id = None, args = None):
         super(CallStmt, self).__init__()
         self.id = id
         self.args = args
-  
+
+    @property
+    def children(self):
+        return [self.args]
+
+    @children.setter
+    def children(self, children):
+        [self.args,] = children  
+
 
 class BreakStmt(Statements):
     pass
@@ -131,6 +207,14 @@ class Tuple(Expression):
         super(Tuple, self).__init__()
         self.exprs = exprs
 
+    @property
+    def children(self):
+        return self.exprs
+
+    @children.setter
+    def children(self, children):
+        self.exprs = children
+
 class Str(Expression):
     def __init__(self, value = None):
         super(Str, self).__init__()
@@ -141,6 +225,14 @@ class List(Expression):
         super(List, self).__init__()
         self.elements = elements
 
+    @property
+    def children(self):
+        return self.elements
+
+    @children.setter
+    def children(self, children):
+        self.elements = children
+
 class BinaryOperator(Expression):
     def __init__(self, left = None, op = None, right = None):
         super(BinaryOperator, self).__init__()
@@ -148,11 +240,27 @@ class BinaryOperator(Expression):
         self.right = right
         self.op = op 
 
+    @property
+    def children(self):
+        return [self.left, self.right, self.op]
+
+    @children.setter
+    def children(self, children):
+        [self.left, self.right, self.op] = children
+
 class Subscript(Expression):
     def __init__(self, id = None, index = None):
         super(Subscript, self).__init__()
         self.id = id
         self.index = index 
+
+    @property
+    def children(self):
+        return [self.id, self.index]
+
+    @children.setter
+    def children(self, children):
+        [self.id, self.index] = children
 
 class VariableDecl(IR):
     def __init__(self, id = None, dim = None, init = None):
@@ -167,6 +275,14 @@ class VariableDecl(IR):
 
     def set_data(self):
         self.data = True
+
+    @property
+    def children(self):
+        return [self.dim, self.init]
+
+    @children.setter
+    def children(self, children):
+        [self.dim, self.init] = children
 
 class Variable(Expression):
     def __init__(self, id = None):
