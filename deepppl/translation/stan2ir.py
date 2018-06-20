@@ -254,7 +254,7 @@ class StanToIR(stanListener):
 
     def exitCallExpr(self, ctx):
         id = ctx.IDENTIFIER().getText()
-        args = List(elements = ctx.expressionOrStringCommaList().ir)
+        args = ctx.expressionOrStringCommaList().ir
         ctx.ir = CallStmt(id = id, args = args)
 
     def exitCallStmt(self, ctx):
@@ -267,7 +267,9 @@ class StanToIR(stanListener):
             ctx.ir = Str(value=ctx.getText())
 
     def exitExpressionOrStringCommaList(self, ctx):
-        ctx.ir = gatherChildrenIR(ctx)
+        ir = gatherChildrenIR(ctx)
+        elements = ir if ir is not None else []
+        ctx.ir = List(elements = elements)
 
     # statements
 
