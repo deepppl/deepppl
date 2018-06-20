@@ -163,6 +163,40 @@ class Ir2PythonVisitor(IRVisitor):
     def call(self, id,  args = [], keywords = []):
         return self.helper.call(id, args = args, keywords = keywords)
 
+    def _assign(self, target_node, value):
+        if isinstance(target_node, ast.Name):
+            target = ast.Name(id = target_node.id, ctx = ast.Store())
+        elif isinstance(target_node, ast.Subscript):
+            target = ast.Subscript(value = target_node.value,
+                                  slice = target_node.slice,
+                                  ctx = ast.Store())
+        else:
+            assert False, "Don't know how to assign to {}".format(target)
+        return ast.Assign(
+                targets=[target],
+                value = value)
+
+    def _call(self, id_, args_):
+        ## TODO id is a string!
+        id = self.loadName(id_)
+        args = args_.accept(self)
+        args = args.elts if args else []
+        return self.call(id, args=args)
+
+    def _funcDef(self, name = None, args = [], body = []):
+        return ast.FunctionDef(
+                name = name,
+                args = ast.arguments(args = args,
+                                    vararg = None,
+                                    kwonlyargs = [],
+                                    kw_defaults=[],
+                                    kwarg=None,
+                                    defaults=[]),
+                body = body,
+                decorator_list = [],
+                returns = None
+            )
+
     def targetToName(self, target):
         if isinstance(target, ast.Name):
             return ast.Str(target.id)
@@ -188,6 +222,8 @@ class Ir2PythonVisitor(IRVisitor):
         dims = decl.dim.accept(self) if decl.dim else None
         if decl.init:
             ## XXX
+            if True:
+                raise NotImplementedError
             assert not decl.data, "Data cannot be initialized"
             init = decl.init.accept(self)
             torch_ = self.loadName('torch')
@@ -216,37 +252,17 @@ class Ir2PythonVisitor(IRVisitor):
         target, value = self._visitChildren(ir)
         if ir.target.is_variable() and ir.target.is_guide_var():
             target_name = self.targetToName(target)
-            call = self.call(self.loadAttr(self.loadName('pyro'), 'param'),
+            value = self.call(self._pyroattr('param'),
                             args = [
                                     target_name,
                                     value,
                                     ## XXX possible constraints
                             ])
-            return self._assign(target, call)
-        else:
-            return self._assign(target, value)
+        return self._assign(target, value)
 
 
-    def _assign(self, target, value):
-        if isinstance(target, ast.Name):
-            return ast.Assign(
-                    targets=[ast.Name(id = target.id, ctx = ast.Store())],
-                    value = value)
-        elif isinstance(target, ast.Subscript):
-            target = ast.Subscript(value = target.value,
-                                  slice = target.slice,
-                                  ctx = ast.Store())
-            return ast.Assign(
-                    targets=[target],
-                    value = value)
-        assert False, "Don't know how to assign to {}".format(target)
-
-    def _call(self, id_, args_):
-        ## TODO id is a string!
-        id = self.loadName(id_)
-        args = args_.accept(self)
-        args = args.elts if args else []
-        return self.call(id, args=args)
+    def _pyroattr(self, attr):
+        return self.loadAttr(self.loadName('pyro'), attr)
 
     def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
@@ -347,7 +363,7 @@ class Ir2PythonVisitor(IRVisitor):
                              not (sampling.target.is_variable() and sampling.target.is_params_var())):
             call = dist
         else:
-            sample = self.loadAttr(self.loadName('pyro'), 'sample')
+            sample = self._pyroattr('sample')
             target_name = self.targetToName(target)
             call = self.call(sample,
                             args = [target_name, dist],
@@ -393,7 +409,7 @@ class Ir2PythonVisitor(IRVisitor):
             body = [self._assign(self.loadName(name_prior), 
                                 ast.Dict(keys = [], values=[])),]
             body += answer
-            rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+            rand_mod = self._pyroattr('random_module')
             lifted_name = 'lifted_' + name
             body += [
                 self._assign(self.loadName(lifted_name),
@@ -403,22 +419,8 @@ class Ir2PythonVisitor(IRVisitor):
                                                 self.loadName(name_prior)])),
                 ast.Return(value = self.call(self.loadName(lifted_name)))
             ]
-
-                # lifted_module = pyro.random_module("mlp", mlp, priors)
-                # return lifted_module()
             
-            f = ast.FunctionDef(
-                name = name_prior,
-                args = ast.arguments(args = [],
-                                    vararg = None,
-                                    kwonlyargs = [],
-                                    kw_defaults=[],
-                                    kwarg=None,
-                                    defaults=[]),
-                body = body,
-                decorator_list = [],
-                returns = None
-            )
+            f = self._funcDef(name = name_prior, body = body)
         finally:
             self._in_prior = False
         self._priors = {name : name_prior}
@@ -443,7 +445,7 @@ class Ir2PythonVisitor(IRVisitor):
                 body = [self._assign(self.loadName(name_guide), 
                                     ast.Dict(keys = [], values=[])),]
                 body += inner_body
-                rand_mod = self.loadAttr(self.loadName('pyro'), 'random_module')
+                rand_mod = self._pyroattr('random_module')
                 lifted_name = 'lifted_' + name
                 body += [
                     self._assign(self.loadName(lifted_name),
@@ -456,18 +458,9 @@ class Ir2PythonVisitor(IRVisitor):
             else:
                 body = inner_body
             
-            f = ast.FunctionDef(
-                name = name_guide,
-                args = ast.arguments(args = args,
-                                    vararg = None,
-                                    kwonlyargs = [],
-                                    kw_defaults=[],
-                                    kwarg=None,
-                                    defaults=[]),
-                body = body,
-                decorator_list = [],
-                returns = None
-            )
+            f = self._funcDef(name = name_guide, 
+                              args = args, 
+                              body = body)
         finally:
             self._in_guide = False
         return f
@@ -480,18 +473,10 @@ class Ir2PythonVisitor(IRVisitor):
                 self._assign(self.loadName(prior),
                              self.call(self.loadName(self._priors[prior])))
             )
-        model = ast.FunctionDef(
-            name = 'model',
-            args = ast.arguments(args = args,
-                                 vararg = None,
-                                 kwonlyargs = [],
-                                 kw_defaults=[],
-                                 kwarg=None,
-                                 defaults=[]),
-            body = pre_body + body,
-            decorator_list = [],
-            returns = None
-        )
+        model = self._funcDef(
+                            name = 'model',
+                            args = args,
+                            body = pre_body + body)
         return model
 
     def visitProgram(self, program):
