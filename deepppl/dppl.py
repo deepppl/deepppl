@@ -16,6 +16,8 @@
 
 import dpplc
 import pyro
+from pyro import infer
+from pyro.optim import Adam
 import sys
 
 class DppplModel(object):
@@ -27,14 +29,19 @@ class DppplModel(object):
         """Load the python object into `_model`"""
         locals_ = {}
         eval(self._py, globals(), locals_)
-        _model = locals_['model']
-        for name in locals_:
-            value = locals_[name]
-            ## Check for module objects
-            if type(value) == type(sys):
-                _model.__globals__[name] = value
-
-        self._model = _model
+        self._model = locals_['model']
+        self._model.__globals__.update(locals_)
+        self._guide = None
+        for k in locals_.keys():
+            if k.startswith('guide_'):
+                self._guide = locals_[k]
+                self._model.__globals__.update(locals_)
+                break
         
-    def posterior(self, num_samples=3000, method=pyro.infer.Importance):
-        return pyro.infer.Importance(self._model, num_samples=3000)
+    def posterior(self, num_samples=3000, method=infer.Importance):
+        return method(self._model, num_samples=3000)
+
+    def svi(self, optimizer = None, loss = infer.Trace_ELBO(), params = {'lr' : 0.0005}):
+        optimizer = optimizer if optimizer else Adam(params)
+        svi = infer.SVI(self._model, self._guide, optimizer, loss)
+        return svi
