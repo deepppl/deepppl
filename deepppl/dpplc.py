@@ -48,6 +48,19 @@ def stan2astpyFile(filename):
     stream = FileStream(filename)
     return stan2astpy(stream)
 
+def stan2astpyStr(str):
+    stream = InputStream(str)
+    return stan2astpy(stream)
+
+def do_compile(model_code = None, model_file = None):
+    if not (model_code or model_file) or (model_code and model_file):
+        assert False, "Either code or file but not both must be provided."
+    if model_code:
+        ast_ = stan2astpyStr(model_code)
+    else:
+        ast_ = stan2astpyFile(model_file)
+    return compile(ast_, "<deepppl_ast>", 'exec')
+
 def main(argv):
     return stan2astpyFile(argv[1])
 

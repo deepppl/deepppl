@@ -2,10 +2,13 @@ import ast
 import torch
 import astpretty
 import astor
+import sys
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters
+
+from_test = lambda: hasattr(sys, "_called_from_test")
 
 class IRVisitor(object):
     def defaultVisit(self, node):
@@ -484,8 +487,9 @@ class Ir2PythonVisitor(IRVisitor):
             self.import_('pyro.distributions', 'dist')]
         module.body += body
         ast.fix_missing_locations(module)
-        astpretty.pprint(module)
-        print(astor.to_source(module))
+        if from_test():
+            astpretty.pprint(module)
+            print(astor.to_source(module))
         return module
 
             
