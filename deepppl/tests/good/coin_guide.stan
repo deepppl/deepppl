@@ -25,13 +25,13 @@ parameters {
 guide {
   real<lower=0>  alpha_q;
   real<lower=0>  beta_q;
-  alpha_q = 15;
-  beta_q = 15;
+  alpha_q = 15.0;
+  beta_q = 15.0;
   theta ~ beta(alpha_q, beta_q);
 }
 
 model {
-  theta ~ beta(10, 10);
+  theta ~ beta(10.0, 10.0);
   for (i in 1:10)
     x[i] ~ bernoulli(theta);
 }
