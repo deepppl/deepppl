@@ -145,6 +145,10 @@ class PythonASTHelper(object):
     def import_(self, name, asname = None):
         return ast.Import(names=[ast.alias(name=name, asname=asname)])
 
+    def importFrom_(self, module, names):
+        names_ = [ast.alias(name=name, asname = None) for name in names]
+        return ast.ImportFrom(module, names_, 0)
+
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor, self).__init__()
@@ -168,6 +172,9 @@ class Ir2PythonVisitor(IRVisitor):
 
     def import_(self, name, asname = None):
         return self.helper.import_(name, asname = asname)
+
+    def importFrom_(self, module, names):
+        return self.helper.importFrom_(module, names)
 
     def loadAttr(self, obj, attr):
         return self.helper.loadAttr(obj, attr)
@@ -224,7 +231,9 @@ class Ir2PythonVisitor(IRVisitor):
             assert False, "Don't know how to stringfy: {}".format(target)
 
     def visitConstant(self, const):
-        return ast.Num(const.value)
+        tensor = self.loadName('tensor')
+        args = [ast.Num(const.value)]
+        return self.call(tensor, args = args)
 
     def visitVariableDecl(self, decl):
         if decl.data:
@@ -483,6 +492,7 @@ class Ir2PythonVisitor(IRVisitor):
         module = ast.Module()
         module.body = [
             self.import_('torch'),
+            self.importFrom_('torch', ['tensor',]),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
         module.body += body
