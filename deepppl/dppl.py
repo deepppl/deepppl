@@ -14,11 +14,12 @@
 #  * limitations under the License.
 #  */
 
-import dpplc
+
 import pyro
 from pyro import infer
 from pyro.optim import Adam
 import sys
+from . import dpplc
 
 class DppplModel(object):
     def __init__(self, model_code = None, model_file = None):
@@ -41,7 +42,7 @@ class DppplModel(object):
     def posterior(self, num_samples=3000, method=infer.Importance):
         return method(self._model, num_samples=3000)
 
-    def svi(self, optimizer = None, loss = infer.Trace_ELBO(), params = {'lr' : 0.0005}):
+    def svi(self, optimizer = None, loss = infer.Trace_ELBO(), params = {'lr' : 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
         svi = infer.SVI(self._model, self._guide, optimizer, loss)
         return svi
