@@ -16,7 +16,7 @@
 
 import sys
 import ast
-from parser.stanListener import stanListener
+from ..parser.stanListener import stanListener
 import astor
 import astpretty
 import torch

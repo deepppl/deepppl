@@ -14,7 +14,7 @@
 #  * limitations under the License.
 # */
 
-import dpplc
+from deepppl import dpplc
 import ast
 import pytest
 
@@ -31,24 +31,24 @@ def normalize_and_compare(src_file, target_file):
     assert code_to_normalized(compiled) == target
 
 def test_coin():
-    filename = r'tests/good/coin.stan'
-    target_file = r'tests/target_py/coin.py'
+    filename = r'deepppl/tests/good/coin.stan'
+    target_file = r'deepppl/tests/target_py/coin.py'
     normalize_and_compare(filename, target_file)
 
 
 def test_operators():
-    filename = r'tests/good/operators.stan'
-    target_file = r'tests/target_py/operators.py'
+    filename = r'deepppl/tests/good/operators.stan'
+    target_file = r'deepppl/tests/target_py/operators.py'
     normalize_and_compare(filename, target_file)
 
 def test_operators_expr():
-    filename = r'tests/good/operators-expr.stan'
-    target_file = r'tests/target_py/operators-expr.py'
+    filename = r'deepppl/tests/good/operators-expr.stan'
+    target_file = r'deepppl/tests/target_py/operators-expr.py'
     normalize_and_compare(filename, target_file)
 
 def test_coin_vectorized():
-    filename = r'tests/good/coin_vectorized.stan'
-    target_file = r'tests/target_py/coin_vectorized.py'
+    filename = r'deepppl/tests/good/coin_vectorized.stan'
+    target_file = r'deepppl/tests/target_py/coin_vectorized.py'
     normalize_and_compare(filename, target_file)
 
 
@@ -58,18 +58,17 @@ def test_coin_reverted_lines():
     """Inside a `block`, stan semantics do not requires lines to be 
     ordered.
     """
-    filename = r'tests/good/coin_reverted.stan'
-    target_file = r'tests/target_py/coin_vectorized.py'
+    filename = r'deepppl/tests/good/coin_reverted.stan'
+    target_file = r'deepppl/tests/target_py/coin_vectorized.py'
     normalize_and_compare(filename, target_file)
 
 
 def test_coin_guide():
-    """ Variational inference can be used without a NN."""
-    filename = r'tests/good/coin_guide.stan'
-    target_file = r'tests/target_py/coin_guide.py'
+    filename = r'deepppl/tests/good/coin_guide.stan'
+    target_file = r'deepppl/tests/target_py/coin_guide.py'
     normalize_and_compare(filename, target_file)
 
 def test_mlp():
-    filename = r'tests/good/mlp.stan'
-    target_file = r'tests/target_py/mlp.py'
+    filename = r'deepppl/tests/good/mlp.stan'
+    target_file = r'deepppl/tests/target_py/mlp.py'
     normalize_and_compare(filename, target_file)

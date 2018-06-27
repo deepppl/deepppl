@@ -16,10 +16,10 @@
 
 import sys
 from antlr4 import *
-from parser.stanLexer import stanLexer
-from parser.stanParser import stanParser
-from translation.stan2ir import StanToIR
-from translation.ir2python import ir2python
+from .parser.stanLexer import stanLexer
+from .parser.stanParser import stanParser
+from .translation.stan2ir import StanToIR
+from .translation.ir2python import ir2python
 
 
 import torch

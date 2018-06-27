@@ -10,7 +10,7 @@ install:
   - pip install -r deepppl/requirements.txt --progress-bar off
 # command to run tests
 before_script:
-  - cd deepppl
   - make
+  - pip install .
 script:
-  - python -m pytest
+  - pytest
