@@ -83,6 +83,12 @@ class StanToIR(stanListener):
     def exitVariable(self, ctx):
         ctx.ir = Variable(id = ctx.getText())
 
+    def exitIndexExpression(self, ctx):
+        if is_active(ctx.expressionCommaListOpt):
+            ctx.ir = ctx.expressionCommaListOpt().ir
+        else:
+            assert False, "Unknown index expression:{}.".format(ctx.getText())
+
     def exitAtom(self, ctx):
         if is_active(ctx.constant):
             ctx.ir = ctx.constant().ir
@@ -90,8 +96,12 @@ class StanToIR(stanListener):
             ctx.ir = ctx.variable().ir
         elif is_active(ctx.expression):
             ctx.ir = ctx.expression().ir
+        elif is_active(ctx.atom) and is_active(ctx.indexExpression):
+            name = ctx.atom().ir
+            index = ctx.indexExpression().ir
+            ctx.ir = Subscript(id = name, index = index)
         else:
-            assert False, "Not yet implemented atom"
+            assert False, "Not yet implemented atom: {}".format(ctx.getText())
 
     def exitExpression(self, ctx):
         if is_active(ctx.atom):
@@ -146,7 +156,11 @@ class StanToIR(stanListener):
         ctx.ir = gatherChildrenIR(ctx)
 
     def exitExpressionCommaListOpt(self, ctx):
-        ctx.ir = gatherChildrenIRList(ctx)
+        ir = gatherChildrenIRList(ctx)
+        if len(ir) == 1:
+            ctx.ir = ir[0]
+        else:
+            ctx.ir = List(elements = ir)
 
     # Statements (section 5)
 
