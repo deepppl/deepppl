@@ -112,7 +112,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitVariable(self, var):
         name = var.id
         if name not in self.ctx:
-            assert False, "Use of undeclared variable:{name}".format(name)
+            assert False, "Use of undeclared variable:{}".format(name)
         var.block_name = self.ctx[name].blockName()
         return var
 
