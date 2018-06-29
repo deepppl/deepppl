@@ -75,5 +75,5 @@ def test_mlp():
 
 def test_vae():
     filename = r'deepppl/tests/good/vae.stan'
-    target_file = r'deepppl/tests/target_py/mlp.py'
+    target_file = r'deepppl/tests/target_py/vae.py'
     normalize_and_compare(filename, target_file)

@@ -319,13 +319,18 @@ class StanToIR(stanListener):
                 ir.set_data()
         ctx.ir = Data(body = body)
 
-    def exitParametersBlock(self, ctx):
+    def code_block(self, ctx, cls):
         body = gatherChildrenIRList(ctx)
-        ctx.ir = Parameters(body = body)
+        ctx.ir = cls(body = body)
+
+    def exitParametersBlock(self, ctx):
+        self.code_block(ctx, Parameters)
 
     def exitGuideBlock(self, ctx):
-        body = gatherChildrenIRList(ctx)
-        ctx.ir = Guide(body = body)
+        self.code_block(ctx, Guide)
+
+    def exitGuideParametersBlock(self, ctx):
+        self.code_block(ctx, GuideParameters)
 
     def exitPriorBlock(self, ctx):
         # TODO: unify gatherChildrenIRList: check for StatemetnsOpt
