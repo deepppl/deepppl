@@ -73,6 +73,7 @@ def test_mlp():
     target_file = r'deepppl/tests/target_py/mlp.py'
     normalize_and_compare(filename, target_file)
 
+@pytest.mark.xfail(strict=True)
 def test_vae():
     filename = r'deepppl/tests/good/vae.stan'
     target_file = r'deepppl/tests/target_py/vae.py'
