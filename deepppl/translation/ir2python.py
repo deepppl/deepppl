@@ -101,6 +101,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     visitModel = visitProgramBlock
     visitParameters = visitProgramBlock
     visitGuide = visitProgramBlock
+    visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
         
     def visitVariableDecl(self, decl):
@@ -269,14 +270,15 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitAssignStmt(self, ir):
         target, value = self._visitChildren(ir)
-        if ir.target.is_variable() and ir.target.is_guide_var():
-            target_name = self.targetToName(target)
-            value = self.call(self._pyroattr('param'),
-                            args = [
-                                    target_name,
-                                    value,
-                                    ## XXX possible constraints
-                            ])
+        if ir.target.is_variable():
+            if ir.target.is_guide_parameters_var():
+                target_name = self.targetToName(target)
+                value = self.call(self._pyroattr('param'),
+                                args = [
+                                        target_name,
+                                        value,
+                                        ## XXX possible constraints
+                                ])
         return self._assign(target, value)
 
 
@@ -416,6 +418,8 @@ class Ir2PythonVisitor(IRVisitor):
         ## TODO: implement parameters behavior in here.
         return None
 
+    visitGuideParameters = visitParameters
+
     def visitModel(self, model):
         body = self._visitChildren(model)
         body = self._ensureStmtList(body)
@@ -433,7 +437,7 @@ class Ir2PythonVisitor(IRVisitor):
                 self._assign(lifted, lifter),
                 ast.Return(value = self.call(lifted))]
 
-    def lifterBody(self, block, name, dict_name):
+    def liftBody(self, block, name, dict_name):
         inner_body = [x for x in self._visitChildren(block) if x is not None]
         body = [self._assign(self.loadName(dict_name), 
                             ast.Dict(keys = [], values=[])),]
@@ -445,7 +449,7 @@ class Ir2PythonVisitor(IRVisitor):
         name = prior.body[0].target.name
         name_prior = 'prior_' + name ## XXX
         ## TODO: only one nn is suported in here.
-        body = self.lifterBody(prior, name, name_prior)
+        body = self.liftBody(prior, name, name_prior)
         f = self._funcDef(name = name_prior, body = body)
         self._priors = {name : name_prior}
         return f
@@ -461,7 +465,7 @@ class Ir2PythonVisitor(IRVisitor):
         name_guide = 'guide_' + name ## XXX
 
         if is_net:
-            body = self.lifterBody(guide, name, name_guide)
+            body = self.liftBody(guide, name, name_guide)
         else:
             body = [x for x in self._visitChildren(guide) if x is not None]
 

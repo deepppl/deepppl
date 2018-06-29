@@ -151,6 +151,7 @@ DATA: 'data';
 NETWORK: 'network';
 PRIOR: 'prior';
 GUIDE: 'guide';
+GUIDEPARAMETERS : 'guide_parameters';
 PARAMETERS: 'parameters';
 QUANTITIES: 'quantities';
 TRANSFORMED: 'transformed';
@@ -575,6 +576,11 @@ guideBlock
     : GUIDE '{' variableDeclsOpt statementsOpt '}'
     ;
 
+guideParametersBlock
+    : GUIDEPARAMETERS '{' variableDeclsOpt '}'
+    ;
+
+
 transformedDataBlock
     : TRANSFORMED DATA '{' variableDeclsOpt statementsOpt '}'
     ;
@@ -603,6 +609,7 @@ program
         transformedParametersBlock?
         networkBlock?
         priorBlock?
+        guideParametersBlock?
         guideBlock?
         modelBlock?
         generatedQuantitiesBlock?

@@ -47,7 +47,9 @@ class Program(IR):
     
     def blocks(self):
         ## impose an evaluation order
-        blockNames = ['data', 'parameters', 'guide', 'prior', 'model']
+        blockNames = [
+                        'data', 'parameters', 'guideparameters', \
+                        'guide', 'prior', 'model']
         for name in blockNames:
             block = getattr(self, name, None)
             if block is not None:
@@ -82,6 +84,9 @@ class ProgramBlocks(IR):
     def is_guide(self):
         return False
 
+    def is_guide_parameters(self):
+        return False
+
     def is_prior(self):
         return False
 
@@ -94,6 +99,10 @@ class Model(ProgramBlocks):
 
 class Guide(ProgramBlocks):
     def is_guide(self):
+        return True
+
+class GuideParameters(ProgramBlocks):
+    def is_guide_parameters(self):
         return True
 
 class Prior(ProgramBlocks):
@@ -239,6 +248,9 @@ class Expression(Statements):
     def is_guide_var(self):
         return (x.is_guide_var() for x in self.children)
 
+    def is_guide_parameters(self):
+        return (x.is_guide_parameters_var() for x in self.children)
+
     def is_prior_var(self):
         return (x.is_prior_var() for x in self.children)
 
@@ -317,6 +329,9 @@ class Subscript(Expression):
     def is_guide_var(self):
         return self.id.is_guide_var()
 
+    def is_guide_parameters_var(self):
+        return self.id.is_guide_parameters_var()
+
     def is_prior_var(self):
         return self.id.is_prior_var()
 
@@ -359,6 +374,9 @@ class Variable(Expression):
 
     def is_guide_var(self):
         return self.block_name == Guide.blockName()
+
+    def is_guide_parameters_var(self):
+        return self.block_name == GuideParameters.blockName()
 
     def is_prior_var(self):
         return self.block_name == Prior.blockName()

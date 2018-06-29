@@ -38,7 +38,8 @@ prior
     mlp.l2.bias ~  Normal(0, 1);
 }
 
-guide{
+guide_parameters
+{
     real l1wloc;
     real l1wscale;
     real l1bloc;
@@ -47,7 +48,9 @@ guide{
     real l2wscale;
     real l2bloc;
     real l2bscale;
+}
 
+guide {
     l1wloc = randn(0,1);
     l1wscale = exp(randn());
     mlp.l1.weight ~  Normal(l1wloc, l1wscale);

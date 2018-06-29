@@ -21,7 +21,7 @@ data {
 
 
 
-parameters{
+parameters {
     int latent;
 }
 
