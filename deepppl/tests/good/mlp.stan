@@ -22,12 +22,11 @@ data {
 }
 
 network {
-    MLP mlp;
-    // MLP mlp with parameters:
-    //   l1.weight;
-    //   l1.bias;
-    //   l2.weight;
-    //   l2.bias;
+    MLP mlp with parameters:
+        l1.weight;
+        l1.bias;
+        l2.weight;
+        l2.bias;
 }
 
 prior

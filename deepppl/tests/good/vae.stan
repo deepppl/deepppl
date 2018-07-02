@@ -44,7 +44,7 @@ model {
     int loc_img;
     latent ~ Normal(0, 1);
     loc_img = decoder(latent);
-    x ~ Bernoulli(loc_img)
+    x ~ Bernoulli(loc_img);
 }
 
 
