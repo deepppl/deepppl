@@ -205,10 +205,27 @@ class StanToIR(stanListener):
         else:
             assert False
 
+    def exitNetParam(self, ctx):
+        ids = [ctx.IDENTIFIER().getText()]
+        if ctx.netParam():
+            ir = ctx.netParam()[0].ir
+            ids.extend(ir)
+        ctx.ir = ids
+
+    def exitNetVariableDecl(self, ctx):
+        netCls = ctx.netClass()
+        name = ctx.netName()
+        parameters = [x.ir for x in ctx.netParamDecl()]
+        ctx.ir = NetDeclaration(name = name, cls = netCls, \
+                                params = parameters)
+
+    def exitNetParamDecl(self, ctx):
+        ctx.ir = ctx.netParam().ir
+        
 
     def exitNetLValue(self, ctx):
         name = ctx.netName().getText()
-        ids = [x.getText() for x in ctx.IDENTIFIER()]
+        ids = ctx.netParam().ir
         ctx.ir = NetVariable(name = name, ids = ids)
 
     def exitSamplingStmt(self, ctx):

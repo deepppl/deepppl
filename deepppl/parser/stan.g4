@@ -157,6 +157,9 @@ QUANTITIES: 'quantities';
 TRANSFORMED: 'transformed';
 GENERATED: 'generated';
 
+/* Network keywords */
+WITHPARAMS : 'with parameters';
+
 /* Reserved Names from Stan Implementation */
 VAR: 'var';
 FVAR: 'fvar';
@@ -336,15 +339,28 @@ variableDecl
     ;
 
 netVariableDecl
-    : IDENTIFIER IDENTIFIER ';'
+    : netClass netName ';'
+    | netClass netName WITHPARAMS ':' netParamDecl+
     ;
 
-netLValue
-    : netName ('.' IDENTIFIER)*
+netClass
+    : IDENTIFIER
     ;
 
 netName
     : IDENTIFIER
+    ;
+
+netParamDecl
+    : netParam ';'
+    ;
+
+netParam
+    :  IDENTIFIER ('.' netParam)*
+    ;
+
+netLValue
+    : netName '.' netParam
     ;
 
 arrayDim
