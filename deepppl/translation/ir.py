@@ -102,6 +102,10 @@ class Model(ProgramBlocks):
         return True
 
 class Guide(ProgramBlocks):
+    def __init__(self, body = []):
+        super(Guide, self).__init__(body = body)
+        self._nets = []
+
     def is_guide(self):
         return True
 
@@ -125,6 +129,10 @@ class NetworksBlock(ProgramBlocks):
         return True
 
 class Prior(ProgramBlocks):
+    def __init__(self, body = []):
+        super(Prior, self).__init__(body = body)
+        self._nets = []
+
     def is_prior(self):
         return True
 

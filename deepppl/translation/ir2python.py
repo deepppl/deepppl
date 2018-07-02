@@ -159,7 +159,9 @@ class NetworkVisitor(IRVisitor):
 
     def visitPrior(self, prior):
         self._currdict = self._priors
+        nets = [net for net in self._currdict if self._currdict[net]]
         answer = self.defaultVisit(prior)
+        answer._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
             assert not params, "The following parameters were note given a prior:{}".format(params)
@@ -168,7 +170,9 @@ class NetworkVisitor(IRVisitor):
 
     def visitGuide(self, guide):
         self._currdict = self._guides
+        nets = [net for net in self._currdict if self._currdict[net]]
         answer = self.defaultVisit(guide)
+        answer._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
             assert not params, "The following parameters were note given a guide:{}".format(params)
@@ -515,7 +519,9 @@ class Ir2PythonVisitor(IRVisitor):
         return body
 
     def visitPrior(self, prior):
-        name = prior.body[0].target.name
+        is_net = len(prior._nets) > 0
+        assert is_net and len(prior._nets) == 1
+        name = prior._nets[0] if is_net else  ''
         name_prior = 'prior_' + name ## XXX
         ## TODO: only one nn is suported in here.
         body = self.liftBody(prior, name, name_prior)
@@ -525,11 +531,9 @@ class Ir2PythonVisitor(IRVisitor):
 
 
     def visitGuide(self, guide):
-        ## Hack!!! XXX
-        ## a guide needs to know if it's working with a nn module
-        ## as it should create the guide's dictionary and lift it
-        is_net = guide.body[-1].target.is_net_var()
-        name = guide.body[-1].target.name if is_net else  ''
+        is_net = len(guide._nets) > 0
+        assert is_net and len(guide._nets) == 1
+        name = guide._nets[0] if is_net else  ''
         ## TODO: only one nn is suported in here.
         name_guide = 'guide_' + name ## XXX
 
