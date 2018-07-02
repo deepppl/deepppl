@@ -212,9 +212,20 @@ class StanToIR(stanListener):
             ids.extend(ir)
         ctx.ir = ids
 
+    def exitNetworkBlock(self, ctx):
+        ops = ctx.netVariableDeclsOpt()
+        decls = [x.ir for x in ops.netVariableDecl()]
+        nets = NetworksBlock(decls = decls)
+        ctx.ir = nets
+
+    def exitNetClass(self, ctx):
+        ctx.ir = ctx.getText()
+
+    exitNetName = exitNetClass
+
     def exitNetVariableDecl(self, ctx):
-        netCls = ctx.netClass()
-        name = ctx.netName()
+        netCls = ctx.netClass().ir
+        name = ctx.netName().ir
         parameters = [x.ir for x in ctx.netParamDecl()]
         ctx.ir = NetDeclaration(name = name, cls = netCls, \
                                 params = parameters)
