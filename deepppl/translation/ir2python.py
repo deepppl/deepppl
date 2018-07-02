@@ -118,6 +118,74 @@ class VariableAnnotationsVisitor(IRVisitor):
         return var
 
 
+class NetworkVisitor(IRVisitor):
+    def __init__(self):
+        super(NetworkVisitor, self).__init__()
+        self._nets = {}
+        self._priors = {}
+        self._guides = {}
+
+    def defaultVisit(self, node):
+        answer = node
+        answer.children = self._visitChildren(node)
+        return answer
+
+    def visitProgram(self, program):
+        answer = Program()
+        answer.children = self._visitChildren(program)
+        return answer
+
+    def visitSamplingStmt(self, sampling):
+        answer = sampling
+        target = sampling.target.accept(self)
+        args = self._visitAll(sampling.args)
+        answer.target = target
+        answer.args = args
+        return answer
+
+    visitSamplingDeclaration = visitSamplingStmt
+    visitSamplingObserved = visitSamplingStmt
+    visitSamplingParameters = visitSamplingStmt
+
+
+    def visitNetVariable(self, var):
+        net = var.name
+        params = var.ids
+        assert net in self._nets
+        assert params in self._nets[net].params, "Use of undeclared network parameters: {}."\
+                                            .format(var)
+        self._currdict[net].remove(self._param_to_name(params))
+        return var
+
+    def visitPrior(self, prior):
+        self._currdict = self._priors
+        answer = self.defaultVisit(prior)
+        for net in self._currdict:
+            params = self._currdict[net]
+            assert not params, "The following parameters were note given a prior:{}".format(params)
+        self._currdict = None
+        return answer
+
+    def visitGuide(self, guide):
+        self._currdict = self._guides
+        answer = self.defaultVisit(guide)
+        for net in self._currdict:
+            params = self._currdict[net]
+            assert not params, "The following parameters were note given a guide:{}".format(params)
+        self._currdict = None
+        return answer
+        
+    def _param_to_name(self, params):
+        return '.'.join(params)
+
+    def visitNetDeclaration(self, decl):
+        name = decl.name
+        self._nets[name] = decl
+        if decl.params:
+            self._guides[name] = set([self._param_to_name(x) for x in decl.params])
+            self._priors[name] = set([self._param_to_name(x) for x in decl.params])
+        return decl
+
 "Helper class for common `ast` objects"
 class PythonASTHelper(object):
     def ensureStmt(self, node):
@@ -419,6 +487,7 @@ class Ir2PythonVisitor(IRVisitor):
         return None
 
     visitGuideParameters = visitParameters
+    visitNetworksBlock = visitParameters
 
     def visitModel(self, model):
         body = self._visitChildren(model)
@@ -512,6 +581,8 @@ class Ir2PythonVisitor(IRVisitor):
 def ir2python(ir):
     annotator = VariableAnnotationsVisitor()
     ir = ir.accept(annotator)
+    nets = NetworkVisitor()
+    ir.accept(nets)
     visitor = Ir2PythonVisitor()
     return ir.accept(visitor)
 

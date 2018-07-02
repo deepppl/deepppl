@@ -48,7 +48,8 @@ class Program(IR):
     def blocks(self):
         ## impose an evaluation order
         blockNames = [
-                        'data', 'parameters', 'guideparameters', \
+                        'data', 'parameters', 'networksblock',  \
+                        'guideparameters', \
                         'guide', 'prior', 'model']
         for name in blockNames:
             block = getattr(self, name, None)
@@ -84,6 +85,9 @@ class ProgramBlocks(IR):
     def is_guide(self):
         return False
 
+    def is_networks(self):
+        return True
+
     def is_guide_parameters(self):
         return False
 
@@ -103,6 +107,21 @@ class Guide(ProgramBlocks):
 
 class GuideParameters(ProgramBlocks):
     def is_guide_parameters(self):
+        return True
+
+class NetworksBlock(ProgramBlocks):
+    def __init__(self, decls = None):
+        super(NetworksBlock, self).__init__(body = decls)
+
+    @property
+    def decls(self):
+        return self.body
+
+    @decls.setter
+    def decls(self, decls):
+        self.body = decls
+
+    def is_networks(self):
         return True
 
 class Prior(ProgramBlocks):
@@ -386,7 +405,7 @@ class NetDeclaration(IR):
         super(NetDeclaration, self).__init__()
         self.name = name
         self.net_cls = cls
-        self.params = params 
+        self.params = params
 
 class NetVariable(Expression):
     def __init__(self, name = None, ids =  []):
