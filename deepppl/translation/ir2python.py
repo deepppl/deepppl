@@ -159,25 +159,44 @@ class NetworkVisitor(IRVisitor):
 
     def visitPrior(self, prior):
         self._currdict = self._priors
+        self._currBlock = prior
         nets = [net for net in self._currdict if self._currdict[net]]
-        answer = self.defaultVisit(prior)
-        answer._nets = nets
+        prior.children = self._visitChildren(prior)
+        prior._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
             assert not params, "The following parameters were note given a prior:{}".format(params)
         self._currdict = None
-        return answer
+        self._currBlock = None
+        return prior
+
+    def visitModel(self, model):
+        self._currBlock = model
+        model.children = self._visitChildren(model)
+        self._currBlock = None
+        return model
+
+    def visitCallStmt(self, call):
+        if call.id in self._nets.keys():
+            name = call.id
+            assert self._currBlock, "Use of NN in an unknown block."
+            if len(self._nets[name].params) == 0:
+                self._currBlock._blackBoxNets.add(call.id)
+        return call
+
 
     def visitGuide(self, guide):
         self._currdict = self._guides
+        self._currBlock = guide
         nets = [net for net in self._currdict if self._currdict[net]]
-        answer = self.defaultVisit(guide)
-        answer._nets = nets
+        guide.children = self._visitChildren(guide)
+        guide._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
             assert not params, "The following parameters were note given a guide:{}".format(params)
         self._currdict = None
-        return answer
+        self._currBlock = None
+        return guide
         
     def _param_to_name(self, params):
         return '.'.join(params)
@@ -494,9 +513,23 @@ class Ir2PythonVisitor(IRVisitor):
     visitNetworksBlock = visitParameters
 
     def visitModel(self, model):
-        body = self._visitChildren(model)
+        body = self.liftBlackBox(model)
+        body.extend(self._visitChildren(model))
         body = self._ensureStmtList(body)
         return self.buildModel(body)
+
+    def liftBlackBox(self, block):
+        answer = []
+        for name in block._blackBoxNets:
+            mod = self._pyroattr('module')
+            answer.append(self.call(
+                                    mod,
+                                    args = [
+                                        ast.Str(name),
+                                        self.loadName(name)
+                                    ]))
+        return self._ensureStmtList(answer)
+
 
     def liftModule(self, name, dict_name):
         rand_mod = self._pyroattr('random_module')
@@ -524,18 +557,20 @@ class Ir2PythonVisitor(IRVisitor):
         name = prior._nets[0] if is_net else  ''
         name_prior = 'prior_' + name ## XXX
         ## TODO: only one nn is suported in here.
+        pre_body = self.liftBlackBox(prior)
         body = self.liftBody(prior, name, name_prior)
-        f = self._funcDef(name = name_prior, body = body)
+        f = self._funcDef(name = name_prior, body = pre_body + body)
         self._priors = {name : name_prior}
         return f
 
 
     def visitGuide(self, guide):
         is_net = len(guide._nets) > 0
-        assert is_net and len(guide._nets) == 1
+        assert (is_net and len(guide._nets) == 1) or not is_net
         name = guide._nets[0] if is_net else  ''
         ## TODO: only one nn is suported in here.
         name_guide = 'guide_' + name ## XXX
+        pre_body = self.liftBlackBox(guide)
 
         if is_net:
             body = self.liftBody(guide, name, name_guide)
@@ -544,7 +579,7 @@ class Ir2PythonVisitor(IRVisitor):
 
         f = self._funcDef(name = name_guide, 
                             args = self.modelArgs(), 
-                            body = body)
+                            body = pre_body + body)
         return f
 
     def modelArgs(self):

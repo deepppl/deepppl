@@ -98,6 +98,10 @@ class ProgramBlocks(IR):
         return False
 
 class Model(ProgramBlocks):
+    def __init__(self, body = []):
+        super(Model, self).__init__(body = body)
+        self._blackBoxNets = set()
+        
     def is_model(self):
         return True
 
@@ -105,6 +109,7 @@ class Guide(ProgramBlocks):
     def __init__(self, body = []):
         super(Guide, self).__init__(body = body)
         self._nets = []
+        self._blackBoxNets = set()
 
     def is_guide(self):
         return True
@@ -132,6 +137,7 @@ class Prior(ProgramBlocks):
     def __init__(self, body = []):
         super(Prior, self).__init__(body = body)
         self._nets = []
+        self._blackBoxNets = set()
 
     def is_prior(self):
         return True
