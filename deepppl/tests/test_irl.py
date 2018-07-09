@@ -15,6 +15,7 @@
 # */
 
 from deepppl import dpplc
+from deepppl.translation.exceptions import MissingPriorException, MissingGuideException
 import ast
 import pytest
 
@@ -85,15 +86,15 @@ def test_coin_guide_missing_model():
     dpplc.stan2astpyFile(filename)
 
 
-#@pytest.mark.xfail(raises=Exception, strict=True)
 def test_mlp_missing_guide():
-    filename = r'deepppl/tests/good/mlp_missing_guide.stan'
-    dpplc.stan2astpyFile(filename)
+    with pytest.raises(MissingGuideException):
+        filename = r'deepppl/tests/good/mlp_missing_guide.stan'
+        dpplc.stan2astpyFile(filename)
 
-#@pytest.mark.xfail(raises=Exception, strict=True)
 def test_mlp_missing_model():
-    filename = r'deepppl/tests/good/mlp_missing_model.stan'
-    dpplc.stan2astpyFile(filename)
+    with pytest.raises(MissingPriorException):
+        filename = r'deepppl/tests/good/mlp_missing_model.stan'
+        dpplc.stan2astpyFile(filename)
 
 def test_mlp():
     filename = r'deepppl/tests/good/mlp.stan'

@@ -1,3 +1,19 @@
+# /*
+#  * Copyright 2018 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  * http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# */
+
 import ast
 import torch
 import astpretty
@@ -7,6 +23,8 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters
+
+from .exceptions import MissingPriorException, MissingGuideException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -165,7 +183,8 @@ class NetworkVisitor(IRVisitor):
         prior._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
-            assert not params, "The following parameters were note given a prior:{}".format(params)
+            if params:
+                raise MissingPriorException(net, params)
         self._currdict = None
         self._currBlock = None
         return prior
@@ -193,7 +212,8 @@ class NetworkVisitor(IRVisitor):
         guide._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
-            assert not params, "The following parameters were note given a guide:{}".format(params)
+            if params:
+                raise MissingGuideException(net, params)
         self._currdict = None
         self._currBlock = None
         return guide
