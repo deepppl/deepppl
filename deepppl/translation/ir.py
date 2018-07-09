@@ -176,11 +176,12 @@ class SamplingStmt(Statements):
 
     @property
     def children(self):
-        return [self.target, self.args]
+        return [self.target,] + self.args
 
     @children.setter
     def children(self, children):
-        [self.target, self.args] = children
+        self.target = children[0]
+        self.args = children[1:]
 
 class SamplingDeclaration(SamplingStmt):
     pass

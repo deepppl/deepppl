@@ -155,19 +155,6 @@ class NetworkVisitor(IRVisitor):
         answer.children = self._visitChildren(program)
         return answer
 
-    def visitSamplingStmt(self, sampling):
-        answer = sampling
-        target = sampling.target.accept(self)
-        args = self._visitAll(sampling.args)
-        answer.target = target
-        answer.args = args
-        return answer
-
-    visitSamplingDeclaration = visitSamplingStmt
-    visitSamplingObserved = visitSamplingStmt
-    visitSamplingParameters = visitSamplingStmt
-
-
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
@@ -296,16 +283,6 @@ class SamplingConsistencyVisitor(IRVisitor):
         if self._block and self._block.is_guide():
             raise ObserveOnGuideExeption(obs.target)
         return self.visitSamplingStmt(obs)
-
-    def visitSamplingStmt(self, sampling):
-        answer = sampling
-        target = sampling.target.accept(self)
-        args = self._visitAll(sampling.args)
-        answer.target = target
-        answer.args = args
-        return answer
-
-    visitSamplingDeclaration = visitSamplingStmt
 
 
 "Helper class for common `ast` objects"
