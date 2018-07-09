@@ -227,10 +227,8 @@ class SamplingConsistencyVisitor(IRVisitor):
     def __init__(self):
         super(SamplingConsistencyVisitor, self).__init__()
         self._latents = set()
+        self._currentBlock = None
         self._declarations = None
-        self._on_model = None
-        self._on_guide = None
-        self._block = None
 
     def defaultVisit(self, node):
         answer = node
@@ -248,40 +246,43 @@ class SamplingConsistencyVisitor(IRVisitor):
         self._declarations = None
         return answer
 
+    def compareToOrRaise(self, block, exception):
+        if block:
+            diff = self._latents.difference(block._sampled)
+            if diff:
+                raise exception(diff)
+
     def visitProgram(self, program):
         answer = Program()
         answer.children = self._visitChildren(program)
-        model_diff = self._latents.difference(self._on_model)
-        if model_diff:
-            raise MissingModelExeption(model_diff)
-        if self._on_guide is not None:
-            guide_diff = self._latents.difference(self._on_guide)
-            if guide_diff:
-                raise MissingGuideExeption(guide_diff)
+        self.compareToOrRaise(answer.model, MissingModelExeption)
+        self.compareToOrRaise(answer.guide, MissingGuideExeption)
         return answer
 
-    def visitGuide(self, guide):
-        self._on_guide = set()
-        self._block = guide
-        self._current = self._on_guide
-        answer = self.defaultVisit(guide)
-        self._block = None
+    def visitSamplingBlock(self, block):
+        self._currentBlock = block
+        answer = self.defaultVisit(block)
+        self._currentBlock = None
         return answer
 
-    def visitModel(self, model):
-        self._on_model = set()
-        self._current = self._on_model
-        return self.defaultVisit(model)
+    visitGuide = visitSamplingBlock
+    visitPrior = visitSamplingBlock
+    visitModel = visitSamplingBlock
 
     def visitSamplingParameters(self, sampling):
-        if self._current is not None:
-            assert isinstance(sampling.target, Variable)
-            self._current.add(sampling.target.id)
+        if self._currentBlock is not None:
+            if isinstance(sampling.target, Variable):
+                id = sampling.target.id
+            else: 
+                assert isinstance(sampling.target, Subscript)
+                ## XXX A more general logic must be applied elsewhere
+                id = sampling.target.id.id
+            self._currentBlock.addSampled(id)
         return self.visitSamplingStmt(sampling)
 
     def visitSamplingObserved(self, obs):
-        if self._block and self._block.is_guide():
-            raise ObserveOnGuideExeption(obs.target)
+        if self._currentBlock and self._currentBlock.is_guide():
+            raise ObserveOnGuideExeption(obs.target.id)
         return self.visitSamplingStmt(obs)
 
 
