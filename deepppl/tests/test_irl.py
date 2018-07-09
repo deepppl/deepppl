@@ -15,6 +15,9 @@
 # */
 
 from deepppl import dpplc
+from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
+                                            MissingModelExeption, MissingGuideExeption,\
+                                            ObserveOnGuideExeption
 import ast
 import pytest
 
@@ -67,6 +70,34 @@ def test_coin_guide():
     filename = r'deepppl/tests/good/coin_guide.stan'
     target_file = r'deepppl/tests/target_py/coin_guide.py'
     normalize_and_compare(filename, target_file)
+
+
+
+def test_coin_guide_missing_var():
+    with pytest.raises(MissingGuideExeption):
+        filename = r'deepppl/tests/good/coin_guide_missing_var.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_guide_sample_obs():
+    with pytest.raises(ObserveOnGuideExeption):
+        filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_guide_missing_model():
+    with pytest.raises(MissingModelExeption):
+        filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
+        dpplc.stan2astpyFile(filename)
+
+
+def test_mlp_missing_guide():
+    with pytest.raises(MissingGuideNetException):
+        filename = r'deepppl/tests/good/mlp_missing_guide.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_missing_model():
+    with pytest.raises(MissingPriorNetException):
+        filename = r'deepppl/tests/good/mlp_missing_model.stan'
+        dpplc.stan2astpyFile(filename)
 
 def test_mlp():
     filename = r'deepppl/tests/good/mlp.stan'

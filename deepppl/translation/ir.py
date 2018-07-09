@@ -28,7 +28,12 @@ class Program(IR):
     def __init__(self, body = []):
         super(Program, self).__init__()
         self.body = body
+        self.initBlocksNone()
         self.addBlocks(body)
+
+    def initBlocksNone(self):
+        for name in self.blockNames():
+            setattr(self, name, None)
 
     @property
     def children(self):
@@ -41,20 +46,22 @@ class Program(IR):
     def addBlocks(self, blocks):
         for block in blocks:
             name = block.blockName()
-            if getattr(self, name, None) is not None:
+            if getattr(self, name) is not None:
                 assert False, "trying to set :{} twice.".format(name)
             setattr(self, name, block)
     
     def blocks(self):
         ## impose an evaluation order
-        blockNames = [
-                        'data', 'parameters', 'networksblock',  \
-                        'guideparameters', \
-                        'guide', 'prior', 'model']
-        for name in blockNames:
+        for name in self.blockNames():
             block = getattr(self, name, None)
             if block is not None:
                 yield block
+
+    def blockNames(self):
+        return [
+                    'data', 'parameters', 'networksblock',  \
+                    'guideparameters', \
+                    'guide', 'prior', 'model']
 
 
         
@@ -97,21 +104,28 @@ class ProgramBlocks(IR):
     def is_parameters(self):
         return False
 
-class Model(ProgramBlocks):
+
+class SamplingBlock(ProgramBlocks):
+    """A program block where sampling is a valid statement """
     def __init__(self, body = []):
-        super(Model, self).__init__(body = body)
+        super(SamplingBlock, self).__init__(body = body)
+        self._nets = []
         self._blackBoxNets = set()
-        
+        self._sampled = set()
+
+    def addSampled(self, variable):
+        self._sampled.add(variable)
+
+class Model(SamplingBlock):
     def is_model(self):
         return True
 
-class Guide(ProgramBlocks):
-    def __init__(self, body = []):
-        super(Guide, self).__init__(body = body)
-        self._nets = []
-        self._blackBoxNets = set()
-
+class Guide(SamplingBlock):
     def is_guide(self):
+        return True
+
+class Prior(SamplingBlock):
+    def is_prior(self):
         return True
 
 class GuideParameters(ProgramBlocks):
@@ -133,14 +147,7 @@ class NetworksBlock(ProgramBlocks):
     def is_networks(self):
         return True
 
-class Prior(ProgramBlocks):
-    def __init__(self, body = []):
-        super(Prior, self).__init__(body = body)
-        self._nets = []
-        self._blackBoxNets = set()
 
-    def is_prior(self):
-        return True
 
 class Parameters(ProgramBlocks):
     def is_parameters(self):
@@ -176,11 +183,12 @@ class SamplingStmt(Statements):
 
     @property
     def children(self):
-        return [self.target, self.args]
+        return [self.target,] + self.args
 
     @children.setter
     def children(self, children):
-        [self.target, self.args] = children
+        self.target = children[0]
+        self.args = children[1:]
 
 class SamplingDeclaration(SamplingStmt):
     pass

@@ -1,3 +1,19 @@
+# /*
+#  * Copyright 2018 IBM Corporation
+#  *
+#  * Licensed under the Apache License, Version 2.0 (the "License");
+#  * you may not use this file except in compliance with the License.
+#  * You may obtain a copy of the License at
+#  *
+#  * http://www.apache.org/licenses/LICENSE-2.0
+#  *
+#  * Unless required by applicable law or agreed to in writing, software
+#  * distributed under the License is distributed on an "AS IS" BASIS,
+#  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  * See the License for the specific language governing permissions and
+#  * limitations under the License.
+# */
+
 import ast
 import torch
 import astpretty
@@ -6,7 +22,11 @@ import sys
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
-                SamplingParameters
+                SamplingParameters, Variable
+
+from .exceptions import MissingPriorNetException, MissingGuideNetException,\
+                         MissingModelExeption, MissingGuideExeption, \
+                        ObserveOnGuideExeption
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -135,19 +155,6 @@ class NetworkVisitor(IRVisitor):
         answer.children = self._visitChildren(program)
         return answer
 
-    def visitSamplingStmt(self, sampling):
-        answer = sampling
-        target = sampling.target.accept(self)
-        args = self._visitAll(sampling.args)
-        answer.target = target
-        answer.args = args
-        return answer
-
-    visitSamplingDeclaration = visitSamplingStmt
-    visitSamplingObserved = visitSamplingStmt
-    visitSamplingParameters = visitSamplingStmt
-
-
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
@@ -165,7 +172,8 @@ class NetworkVisitor(IRVisitor):
         prior._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
-            assert not params, "The following parameters were note given a prior:{}".format(params)
+            if params:
+                raise MissingPriorNetException(net, params)
         self._currdict = None
         self._currBlock = None
         return prior
@@ -193,7 +201,8 @@ class NetworkVisitor(IRVisitor):
         guide._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
-            assert not params, "The following parameters were note given a guide:{}".format(params)
+            if params:
+                raise MissingGuideNetException(net, params)
         self._currdict = None
         self._currBlock = None
         return guide
@@ -208,6 +217,74 @@ class NetworkVisitor(IRVisitor):
             self._guides[name] = set([self._param_to_name(x) for x in decl.params])
             self._priors[name] = set([self._param_to_name(x) for x in decl.params])
         return decl
+
+
+class SamplingConsistencyVisitor(IRVisitor):
+    """For SVI, there are a couple of rules that must be satisfied:
+        1. `parameters` block defines the latent variables.
+        2. all latents must be sampled both in the `guide` and the `model`.
+        3. `data` cannot be observed inside the `guide`."""
+    def __init__(self):
+        super(SamplingConsistencyVisitor, self).__init__()
+        self._latents = set()
+        self._currentBlock = None
+        self._declarations = None
+
+    def defaultVisit(self, node):
+        answer = node
+        answer.children = self._visitChildren(node)
+        return answer
+
+    def visitVariableDecl(self, var):
+        if self._declarations is not None:
+            self._declarations.add(var.id)
+        return self.defaultVisit(var)
+
+    def visitParameters(self, parameters):
+        self._declarations = self._latents
+        answer = self.defaultVisit(parameters)
+        self._declarations = None
+        return answer
+
+    def compareToOrRaise(self, block, exception):
+        if block:
+            diff = self._latents.difference(block._sampled)
+            if diff:
+                raise exception(diff)
+
+    def visitProgram(self, program):
+        answer = Program()
+        answer.children = self._visitChildren(program)
+        self.compareToOrRaise(answer.model, MissingModelExeption)
+        self.compareToOrRaise(answer.guide, MissingGuideExeption)
+        return answer
+
+    def visitSamplingBlock(self, block):
+        self._currentBlock = block
+        answer = self.defaultVisit(block)
+        self._currentBlock = None
+        return answer
+
+    visitGuide = visitSamplingBlock
+    visitPrior = visitSamplingBlock
+    visitModel = visitSamplingBlock
+
+    def visitSamplingParameters(self, sampling):
+        if self._currentBlock is not None:
+            if isinstance(sampling.target, Variable):
+                id = sampling.target.id
+            else: 
+                assert isinstance(sampling.target, Subscript)
+                ## XXX A more general logic must be applied elsewhere
+                id = sampling.target.id.id
+            self._currentBlock.addSampled(id)
+        return self.visitSamplingStmt(sampling)
+
+    def visitSamplingObserved(self, obs):
+        if self._currentBlock and self._currentBlock.is_guide():
+            raise ObserveOnGuideExeption(obs.target.id)
+        return self.visitSamplingStmt(obs)
+
 
 "Helper class for common `ast` objects"
 class PythonASTHelper(object):
@@ -621,7 +698,9 @@ def ir2python(ir):
     annotator = VariableAnnotationsVisitor()
     ir = ir.accept(annotator)
     nets = NetworkVisitor()
-    ir.accept(nets)
+    ir = ir.accept(nets)
+    consistency = SamplingConsistencyVisitor()
+    ir = ir.accept(consistency)
     visitor = Ir2PythonVisitor()
     return ir.accept(visitor)
 
