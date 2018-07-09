@@ -22,9 +22,10 @@ import sys
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
-                SamplingParameters
+                SamplingParameters, Variable
 
-from .exceptions import MissingPriorException, MissingGuideException
+from .exceptions import MissingPriorNetException, MissingGuideNetException,\
+                         MissingModelExeption, MissingGuideExeption
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -184,7 +185,7 @@ class NetworkVisitor(IRVisitor):
         for net in self._currdict:
             params = self._currdict[net]
             if params:
-                raise MissingPriorException(net, params)
+                raise MissingPriorNetException(net, params)
         self._currdict = None
         self._currBlock = None
         return prior
@@ -213,7 +214,7 @@ class NetworkVisitor(IRVisitor):
         for net in self._currdict:
             params = self._currdict[net]
             if params:
-                raise MissingGuideException(net, params)
+                raise MissingGuideNetException(net, params)
         self._currdict = None
         self._currBlock = None
         return guide
@@ -228,6 +229,75 @@ class NetworkVisitor(IRVisitor):
             self._guides[name] = set([self._param_to_name(x) for x in decl.params])
             self._priors[name] = set([self._param_to_name(x) for x in decl.params])
         return decl
+
+
+class SamplingConsistencyVisitor(IRVisitor):
+    """For SVI, there are a couple of rules that must be satisfied:
+        1. `parameters` block defines the latent variables.
+        2. all latents must be sampled both in the `guide` and the `model`.
+        3. `data` cannot be observed inside the `guide`."""
+    def __init__(self):
+        super(SamplingConsistencyVisitor, self).__init__()
+        self._latents = set()
+        self._declarations = None
+        self._on_model = None
+        self._on_guide = None
+
+    def defaultVisit(self, node):
+        answer = node
+        answer.children = self._visitChildren(node)
+        return answer
+
+    def visitVariableDecl(self, var):
+        if self._declarations is not None:
+            self._declarations.add(var.id)
+        return self.defaultVisit(var)
+
+    def visitParameters(self, parameters):
+        self._declarations = self._latents
+        answer = self.defaultVisit(parameters)
+        self._declarations = None
+        return answer
+
+    def visitProgram(self, program):
+        answer = Program()
+        answer.children = self._visitChildren(program)
+        model_diff = self._latents.difference(self._on_model)
+        if model_diff:
+            raise MissingModelExeption(model_diff)
+        if self._on_guide is not None:
+            guide_diff = self._latents.difference(self._on_guide)
+            if guide_diff:
+                raise MissingGuideExeption(guide_diff)
+        return answer
+
+    def visitGuide(self, guide):
+        self._on_guide = set()
+        self._current = self._on_guide
+        return self.defaultVisit(guide)
+
+    def visitModel(self, model):
+        self._on_model = set()
+        self._current = self._on_model
+        return self.defaultVisit(model)
+
+    def visitSamplingParameters(self, sampling):
+        if self._current is not None:
+            assert isinstance(sampling.target, Variable)
+            self._current.add(sampling.target.id)
+        return self.visitSamplingStmt(sampling)
+
+    def visitSamplingStmt(self, sampling):
+        answer = sampling
+        target = sampling.target.accept(self)
+        args = self._visitAll(sampling.args)
+        answer.target = target
+        answer.args = args
+        return answer
+
+    visitSamplingDeclaration = visitSamplingStmt
+    visitSamplingObserved = visitSamplingStmt
+
 
 "Helper class for common `ast` objects"
 class PythonASTHelper(object):
@@ -641,7 +711,9 @@ def ir2python(ir):
     annotator = VariableAnnotationsVisitor()
     ir = ir.accept(annotator)
     nets = NetworkVisitor()
-    ir.accept(nets)
+    ir = ir.accept(nets)
+    consistency = SamplingConsistencyVisitor()
+    ir = ir.accept(consistency)
     visitor = Ir2PythonVisitor()
     return ir.accept(visitor)
 
