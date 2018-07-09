@@ -25,7 +25,8 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 SamplingParameters, Variable
 
 from .exceptions import MissingPriorNetException, MissingGuideNetException,\
-                         MissingModelExeption, MissingGuideExeption
+                         MissingModelExeption, MissingGuideExeption, \
+                        ObserveOnGuideExeption
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -242,6 +243,7 @@ class SamplingConsistencyVisitor(IRVisitor):
         self._declarations = None
         self._on_model = None
         self._on_guide = None
+        self._block = None
 
     def defaultVisit(self, node):
         answer = node
@@ -273,8 +275,11 @@ class SamplingConsistencyVisitor(IRVisitor):
 
     def visitGuide(self, guide):
         self._on_guide = set()
+        self._block = guide
         self._current = self._on_guide
-        return self.defaultVisit(guide)
+        answer = self.defaultVisit(guide)
+        self._block = None
+        return answer
 
     def visitModel(self, model):
         self._on_model = set()
@@ -287,6 +292,11 @@ class SamplingConsistencyVisitor(IRVisitor):
             self._current.add(sampling.target.id)
         return self.visitSamplingStmt(sampling)
 
+    def visitSamplingObserved(self, obs):
+        if self._block and self._block.is_guide():
+            raise ObserveOnGuideExeption(obs.target)
+        return self.visitSamplingStmt(obs)
+
     def visitSamplingStmt(self, sampling):
         answer = sampling
         target = sampling.target.accept(self)
@@ -296,7 +306,6 @@ class SamplingConsistencyVisitor(IRVisitor):
         return answer
 
     visitSamplingDeclaration = visitSamplingStmt
-    visitSamplingObserved = visitSamplingStmt
 
 
 "Helper class for common `ast` objects"

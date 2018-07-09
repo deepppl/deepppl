@@ -16,7 +16,8 @@
 
 from deepppl import dpplc
 from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
-                                            MissingModelExeption, MissingGuideExeption
+                                            MissingModelExeption, MissingGuideExeption,\
+                                            ObserveOnGuideExeption
 import ast
 import pytest
 
@@ -78,7 +79,7 @@ def test_coin_guide_missing_var():
         dpplc.stan2astpyFile(filename)
 
 def test_coin_guide_sample_obs():
-    with pytest.raises(Exception):
+    with pytest.raises(ObserveOnGuideExeption):
         filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
         dpplc.stan2astpyFile(filename)
 
