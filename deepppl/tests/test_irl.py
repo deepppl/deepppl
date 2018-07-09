@@ -68,6 +68,33 @@ def test_coin_guide():
     target_file = r'deepppl/tests/target_py/coin_guide.py'
     normalize_and_compare(filename, target_file)
 
+
+@pytest.mark.xfail(raises=Exception, strict=True)
+def test_coin_guide_missing_var():
+    filename = r'deepppl/tests/good/coin_guide_missing_var.stan'
+    dpplc.stan2astpyFile(filename)
+
+@pytest.mark.xfail(raises=Exception, strict=True)
+def test_coin_guide_sample_obs():
+    filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
+    dpplc.stan2astpyFile(filename)
+
+@pytest.mark.xfail(raises=Exception, strict=True)
+def test_coin_guide_missing_model():
+    filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
+    dpplc.stan2astpyFile(filename)
+
+
+#@pytest.mark.xfail(raises=Exception, strict=True)
+def test_mlp_missing_guide():
+    filename = r'deepppl/tests/good/mlp_missing_guide.stan'
+    dpplc.stan2astpyFile(filename)
+
+#@pytest.mark.xfail(raises=Exception, strict=True)
+def test_mlp_missing_model():
+    filename = r'deepppl/tests/good/mlp_missing_model.stan'
+    dpplc.stan2astpyFile(filename)
+
 def test_mlp():
     filename = r'deepppl/tests/good/mlp.stan'
     target_file = r'deepppl/tests/target_py/mlp.py'
