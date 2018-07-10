@@ -36,4 +36,7 @@ guide {
 }
 
 model {
+  // theta ~ beta(10.0, 10.0);
+  // for (i in 1:10)
+  //   x[i] ~ bernoulli(theta);
 }

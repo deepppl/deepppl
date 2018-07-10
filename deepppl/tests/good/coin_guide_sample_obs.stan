@@ -34,7 +34,7 @@ guide {
   beta_q = 15.0;
   theta ~ beta(alpha_q, beta_q);
   for (i in 1:10)
-    x[i] ~ bernoulli(theta);
+    x[i] ~ bernoulli(theta);    // <---
 }
 
 model {

@@ -32,6 +32,7 @@ guide {
 
   alpha_q = 15.0;
   beta_q = 15.0;
+  // theta ~ beta(alpha_q, beta_q);
 }
 
 model {

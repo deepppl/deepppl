@@ -59,6 +59,9 @@ guide {
     l2wloc = randn(0,1);
     l2wscale = exp(randn());
     mlp.l2.weight ~ Normal(l2wloc, l2wscale);
+    // l2bloc = randn();
+    // l2bscale = exp(randn());
+    // mlp.l2.bias ~ Normal(l2bloc, l2bscale);
 }
 
 model {

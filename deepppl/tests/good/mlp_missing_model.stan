@@ -34,6 +34,7 @@ prior
     mlp.l1.weight ~  Normal(0, 1);
     mlp.l1.bias ~ Normal(0, 1);
     mlp.l2.weight ~ Normal(0, 1);
+    // mlp.l2.bias ~  Normal(0, 1);
 }
 
 guide_parameters
