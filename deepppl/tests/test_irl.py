@@ -72,6 +72,12 @@ def test_coin_guide():
     normalize_and_compare(filename, target_file)
 
 
+def test_lstm():
+    filename = r'deepppl/tests/good/lstm.stan'
+    target_file = r'deepppl/tests/target_py/lstm.py'
+    normalize_and_compare(filename, target_file)
+
+
 
 def test_coin_guide_missing_var():
     with pytest.raises(MissingGuideExeption):
