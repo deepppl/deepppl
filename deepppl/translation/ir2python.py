@@ -160,7 +160,7 @@ class NetworkVisitor(IRVisitor):
         params = var.ids
         assert net in self._nets
         assert params in self._nets[net].params, "Use of undeclared network parameters: {}."\
-                                            .format(var)
+                                            .format('.'.join([net] + params))
         self._currdict[net].remove(self._param_to_name(params))
         return var
 
