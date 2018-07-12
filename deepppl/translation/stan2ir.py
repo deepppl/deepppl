@@ -100,6 +100,10 @@ class StanToIR(stanListener):
             name = ctx.atom().ir
             index = ctx.indexExpression().ir
             ctx.ir = Subscript(id = name, index = index)
+        elif is_active(ctx.netLValue):
+            ctx.ir = ctx.netLValue().ir
+        elif is_active(ctx.variableProperty):
+            ctx.ir = ctx.variableProperty().ir
         else:
             assert False, "Not yet implemented atom: {}".format(ctx.getText())
 
@@ -238,6 +242,19 @@ class StanToIR(stanListener):
         name = ctx.netName().getText()
         ids = ctx.netParam().ir
         ctx.ir = NetVariable(name = name, ids = ids)
+
+    def exitVariableProperty(self, ctx):
+        property = ctx.IDENTIFIER().getText()
+        if is_active(ctx.netLValue):
+            var = ctx.netLValue().ir
+            cls = NetVariableProperty
+        elif is_active(ctx.variable):
+            var = ctx.variable().ir
+            cls = VariableProperty
+        else:
+            assert False, "Not yet implemented."
+        
+        ctx.ir = cls(var = var, prop= property)
 
     def exitSamplingStmt(self, ctx):
         lvalue = ctx.lvalueSampling().ir
