@@ -144,6 +144,7 @@ class NetworkVisitor(IRVisitor):
         self._nets = {}
         self._priors = {}
         self._guides = {}
+        self._shouldRemove = False
 
     def defaultVisit(self, node):
         answer = node
@@ -155,13 +156,24 @@ class NetworkVisitor(IRVisitor):
         answer.children = self._visitChildren(program)
         return answer
 
+    def visitSamplingBlock(self, sampling):
+        self._shouldRemove = True
+        answer = self.defaultVisit(sampling)
+        self._shouldRemove = False
+        return answer
+
+    visitSamplingObserved = visitSamplingBlock
+    visitSamplingDeclaration = visitSamplingBlock
+    visitSamplingParameters = visitSamplingBlock
+
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
         assert net in self._nets
         assert params in self._nets[net].params, "Use of undeclared network parameters: {}."\
                                             .format('.'.join([net] + params))
-        self._currdict[net].remove(self._param_to_name(params))
+        if self._shouldRemove:
+            self._currdict[net].remove(self._param_to_name(params))
         return var
 
     def visitPrior(self, prior):
@@ -575,6 +587,25 @@ class Ir2PythonVisitor(IRVisitor):
                 slice = ast.Index(value = ast.Str(value)),
                 ctx = ast.Load()
         )
+
+    def visitVariableProperty(self, prop):
+        var = ast.Str(prop.var.id)
+        dict_ = self.loadName('___' + prop.prop)
+        return ast.Subscript(
+            value = dict_,
+            slice = ast.Index(value = var),
+            ctx = ast.Load()
+        )
+
+    def visitNetVariableProperty(self, netprop):
+        net = netprop.var
+        last = self.loadName(net.name)
+        prop = netprop.prop
+        assert prop == 'shape', "Unsupported property: {}".format(prop)
+        for attr in net.ids + [prop]:
+            last = self.loadAttr(last, attr)
+        return self.call(last, args = [])
+
 
 
     def visitData(self, data):

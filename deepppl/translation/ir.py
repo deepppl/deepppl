@@ -422,6 +422,15 @@ class Variable(Expression):
     def is_prior_var(self):
         return self.block_name == Prior.blockName()
 
+class VariableProperty(Expression):
+    def __init__(self, var = None, prop = None):
+        super(VariableProperty, self).__init__()
+        self.var = var
+        self.prop = prop
+
+class NetVariableProperty(VariableProperty):
+    pass
+
 class NetDeclaration(IR):
     def __init__(self, name = None, cls = None, params = []):
         super(NetDeclaration, self).__init__()

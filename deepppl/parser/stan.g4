@@ -85,7 +85,6 @@ Symbol
     : '~'
     | '@'
     | '#'
-    | '$'
     | '%'
     | '^'
     | '&'
@@ -386,6 +385,11 @@ variable
     : IDENTIFIER
     ;
 
+variableProperty
+    : variable '$' IDENTIFIER
+    | netLValue '$' IDENTIFIER
+    ;
+
 /** Vector, matrix and array expressions (section 4.2) */
 
 vectorExpr
@@ -399,6 +403,8 @@ arrayExpr
 atom
     : constant
     | variable
+    | netLValue
+    | variableProperty
     | vectorExpr
     | arrayExpr
     | atom '[' indexExpression ']'

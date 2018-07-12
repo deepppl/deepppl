@@ -34,55 +34,55 @@ network {
 
 prior
 {
-    rnn.encoder.weight ~  Normal(0, 1);
-    rnn.gru.weight_ih_l0 ~ Normal(0, 1);
-    rnn.gru.weight_hh_l0 ~ Normal(0, 1);
-    rnn.gru.bias_ih_l0 ~  Normal(0, 1);
-    rnn.gru.bias_hh_l0 ~  Normal(0, 1);
-    rnn.decoder.weight ~  Normal(0, 1);
-    rnn.decoder.bias ~  Normal(0, 1);
+    rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
+    rnn.gru.weight_ih_l0 ~ Normal(zeros(rnn.gru.weight_ih_l0$shape), ones(rnn.gru.weight_ih_l0$shape));
+    rnn.gru.weight_hh_l0 ~ Normal(zeros(rnn.gru.weight_hh_l0$shape), ones(rnn.gru.weight_hh_l0$shape));
+    rnn.gru.bias_ih_l0 ~  Normal(zeros(rnn.gru.bias_ih_l0$shape), ones(rnn.gru.bias_ih_l0$shape));
+    rnn.gru.bias_hh_l0 ~  Normal(zeros(rnn.gru.bias_hh_l0$shape), ones(rnn.gru.bias_hh_l0$shape));
+    rnn.decoder.weight ~  Normal(zeros(rnn.decoder.weight$shape), ones(rnn.decoder.weight$shape));
+    rnn.decoder.bias ~  Normal(zeros(rnn.decoder.bias$shape), ones(rnn.decoder.bias$shape));
 }
 
 guide_parameters
 {
-    real ewl;
-    real ews;
-    real gw1l;
-    real gw1s;
-    real gw2l;
-    real gw2s;
-    real gb1l;
-    real gb1s;
-    real gb2l;
-    real gb2s;
-    real dwl;
-    real dws;
-    real dbl;
-    real dbs;
+    real ewl[rnn.encoder.weight$shape];
+    real ews[rnn.encoder.weight$shape];
+    real gw1l[rnn.gru.weight_ih_l0$shape];
+    real gw1s[rnn.gru.weight_ih_l0$shape];
+    real gw2l[rnn.gru.weight_hh_l0$shape];
+    real gw2s[rnn.gru.weight_hh_l0$shape];
+    real gb1l[rnn.gru.bias_ih_l0$shape];
+    real gb1s[rnn.gru.bias_ih_l0$shape];
+    real gb2l[rnn.gru.bias_hh_l0$shape];
+    real gb2s[rnn.gru.bias_hh_l0$shape];
+    real dwl[rnn.decoder.weight$shape];
+    real dws[rnn.decoder.weight$shape];
+    real dbl[rnn.decoder.bias$shape];
+    real dbs[rnn.decoder.bias$shape];
 
 }
 
 guide {
-    ewl = randn();
-    ews = exp(randn());
-    rnn.encoder.weight ~  Normal(ewl, ews);
-    gw1l = randn();
-    gw1s = exp(randn());
+    ewl = randn(ewl$shape);
+    ews = exp(randn(ews$shape));
+    rnn.encoder.weight ~  LogNormal(ewl, ews);
+    gw1l = randn(gw1l$shape);
+    gw1s = exp(randn(gw1s$shape));
     rnn.gru.weight_ih_l0 ~ Normal(gw1l, gw1s);
-    gw2l = randn();
-    gw2s = exp(randn());
+    gw2l = randn(gw2l$shape);
+    gw2s = exp(randn(gw2s$shape));
     rnn.gru.weight_hh_l0 ~ Normal(gw2l, gw2s);
-    gb1l = randn();
-    gb1s = exp(randn());
+    gb1l = randn(gb1l$shape);
+    gb1s = exp(randn(gb1s$shape));
     rnn.gru.bias_ih_l0 ~  Normal(gb1l, gb1s);
-    gb2l = randn();
-    gb2s = exp(randn());
+    gb2l = randn(gb2l$shape);
+    gb2s = exp(randn(gb2s$shape));
     rnn.gru.bias_hh_l0 ~  Normal(gb2l, gb2s);
-    dwl = randn();
-    dws = exp(randn());
+    dwl = randn(dwl$shape);
+    dws = exp(randn(dws$shape));
     rnn.decoder.weight ~  Normal(dwl, dws);
-    dbl = randn();
-    dbs = exp(randn());
+    dbl = randn(dbl$shape);
+    dbs = exp(randn(dbs$shape));
     rnn.decoder.bias ~  Normal(dbl, dbs);
 }
 
