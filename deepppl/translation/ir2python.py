@@ -320,6 +320,9 @@ class PythonASTHelper(object):
     def loadName(self, name):
         return ast.Name(id = name, ctx = ast.Load())
 
+    def storeName(self, name):
+        return ast.Name(id = name, ctx = ast.Store())
+
     def loadAttr(self, obj, attr):
         return ast.Attribute(value = obj, attr = attr, ctx = ast.Load())
 
@@ -337,6 +340,8 @@ class Ir2PythonVisitor(IRVisitor):
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
+        self._model_header = []
+        self._guide_header = []
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -350,6 +355,9 @@ class Ir2PythonVisitor(IRVisitor):
 
     def loadName(self, name):
         return self.helper.loadName(name)
+
+    def storeName(self, name):
+        return self.helper.storeName(name)
 
     def import_(self, name, asname = None):
         return self.helper.import_(name, asname = asname)
@@ -365,13 +373,14 @@ class Ir2PythonVisitor(IRVisitor):
 
     def _assign(self, target_node, value):
         if isinstance(target_node, ast.Name):
+            ## XXX instead of loadName, storeName should be used
             target = ast.Name(id = target_node.id, ctx = ast.Store())
         elif isinstance(target_node, ast.Subscript):
             target = ast.Subscript(value = target_node.value,
                                   slice = target_node.slice,
                                   ctx = ast.Store())
         else:
-            assert False, "Don't know how to assign to {}".format(target)
+            assert False, "Don't know how to assign to {}".format(target_node)
         return ast.Assign(
                 targets=[target],
                 value = value)
@@ -420,6 +429,14 @@ class Ir2PythonVisitor(IRVisitor):
         if decl.data:
             self.data_names.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
+        if dims:
+            ## XXX we are ignoring the initialization.
+            shapes = ast.Subscript(
+                                    value = self.loadName('___shape'),
+                                    slice = ast.Index(value = ast.Str(decl.id)),
+                                    ctx = ast.Store())
+
+            return self._assign(shapes, dims)
         if decl.init:
             ## XXX
             if True:
@@ -606,19 +623,22 @@ class Ir2PythonVisitor(IRVisitor):
             last = self.loadAttr(last, attr)
         return self.call(last, args = [])
 
+    def visitNetDeclaration(self, decl):
+        ## XXX do nothign
+        assert False
+        return None
 
 
     def visitData(self, data):
         ## TODO: implement data behavior
-        self._visitChildren(data)
-        return None
+        answer = self._visitChildren(data)
+        return self._ensureStmtList(answer)
 
-    def visitParameters(self, params):
-        ## TODO: implement parameters behavior in here.
-        return None
-
+    visitParameters = visitData
     visitGuideParameters = visitParameters
-    visitNetworksBlock = visitParameters
+
+    def visitNetworksBlock(self, netBlock):
+        return None
 
     def visitModel(self, model):
         body = self.liftBlackBox(model)
@@ -666,8 +686,9 @@ class Ir2PythonVisitor(IRVisitor):
         name_prior = 'prior_' + name ## XXX
         ## TODO: only one nn is suported in here.
         pre_body = self.liftBlackBox(prior)
-        body = self.liftBody(prior, name, name_prior)
-        f = self._funcDef(name = name_prior, body = pre_body + body)
+        inner_body = self.liftBody(prior, name, name_prior)
+        body = self._model_header + pre_body + inner_body
+        f = self._funcDef(name = name_prior, body = body)
         self._priors = {name : name_prior}
         return f
 
@@ -681,33 +702,51 @@ class Ir2PythonVisitor(IRVisitor):
         pre_body = self.liftBlackBox(guide)
 
         if is_net:
-            body = self.liftBody(guide, name, name_guide)
+            inner_body = self.liftBody(guide, name, name_guide)
         else:
-            body = [x for x in self._visitChildren(guide) if x is not None]
+            inner_body = [x for x in self._visitChildren(guide) if x is not None]
+        body = self._guide_header + pre_body + inner_body
 
         f = self._funcDef(name = name_guide, 
                             args = self.modelArgs(), 
-                            body = pre_body + body)
+                            body = body)
         return f
 
     def modelArgs(self):
         return [ast.arg(name, None) for name in sorted(self.data_names)]
 
-    def buildModel(self, body):
+    def buildModel(self, inner_body):
         pre_body = []
         for prior in self._priors:
             pre_body.append(
                 self._assign(self.loadName(prior),
                              self.call(self.loadName(self._priors[prior])))
             )
+        body = self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = 'model',
                             args = self.modelArgs(),
-                            body = pre_body + body)
+                            body = body)
         return model
 
+    def buildBasicHeaders(self):
+        name = self.storeName('___shape')
+        sizes = self._assign(name, ast.Dict(keys=[], values=[]))
+        return [sizes,]
+
+    def buildHeaders(self, program):
+        transform = lambda block: block.accept(self) if block else []
+        basic = self.buildBasicHeaders()
+        self._model_header = basic + transform(program.data) + transform(program.parameters)
+        self._guide_header = self._model_header + transform(program.guideparameters)
+
     def visitProgram(self, program):
-        python_nodes = self._visitChildren(program)
+        self.buildHeaders(program)
+        python_nodes = [node.accept(self) for node in [
+                                                        program.guide,
+                                                        program.prior,
+                                                        program.model]
+                                                if node]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
