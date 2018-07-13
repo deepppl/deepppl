@@ -31,36 +31,36 @@ network {
 
 prior
 {
-    mlp.l1.weight ~  Normal(0, 1);
-    mlp.l1.bias ~ Normal(0, 1);
-    mlp.l2.weight ~ Normal(0, 1);
-    mlp.l2.bias ~  Normal(0, 1);
+    mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
+    mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
+    mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
+    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l2.bias$shape));
 }
 
 guide_parameters
 {
-    real l1wloc;
-    real l1wscale;
-    real l1bloc;
-    real l1bscale;
-    real l2wloc;
-    real l2wscale;
-    real l2bloc;
-    real l2bscale;
+    real l1wloc[mlp.l1.weight$shape];
+    real l1wscale[mlp.l1.weight$shape];
+    real l1bloc[mlp.l1.bias$shape];
+    real l1bscale[mlp.l1.bias$shape];
+    real l2wloc[mlp.l2.weight$shape];
+    real l2wscale[mlp.l2.weight$shape];
+    real l2bloc[mlp.l2.bias$shape];
+    real l2bscale[mlp.l2.bias$shape];
 }
 
 guide {
-    l1wloc = randn(0,1);
-    l1wscale = exp(randn());
+    l1wloc = randn(l1wloc$shape);
+    l1wscale = exp(randn(l1wscale$shape));
     mlp.l1.weight ~  Normal(l1wloc, l1wscale);
-    l1bloc = randn(0,1);
-    l1bscale = exp(randn());
+    l1bloc = randn(l1bloc$shape);
+    l1bscale = exp(randn(l1bscale$shape));
     mlp.l1.bias ~ Normal(l1bloc, l1bscale);
-    l2wloc = randn(0,1);
-    l2wscale = exp(randn());
+    l2wloc = randn(l2wloc$shape);
+    l2wscale = exp(randn(l2wscale$shape));
     mlp.l2.weight ~ Normal(l2wloc, l2wscale);
-    l2bloc = randn();
-    l2bscale = exp(randn());
+    l2bloc = randn(l2bloc$shape);
+    l2bscale = exp(randn(l2bscale$shape));
     mlp.l2.bias ~ Normal(l2bloc, l2bscale);
 }
 

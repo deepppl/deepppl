@@ -5,7 +5,9 @@ import pyro.distributions as dist
 
 
 def guide_(x):
-    pyro.module("encoder", encoder)
+    ___shape = {}
+    pyro.module('encoder', encoder)
+    ___shape['encoded'] = tensor(2)
     encoded = encoder(x)
     mu = encoded[tensor(1) - 1]
     sigma = encoded[tensor(2) - 1]
@@ -13,6 +15,7 @@ def guide_(x):
 
 
 def model(x):
+    ___shape = {}
     pyro.module("decoder", decoder)
     latent = pyro.sample('latent', dist.Normal(tensor(0), tensor(1)))
     loc_img = decoder(latent)
