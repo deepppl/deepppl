@@ -48,7 +48,7 @@ def guide_rnn(input, n_characters, target):
     return lifted_rnn()
 
 
-def prior_rnn():
+def prior_rnn(input, n_characters, target):
     ___shape = {}
     ___shape['input'] = n_characters
     ___shape['target'] = n_characters
@@ -68,7 +68,7 @@ def model(input, n_characters, target):
     ___shape = {}
     ___shape['input'] = n_characters
     ___shape['target'] = n_characters
-    rnn = prior_rnn()
+    rnn = prior_rnn(input, n_characters, target)
     ___shape['logits'] = n_characters
     logits = rnn(input)
     pyro.sample('target', dist.Categorical(logits), obs=target)

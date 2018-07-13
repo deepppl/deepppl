@@ -688,9 +688,12 @@ class Ir2PythonVisitor(IRVisitor):
         pre_body = self.liftBlackBox(prior)
         inner_body = self.liftBody(prior, name, name_prior)
         body = self._model_header + pre_body + inner_body
-        f = self._funcDef(name = name_prior, body = body)
+        f = self._funcDef(name = name_prior, args = self.modelArgs(), body = body)
         self._priors = {name : name_prior}
         return f
+
+    def modelArgsAsParams(self):
+        return [self.loadName(name) for name in sorted(self.data_names)]
 
 
     def visitGuide(self, guide):
@@ -720,7 +723,11 @@ class Ir2PythonVisitor(IRVisitor):
         for prior in self._priors:
             pre_body.append(
                 self._assign(self.loadName(prior),
-                             self.call(self.loadName(self._priors[prior])))
+                             self.call(
+                                        id = self.loadName(self._priors[prior]),
+                                        args = self.modelArgsAsParams()
+                                        )
+                            )
             )
         body = self._model_header + pre_body + inner_body
         model = self._funcDef(
