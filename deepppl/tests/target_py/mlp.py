@@ -32,7 +32,7 @@ def guide_mlp(batch_size, imgs, labels):
     lifted_mlp = pyro.random_module('mlp', mlp, guide_mlp)
     return lifted_mlp()
 
-def prior_mlp():
+def prior_mlp(batch_size, imgs, labels):
     ___shape = {}
     ___shape['imgs'] = [tensor(28), tensor(28), batch_size]
     ___shape['labels'] = batch_size
@@ -53,7 +53,7 @@ def model(batch_size, imgs, labels):
     ___shape = {}
     ___shape['imgs'] = [tensor(28), tensor(28), batch_size]
     ___shape['labels'] = batch_size
-    mlp = prior_mlp()
+    mlp = prior_mlp(batch_size, imgs, labels)
     ___shape['logits'] = batch_size
     logits = mlp(imgs)
     pyro.sample('labels', dist.Categorical(logits), obs=labels)
