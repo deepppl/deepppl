@@ -63,7 +63,11 @@ class StanToIR(stanListener):
         ctx.ir = VariableDecl(id = vid, dim = dims)
 
     def exitArrayDim(self, ctx):
-        ctx.ir = List(elements = ctx.expressionCommaList().ir)
+        elements = ctx.expressionCommaList().ir
+        if len(elements) == 1:
+            ctx.ir = elements[0]
+        else:
+            ctx.ir = List(elements = elements)
 
     def exitVariableDeclsOpt(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)
