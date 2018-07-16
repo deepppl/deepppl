@@ -18,6 +18,7 @@
 import pyro
 from pyro import infer
 from pyro.optim import Adam
+import torch
 import sys
 from . import dpplc
 
@@ -26,18 +27,32 @@ class DppplModel(object):
         self._py = dpplc.do_compile(model_code = model_code, model_file = model_file)
         self._load_py()
 
+
+    def _updateHooks(self, f, hooks):
+        if f:
+            f.__globals__.update(hooks)
+
     def _load_py(self):
         """Load the python object into `_model`"""
         locals_ = {}
         eval(self._py, globals(), locals_)
         self._model = locals_['model']
-        self._model.__globals__.update(locals_)
+        self._updateHooks(self._model, locals_)
         self._guide = None
         for k in locals_.keys():
             if k.startswith('guide_'):
                 self._guide = locals_[k]
-                self._model.__globals__.update(locals_)
+                self._updateHooks(self._model, locals_)
                 break
+        self._loadBasicHooks()
+
+    def _loadBasicHooks(self):
+        hooks = { x.__name__ : x for x in [
+                        torch.randn,
+                        torch.exp,
+                        torch.zeros,
+                        torch.ones]}
+        [self._updateHooks(f, hooks) for f in (self._model, self._guide)]
         
     def posterior(self, num_samples=3000, method=infer.Importance):
         return method(self._model, num_samples=3000)
