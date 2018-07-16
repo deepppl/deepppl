@@ -17,7 +17,7 @@
 from deepppl import dpplc
 from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
                                             MissingModelExeption, MissingGuideExeption,\
-                                            ObserveOnGuideExeption
+                                            ObserveOnGuideExeption, UnsupportedProperty
 import ast
 import pytest
 
@@ -104,6 +104,18 @@ def test_mlp_missing_model():
     with pytest.raises(MissingPriorNetException):
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
         dpplc.stan2astpyFile(filename)
+
+def test_mlp_unsupported_property():
+    with pytest.raises(UnsupportedProperty):
+        filename = r'deepppl/tests/good/mlp_unsupported_prop.stan'
+        target_file = r'deepppl/tests/target_py/mlp.py'
+        normalize_and_compare(filename, target_file)
+
+def test_mlp_unsupported_property1():
+    with pytest.raises(UnsupportedProperty):
+        filename = r'deepppl/tests/good/mlp_unsupported_prop1.stan'
+        target_file = r'deepppl/tests/target_py/mlp.py'
+        normalize_and_compare(filename, target_file)
 
 def test_mlp():
     filename = r'deepppl/tests/good/mlp.stan'

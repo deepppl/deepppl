@@ -26,7 +26,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
 
 from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                          MissingModelExeption, MissingGuideExeption, \
-                        ObserveOnGuideExeption
+                        ObserveOnGuideExeption, UnsupportedProperty
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -607,6 +607,8 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitVariableProperty(self, prop):
         var = ast.Str(prop.var.id)
+        if prop.prop != 'shape':
+            raise UnsupportedProperty(prop)
         dict_ = self.loadName('___' + prop.prop)
         return ast.Subscript(
             value = dict_,
@@ -618,7 +620,8 @@ class Ir2PythonVisitor(IRVisitor):
         net = netprop.var
         last = self.loadName(net.name)
         prop = netprop.prop
-        assert prop == 'shape', "Unsupported property: {}".format(prop)
+        if prop != 'shape':
+            raise UnsupportedProperty(prop)
         for attr in net.ids + [prop]:
             last = self.loadAttr(last, attr)
         return last

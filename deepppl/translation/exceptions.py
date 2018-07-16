@@ -59,3 +59,9 @@ class ObserveOnGuideExeption(TranslationException):
         super(ObserveOnGuideExeption, self).__init__(msg)
         self.data = data
 
+class UnsupportedProperty(TranslationException):
+    def __init__(self, property):
+        msg = "Unsupported property: {}.".format(property)
+        super(UnsupportedProperty, self).__init__(msg)
+        self.prop = property
+
