@@ -621,7 +621,7 @@ class Ir2PythonVisitor(IRVisitor):
         assert prop == 'shape', "Unsupported property: {}".format(prop)
         for attr in net.ids + [prop]:
             last = self.loadAttr(last, attr)
-        return self.call(last, args = [])
+        return last
 
     def visitNetDeclaration(self, decl):
         ## XXX do nothign
