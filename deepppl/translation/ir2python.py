@@ -566,8 +566,15 @@ class Ir2PythonVisitor(IRVisitor):
         if hasattr(torch.distributions, id.capitalize()):
             # Check if the distribution exists in torch.distributions
             id = id.capitalize()
-        return self.call(self.loadAttr(self.loadName('dist'), id),
-                         args = args)
+            dist = self.loadAttr(self.loadName('dist'), id)
+        ## XXX We need keyword parameters
+        elif id.lower() == 'CategoricalLogits'.lower():
+            dist = self.loadName('CategoricalLogits')
+        else:
+            assert False, "Unknown distribution: {}".format(id)
+        return self.call(dist,
+                        args = args)
+        
 
     def visitSamplingDeclaration(self, sampling):
         """This node represents when a variable is declared to have a given distribution"""
