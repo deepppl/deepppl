@@ -64,8 +64,9 @@ class DppplModel(object):
     def posterior(self, num_samples=3000, method=infer.Importance):
         return method(self._model, num_samples=3000)
 
-    def svi(self, optimizer = None, loss = infer.Trace_ELBO(), params = {'lr' : 0.0005, "betas": (0.90, 0.999)}):
+    def svi(self, optimizer = None, loss = None, params = {'lr' : 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
+        loss = loss if loss is not None else infer.Trace_ELBO()
         svi = infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi)
 

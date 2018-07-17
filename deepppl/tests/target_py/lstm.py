@@ -23,27 +23,27 @@ def guide_rnn(input, n_characters, target):
     ___shape['dbl'] = rnn.decoder.bias.shape
     ___shape['dbs'] = rnn.decoder.bias.shape
     guide_rnn = {}
-    ewl = pyro.param('ewl', randn(___shape['ewl']))
-    ews = pyro.param('ews', exp(randn(___shape['ews'])))
-    guide_rnn['encoder.weight'] = dist.LogNormal(ewl, ews)
-    gw1l = pyro.param('gw1l', randn(___shape['gw1l']))
-    gw1s = pyro.param('gw1s', exp(randn(___shape['gw1s'])))
-    guide_rnn['gru.weight_ih_l0'] = dist.Normal(gw1l, gw1s)
-    gw2l = pyro.param('gw2l', randn(___shape['gw2l']))
-    gw2s = pyro.param('gw2s', exp(randn(___shape['gw2s'])))
-    guide_rnn['gru.weight_hh_l0'] = dist.Normal(gw2l, gw2s)
-    gb1l = pyro.param('gb1l', randn(___shape['gb1l']))
-    gb1s = pyro.param('gb1s', exp(randn(___shape['gb1s'])))
-    guide_rnn['gru.bias_ih_l0'] = dist.Normal(gb1l, gb1s)
-    gb2l = pyro.param('gb2l', randn(___shape['gb2l']))
-    gb2s = pyro.param('gb2s', exp(randn(___shape['gb2s'])))
-    guide_rnn['gru.bias_hh_l0'] = dist.Normal(gb2l, gb2s)
-    dwl = pyro.param('dwl', randn(___shape['dwl']))
-    dws = pyro.param('dws', exp(randn(___shape['dws'])))
-    guide_rnn['decoder.weight'] = dist.Normal(dwl, dws)
-    dbl = pyro.param('dbl', randn(___shape['dbl']))
-    dbs = pyro.param('dbs', exp(randn(___shape['dbs'])))
-    guide_rnn['decoder.bias'] = dist.Normal(dbl, dbs)
+    ewl = pyro.param('ewl', tensor(0.001) * randn(___shape['ewl']))
+    ews = pyro.param('ews', randn(___shape['ews']) - tensor(10.0))
+    guide_rnn['encoder.weight'] = dist.Normal(ewl, exp(ews))
+    gw1l = pyro.param('gw1l', tensor(0.001) * randn(___shape['gw1l']))
+    gw1s = pyro.param('gw1s', randn(___shape['gw1s']) - tensor(10.0))
+    guide_rnn['gru.weight_ih_l0'] = dist.Normal(gw1l, exp(gw1s))
+    gw2l = pyro.param('gw2l', tensor(0.001) * randn(___shape['gw2l']))
+    gw2s = pyro.param('gw2s', randn(___shape['gw2s']) - tensor(10.0))
+    guide_rnn['gru.weight_hh_l0'] = dist.Normal(gw2l, exp(gw2s))
+    gb1l = pyro.param('gb1l', tensor(0.001) * randn(___shape['gb1l']))
+    gb1s = pyro.param('gb1s', randn(___shape['gb1s']) - tensor(10.0))
+    guide_rnn['gru.bias_ih_l0'] = dist.Normal(gb1l, exp(gb1s))
+    gb2l = pyro.param('gb2l', tensor(0.001) * randn(___shape['gb2l']))
+    gb2s = pyro.param('gb2s', randn(___shape['gb2s']) - tensor(10.0))
+    guide_rnn['gru.bias_hh_l0'] = dist.Normal(gb2l, exp(gb2s))
+    dwl = pyro.param('dwl', tensor(0.001) * randn(___shape['dwl']))
+    dws = pyro.param('dws', randn(___shape['dws']) - tensor(10.0))
+    guide_rnn['decoder.weight'] = dist.Normal(dwl, exp(dws))
+    dbl = pyro.param('dbl', tensor(0.001) * randn(___shape['dbl']))
+    dbs = pyro.param('dbs', randn(___shape['dbs']) - tensor(10.0))
+    guide_rnn['decoder.bias'] = dist.Normal(dbl, exp(dbs))
     lifted_rnn = pyro.random_module('rnn', rnn, guide_rnn)
     return lifted_rnn()
 
@@ -53,13 +53,20 @@ def prior_rnn(input, n_characters, target):
     ___shape['input'] = n_characters
     ___shape['target'] = n_characters
     prior_rnn = {}
-    prior_rnn['encoder.weight'] = dist.Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.shape))
-    prior_rnn['gru.weight_ih_l0'] = dist.Normal(zeros(rnn.gru.weight_ih_l0.shape), ones(rnn.gru.weight_ih_l0.shape))
-    prior_rnn['gru.weight_hh_l0'] = dist.Normal(zeros(rnn.gru.weight_hh_l0.shape), ones(rnn.gru.weight_hh_l0.shape))
-    prior_rnn['gru.bias_ih_l0'] = dist.Normal(zeros(rnn.gru.bias_ih_l0.shape), ones(rnn.gru.bias_ih_l0.shape))
-    prior_rnn['gru.bias_hh_l0'] = dist.Normal(zeros(rnn.gru.bias_hh_l0.shape), ones(rnn.gru.bias_hh_l0.shape))
-    prior_rnn['decoder.weight'] = dist.Normal(zeros(rnn.decoder.weight.shape), ones(rnn.decoder.weight.shape))
-    prior_rnn['decoder.bias'] = dist.Normal(zeros(rnn.decoder.bias.shape), ones(rnn.decoder.bias.shape))
+    prior_rnn['encoder.weight'] = dist.Normal(zeros(rnn.encoder.weight.
+        shape), ones(rnn.encoder.weight.shape))
+    prior_rnn['gru.weight_ih_l0'] = dist.Normal(zeros(rnn.gru.weight_ih_l0.
+        shape), ones(rnn.gru.weight_ih_l0.shape))
+    prior_rnn['gru.weight_hh_l0'] = dist.Normal(zeros(rnn.gru.weight_hh_l0.
+        shape), ones(rnn.gru.weight_hh_l0.shape))
+    prior_rnn['gru.bias_ih_l0'] = dist.Normal(zeros(rnn.gru.bias_ih_l0.
+        shape), ones(rnn.gru.bias_ih_l0.shape))
+    prior_rnn['gru.bias_hh_l0'] = dist.Normal(zeros(rnn.gru.bias_hh_l0.
+        shape), ones(rnn.gru.bias_hh_l0.shape))
+    prior_rnn['decoder.weight'] = dist.Normal(zeros(rnn.decoder.weight.
+        shape), ones(rnn.decoder.weight.shape))
+    prior_rnn['decoder.bias'] = dist.Normal(zeros(rnn.decoder.bias.shape),
+        ones(rnn.decoder.bias.shape))
     lifted_rnn = pyro.random_module('rnn', rnn, prior_rnn)
     return lifted_rnn()
 
@@ -71,4 +78,4 @@ def model(input, n_characters, target):
     rnn = prior_rnn(input, n_characters, target)
     ___shape['logits'] = n_characters
     logits = rnn(input)
-    pyro.sample('target', dist.Categorical(logits), obs=target)
+    pyro.sample('target', CategoricalLogits(logits), obs=target)
