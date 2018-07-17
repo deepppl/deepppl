@@ -21,7 +21,7 @@ parameters {
   real<lower=0,upper=1> theta;
 }
 model {
-  theta ~ uniform(0.0,1.0);
+  theta ~ Uniform(0.0,1.0);
   for (i in 1:10)
-    x[i] ~ bernoulli(theta);
+    x[i] ~ Bernoulli(theta);
 }

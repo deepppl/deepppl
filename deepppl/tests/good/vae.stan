@@ -37,7 +37,7 @@ guide {
     encoded = encoder(x);
     mu = encoded[1];
     sigma = encoded[2];
-    latent ~ normal(mu, sigma);
+    latent ~ Normal(mu, sigma);
 }
 
 model {
