@@ -51,23 +51,23 @@ guide_parameters
 
 guide {
     l1wloc = randn(l1wloc$shape);
-    l1wscale = exp(randn(l1wscale$shape));
-    mlp.l1.weight ~  Normal(l1wloc, l1wscale);
+    l1wscale = randn(l1wscale$shape);
+    mlp.l1.weight ~  Normal(l1wloc, softplus(l1wscale));
     l1bloc = randn(l1bloc$shape);
-    l1bscale = exp(randn(l1bscale$shape));
-    mlp.l1.bias ~ Normal(l1bloc, l1bscale);
+    l1bscale = randn(l1bscale$shape);
+    mlp.l1.bias ~ Normal(l1bloc, softplus(l1bscale));
     l2wloc = randn(l2wloc$shape);
-    l2wscale = exp(randn(l2wscale$shape));
-    mlp.l2.weight ~ Normal(l2wloc, l2wscale);
+    l2wscale = randn(l2wscale$shape);
+    mlp.l2.weight ~ Normal(l2wloc, softplus(l2wscale));
     l2bloc = randn(l2bloc$shape);
-    l2bscale = exp(randn(l2bscale$shape));
-    mlp.l2.bias ~ Normal(l2bloc, l2bscale);
+    l2bscale = randn(l2bscale$shape);
+    mlp.l2.bias ~ Normal(l2bloc, softplus(l2bscale));
 }
 
 model {
     real logits[batch_size];
     logits = mlp(imgs);
-    labels ~ Categorical(logits);
+    labels ~ CategoricalLogits(logits);
 }
 
 
