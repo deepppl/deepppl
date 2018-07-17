@@ -15,4 +15,4 @@ before_script:
   - cd ..
   - pip install .
 script:
-  - pytest
+  - pytest -v --tb=no
