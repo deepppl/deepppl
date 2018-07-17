@@ -563,9 +563,8 @@ class Ir2PythonVisitor(IRVisitor):
     def samplingDist(self, sampling):
         args = [arg.accept(self) for arg in sampling.args]
         id = sampling.id
-        if hasattr(torch.distributions, id.capitalize()):
+        if hasattr(torch.distributions, id):
             # Check if the distribution exists in torch.distributions
-            id = id.capitalize()
             dist = self.loadAttr(self.loadName('dist'), id)
         ## XXX We need keyword parameters
         elif id.lower() == 'CategoricalLogits'.lower():
