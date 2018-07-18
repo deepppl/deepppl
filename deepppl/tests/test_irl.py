@@ -17,7 +17,8 @@
 from deepppl import dpplc
 from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
                                             MissingModelExeption, MissingGuideExeption,\
-                                            ObserveOnGuideExeption, UnsupportedProperty
+                                            ObserveOnGuideExeption, UnsupportedProperty,\
+                                            UndeclaredParameters
 import ast
 import pytest
 
@@ -94,6 +95,11 @@ def test_coin_guide_missing_model():
         filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
         dpplc.stan2astpyFile(filename)
 
+
+def test_mlp_undeclared_parameters():
+    with pytest.raises(UndeclaredParameters):
+        filename = r'deepppl/tests/good/mlp_undeclared_parameters.stan'
+        dpplc.stan2astpyFile(filename)
 
 def test_mlp_missing_guide():
     with pytest.raises(MissingGuideNetException):
