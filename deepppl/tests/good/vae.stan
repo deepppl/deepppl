@@ -17,6 +17,8 @@
 
 data {
     int x;
+    int nz;
+    int batch_size;
 }
 
 
@@ -37,12 +39,12 @@ guide {
     encoded = encoder(x);
     mu = encoded[1];
     sigma = encoded[2];
-    latent ~ Normal(mu, sigma);
+    latent ~ Normal(mu, sigma, batch_size);
 }
 
 model {
     int loc_img;
-    latent ~ Normal(0, 1);
+    latent ~ Normal(zeros(nz), ones(nz), batch_size);
     loc_img = decoder(latent);
     x ~ Bernoulli(loc_img);
 }
