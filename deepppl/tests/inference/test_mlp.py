@@ -8,13 +8,10 @@ from pyro.infer import SVI, Trace_ELBO
 from pyro.optim import Adam
 from torch.autograd import Variable
 
-import torch.utils.data.dataloader as dataloader
-import torchvision
-from torchvision import transforms
-from torchvision.datasets import MNIST
-
 import deepppl
 import os
+
+from util import loadData
 
 
 batch_size, nx, nh, ny = 128, 28 * 28, 1024, 10
@@ -36,20 +33,6 @@ def build_mlp():
     return MLP()
 
 
-
-def loadData():
-    train = MNIST(os.environ.get("DATA_DIR", '.') + "/data", train=True, download=True, transform=transforms.Compose([
-        transforms.ToTensor(),  # ToTensor does min-max normalization.
-    ]), )
-    test = MNIST(os.environ.get("DATA_DIR", '.') + "/data", train=False, download=True, transform=transforms.Compose([
-        transforms.ToTensor(),  # ToTensor does min-max normalization.
-    ]), )
-    dataloader_args = dict(shuffle=True, batch_size=batch_size,
-                        num_workers=3, pin_memory=False)
-    train_loader = dataloader.DataLoader(train, **dataloader_args)
-    test_loader = dataloader.DataLoader(test, **dataloader_args)
-    return train_loader, test_loader
-
 def CategoricalLogits(logits):
     return dist.Categorical(logits=logits)
 
@@ -60,7 +43,7 @@ def predict(data, posterior):
 
 def test_mlp_inference():
     mlp = build_mlp()
-    train_loader, test_loader = loadData()
+    train_loader, test_loader = loadData(batch_size)
     model = deepppl.DppplModel(model_file = 'deepppl/tests/good/mlp.stan', mlp=mlp, CategoricalLogits=CategoricalLogits)
     svi = model.svi(params = {'lr' : 0.01})
 
