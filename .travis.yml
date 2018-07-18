@@ -15,5 +15,6 @@ before_script:
   - cd ..
   - pip install .
   - pip install observations # for tests
+  - pip install requests
 script:
   - pytest -v
