@@ -14,5 +14,6 @@ before_script:
   - make
   - cd ..
   - pip install .
+  - pip install observations # for tests
 script:
   - pytest -v --tb=no
