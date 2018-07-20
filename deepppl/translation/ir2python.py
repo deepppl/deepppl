@@ -27,7 +27,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
 from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                          MissingModelExeption, MissingGuideExeption, \
                         ObserveOnGuideExeption, UnsupportedProperty, \
-                        UndeclaredParameters
+                        UndeclaredParametersException, UndeclaredNetworkException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -170,9 +170,10 @@ class NetworkVisitor(IRVisitor):
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
-        assert net in self._nets
+        if not net in self._nets:
+            raise UndeclaredNetworkException(net)
         if not params in self._nets[net].params:
-            raise UndeclaredParameters('.'.join([net] + params))
+            raise UndeclaredParametersException('.'.join([net] + params))
         if self._shouldRemove:
             self._currdict[net].remove(self._param_to_name(params))
         return var

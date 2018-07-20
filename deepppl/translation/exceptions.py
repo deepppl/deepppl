@@ -65,8 +65,14 @@ class UnsupportedProperty(TranslationException):
         super(UnsupportedProperty, self).__init__(msg)
         self.prop = property
 
-class UndeclaredParameters(TranslationException):
+class UndeclaredParametersException(TranslationException):
     def __init__(self, parameters):
         msg = "Use of undeclared parameters: {}.".format(parameters)
-        super(UndeclaredParameters, self).__init__(msg)
+        super(UndeclaredParametersException, self).__init__(msg)
         self.parameters = parameters
+
+class UndeclaredNetworkException(TranslationException):
+    def __init__(self, net):
+        msg = "Use of undeclared network: {}.".format(net)
+        super(UndeclaredNetworkException, self).__init__(msg)
+        self.net = net
