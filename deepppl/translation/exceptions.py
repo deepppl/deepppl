@@ -88,3 +88,9 @@ class UndeclaredVariableException(TranslationException):
         msg = "Undeclared identifier: {}.".format(var)
         super(UndeclaredVariableException, self).__init__(msg)
         self.var = var
+
+class UnknownDistributionException(TranslationException):
+    def __init__(self, dist):
+        msg = "Unknown distribution: {}.".format(dist)
+        super(UnknownDistributionException, self).__init__(msg)
+        self.dist = dist

@@ -28,7 +28,8 @@ from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                          MissingModelExeption, MissingGuideExeption, \
                         ObserveOnGuideExeption, UnsupportedProperty, \
                         UndeclaredParametersException, UndeclaredNetworkException,\
-                        InvalidSamplingException, UndeclaredVariableException
+                        InvalidSamplingException, UndeclaredVariableException,\
+                        UnknownDistributionException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -574,7 +575,7 @@ class Ir2PythonVisitor(IRVisitor):
         elif id.lower() == 'CategoricalLogits'.lower():
             dist = self.loadName('CategoricalLogits')
         else:
-            assert False, "Unknown distribution: {}".format(id)
+            raise UnknownDistributionException(id)
         return self.call(dist,
                         args = args)
         
