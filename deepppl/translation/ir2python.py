@@ -29,7 +29,8 @@ from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                         ObserveOnGuideExeption, UnsupportedProperty, \
                         UndeclaredParametersException, UndeclaredNetworkException,\
                         InvalidSamplingException, UndeclaredVariableException,\
-                        UnknownDistributionException, AlreadyDeclaredException
+                        UnknownDistributionException, AlreadyDeclaredException,\
+                        NonRandomSamplingException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -113,7 +114,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         elif target.is_params_var():
             method = SamplingParameters
         else:
-            assert False, "Don't know how to sample this:{}".format(sampling)
+            raise NonRandomSamplingException(sampling)
         return method(target = target, args = args, id = sampling.id)
 
     def visitProgramBlock(self, block):

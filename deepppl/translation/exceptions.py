@@ -83,6 +83,12 @@ class InvalidSamplingException(TranslationException):
         super(InvalidSamplingException, self).__init__(msg)
         self.target = target
 
+class NonRandomSamplingException(TranslationException):
+    def __init__(self, target):
+        msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?".format(target)
+        super(NonRandomSamplingException, self).__init__(msg)
+        self.target = target
+
 class UndeclaredVariableException(TranslationException):
     def __init__(self, var):
         msg = "Undeclared identifier: {}.".format(var)
