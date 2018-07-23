@@ -114,6 +114,26 @@ def test_mlp_missing_model():
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
         dpplc.stan2astpyFile(filename)
 
+def test_mlp_incorrect_shape1():
+    with pytest.raises(IncompatibleShapes):
+        filename = r'deepppl/tests/good/mlp_incorrect_shape1.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_incorrect_shape2():
+    with pytest.raises(IncompatibleShapes):
+        filename = r'deepppl/tests/good/mlp_incorrect_shape2.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_incorrect_shape3():
+    with pytest.raises(IncompatibleShapes):
+        filename = r'deepppl/tests/good/mlp_incorrect_shape3.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_incorrect_shape4():
+    with pytest.raises(IncompatibleShapes):
+        filename = r'deepppl/tests/good/mlp_incorrect_shape4.stan'
+        dpplc.stan2astpyFile(filename)
+
 def test_coin_invalid_sampling():
     with pytest.raises(InvalidSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
