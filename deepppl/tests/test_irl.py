@@ -18,7 +18,8 @@ from deepppl import dpplc
 from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
                                             MissingModelExeption, MissingGuideExeption,\
                                             ObserveOnGuideExeption, UnsupportedProperty,\
-                                            UndeclaredParametersException, UndeclaredNetworkException\
+                                            UndeclaredParametersException, UndeclaredNetworkException,\
+                                            InvalidSamplingException
 
 import ast
 import pytest
@@ -116,6 +117,13 @@ def test_mlp_missing_model():
     with pytest.raises(MissingPriorNetException):
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
         dpplc.stan2astpyFile(filename)
+
+def test_coin_invalid_sampling():
+    with pytest.raises(InvalidSamplingException):
+        filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
+        dpplc.stan2astpyFile(filename)
+
+        
 
 def test_mlp_unsupported_property():
     with pytest.raises(UnsupportedProperty):

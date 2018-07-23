@@ -27,7 +27,8 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
 from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                          MissingModelExeption, MissingGuideExeption, \
                         ObserveOnGuideExeption, UnsupportedProperty, \
-                        UndeclaredParametersException, UndeclaredNetworkException
+                        UndeclaredParametersException, UndeclaredNetworkException,\
+                        InvalidSamplingException 
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -287,10 +288,11 @@ class SamplingConsistencyVisitor(IRVisitor):
         if self._currentBlock is not None:
             if isinstance(sampling.target, Variable):
                 id = sampling.target.id
-            else: 
-                assert isinstance(sampling.target, Subscript)
+            elif isinstance(sampling.target, Subscript): 
                 ## XXX A more general logic must be applied elsewhere
                 id = sampling.target.id.id
+            else:
+                raise InvalidSamplingException(sampling.target)
             self._currentBlock.addSampled(id)
         return self.visitSamplingStmt(sampling)
 

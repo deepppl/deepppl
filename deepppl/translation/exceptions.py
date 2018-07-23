@@ -76,3 +76,9 @@ class UndeclaredNetworkException(TranslationException):
         msg = "Use of undeclared network: {}.".format(net)
         super(UndeclaredNetworkException, self).__init__(msg)
         self.net = net
+
+class InvalidSamplingException(TranslationException):
+    def __init__(self, target):
+        msg = "Only identifiers and indexing are supported as lhs of sampling: {}.".format(target)
+        super(InvalidSamplingException, self).__init__(msg)
+        self.target = target
