@@ -22,7 +22,7 @@ parameters {
 }
 model {
   theta ~ Uniform(0,1);
-  th2 ~ Uniform(0,1);
+  th2 ~ Uniform(0,1);  // <- unknown identifier
 
   for (i in 1:10)
     x[i] ~ Bernoulli(theta);

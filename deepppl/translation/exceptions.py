@@ -94,3 +94,9 @@ class UnknownDistributionException(TranslationException):
         msg = "Unknown distribution: {}.".format(dist)
         super(UnknownDistributionException, self).__init__(msg)
         self.dist = dist
+
+class AlreadyDeclaredException(TranslationException):
+    def __init__(self, var):
+        msg = "Variable '{}' already declared.".format(var)
+        super(AlreadyDeclaredException, self).__init__(msg)
+        self.var = var

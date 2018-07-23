@@ -29,7 +29,7 @@ from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                         ObserveOnGuideExeption, UnsupportedProperty, \
                         UndeclaredParametersException, UndeclaredNetworkException,\
                         InvalidSamplingException, UndeclaredVariableException,\
-                        UnknownDistributionException
+                        UnknownDistributionException, AlreadyDeclaredException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -77,7 +77,7 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     def _addVariable(self, name):
         if name in self.ctx:
-            assert False, "Variable: {} already declared.".format(name)
+            raise AlreadyDeclaredException(name)
         self.ctx[name] = self.block
 
     def _delVariable(self, name):
