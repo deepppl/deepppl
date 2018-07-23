@@ -24,9 +24,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable
 
-from .exceptions import MissingPriorNetException, MissingGuideNetException,\
-                         MissingModelExeption, MissingGuideExeption, \
-                        ObserveOnGuideExeption, UnsupportedProperty
+from .exceptions import *
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -74,7 +72,7 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     def _addVariable(self, name):
         if name in self.ctx:
-            assert False, "Variable: {} already declared.".format(name)
+            raise AlreadyDeclaredException(name)
         self.ctx[name] = self.block
 
     def _delVariable(self, name):
@@ -110,7 +108,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         elif target.is_params_var():
             method = SamplingParameters
         else:
-            assert False, "Don't know how to sample this:{}".format(sampling)
+            raise NonRandomSamplingException(sampling)
         return method(target = target, args = args, id = sampling.id)
 
     def visitProgramBlock(self, block):
@@ -133,7 +131,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitVariable(self, var):
         name = var.id
         if name not in self.ctx:
-            assert False, "Use of undeclared variable:{}".format(name)
+            raise UndeclaredVariableException(name)
         var.block_name = self.ctx[name].blockName()
         return var
 
@@ -169,9 +167,10 @@ class NetworkVisitor(IRVisitor):
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
-        assert net in self._nets
-        assert params in self._nets[net].params, "Use of undeclared network parameters: {}."\
-                                            .format('.'.join([net] + params))
+        if not net in self._nets:
+            raise UndeclaredNetworkException(net)
+        if not params in self._nets[net].params:
+            raise UndeclaredParametersException('.'.join([net] + params))
         if self._shouldRemove:
             self._currdict[net].remove(self._param_to_name(params))
         return var
@@ -285,10 +284,11 @@ class SamplingConsistencyVisitor(IRVisitor):
         if self._currentBlock is not None:
             if isinstance(sampling.target, Variable):
                 id = sampling.target.id
-            else: 
-                assert isinstance(sampling.target, Subscript)
+            elif isinstance(sampling.target, Subscript): 
                 ## XXX A more general logic must be applied elsewhere
                 id = sampling.target.id.id
+            else:
+                raise InvalidSamplingException(sampling.target)
             self._currentBlock.addSampled(id)
         return self.visitSamplingStmt(sampling)
 
@@ -570,7 +570,7 @@ class Ir2PythonVisitor(IRVisitor):
         elif id.lower() == 'CategoricalLogits'.lower():
             dist = self.loadName('CategoricalLogits')
         else:
-            assert False, "Unknown distribution: {}".format(id)
+            raise UnknownDistributionException(id)
         return self.call(dist,
                         args = args)
         

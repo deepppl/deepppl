@@ -15,9 +15,8 @@
 # */
 
 from deepppl import dpplc
-from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
-                                            MissingModelExeption, MissingGuideExeption,\
-                                            ObserveOnGuideExeption, UnsupportedProperty
+from deepppl.translation.exceptions import *
+
 import ast
 import pytest
 
@@ -95,6 +94,16 @@ def test_coin_guide_missing_model():
         dpplc.stan2astpyFile(filename)
 
 
+def test_mlp_undeclared_parameters():
+    with pytest.raises(UndeclaredParametersException):
+        filename = r'deepppl/tests/good/mlp_undeclared_parameters.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_undeclared_network():
+    with pytest.raises(UndeclaredNetworkException):
+        filename = r'deepppl/tests/good/mlp_undeclared_net.stan'
+        dpplc.stan2astpyFile(filename)
+
 def test_mlp_missing_guide():
     with pytest.raises(MissingGuideNetException):
         filename = r'deepppl/tests/good/mlp_missing_guide.stan'
@@ -104,6 +113,33 @@ def test_mlp_missing_model():
     with pytest.raises(MissingPriorNetException):
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
         dpplc.stan2astpyFile(filename)
+
+def test_coin_invalid_sampling():
+    with pytest.raises(InvalidSamplingException):
+        filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_invalid_sampling2():
+    with pytest.raises(NonRandomSamplingException):
+        filename = r'deepppl/tests/good/coin_invalid_sampling2.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_unknown_identifier():
+    with pytest.raises(UndeclaredVariableException):
+        filename = r'deepppl/tests/good/coin_unknown_identifier.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_unknown_distribution():
+    with pytest.raises(UnknownDistributionException):
+        filename = r'deepppl/tests/good/coin_unknown_distribution.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_already_declared():
+    with pytest.raises(AlreadyDeclaredException):
+        filename = r'deepppl/tests/good/coin_already_declared_var.stan'
+        dpplc.stan2astpyFile(filename)
+
+        
 
 def test_mlp_unsupported_property():
     with pytest.raises(UnsupportedProperty):
