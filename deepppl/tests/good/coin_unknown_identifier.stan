@@ -21,7 +21,8 @@ parameters {
   real<lower=0,upper=1> theta;
 }
 model {
-  theta*2 ~ Uniform(0,1);     // <- arbitrary expression as lhs of sampling not supported
+  theta ~ Uniform(0,1);
+  th2 ~ Uniform(0,1);
 
   for (i in 1:10)
     x[i] ~ Bernoulli(theta);

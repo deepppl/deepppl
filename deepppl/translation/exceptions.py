@@ -82,3 +82,9 @@ class InvalidSamplingException(TranslationException):
         msg = "Only identifiers and indexing are supported as lhs of sampling: {}.".format(target)
         super(InvalidSamplingException, self).__init__(msg)
         self.target = target
+
+class UndeclaredVariableException(TranslationException):
+    def __init__(self, var):
+        msg = "Undeclared identifier: {}.".format(var)
+        super(UndeclaredVariableException, self).__init__(msg)
+        self.var = var

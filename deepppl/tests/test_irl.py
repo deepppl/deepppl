@@ -19,7 +19,7 @@ from deepppl.translation.exceptions import MissingPriorNetException, MissingGuid
                                             MissingModelExeption, MissingGuideExeption,\
                                             ObserveOnGuideExeption, UnsupportedProperty,\
                                             UndeclaredParametersException, UndeclaredNetworkException,\
-                                            InvalidSamplingException
+                                            InvalidSamplingException, UndeclaredVariableException
 
 import ast
 import pytest
@@ -121,6 +121,11 @@ def test_mlp_missing_model():
 def test_coin_invalid_sampling():
     with pytest.raises(InvalidSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_coin_unknown_identifier():
+    with pytest.raises(UndeclaredVariableException):
+        filename = r'deepppl/tests/good/coin_unknown_identifier.stan'
         dpplc.stan2astpyFile(filename)
 
         

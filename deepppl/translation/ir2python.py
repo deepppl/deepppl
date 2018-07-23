@@ -28,7 +28,7 @@ from .exceptions import MissingPriorNetException, MissingGuideNetException,\
                          MissingModelExeption, MissingGuideExeption, \
                         ObserveOnGuideExeption, UnsupportedProperty, \
                         UndeclaredParametersException, UndeclaredNetworkException,\
-                        InvalidSamplingException 
+                        InvalidSamplingException, UndeclaredVariableException
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -135,7 +135,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitVariable(self, var):
         name = var.id
         if name not in self.ctx:
-            assert False, "Use of undeclared variable:{}".format(name)
+            raise UndeclaredVariableException(name)
         var.block_name = self.ctx[name].blockName()
         return var
 
