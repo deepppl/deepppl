@@ -24,13 +24,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable
 
-from .exceptions import MissingPriorNetException, MissingGuideNetException,\
-                         MissingModelExeption, MissingGuideExeption, \
-                        ObserveOnGuideExeption, UnsupportedProperty, \
-                        UndeclaredParametersException, UndeclaredNetworkException,\
-                        InvalidSamplingException, UndeclaredVariableException,\
-                        UnknownDistributionException, AlreadyDeclaredException,\
-                        NonRandomSamplingException
+from .exceptions import *
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 

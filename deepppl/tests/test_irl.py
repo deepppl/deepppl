@@ -15,13 +15,7 @@
 # */
 
 from deepppl import dpplc
-from deepppl.translation.exceptions import MissingPriorNetException, MissingGuideNetException,\
-                                            MissingModelExeption, MissingGuideExeption,\
-                                            ObserveOnGuideExeption, UnsupportedProperty,\
-                                            UndeclaredParametersException, UndeclaredNetworkException,\
-                                            InvalidSamplingException, UndeclaredVariableException,\
-                                            UnknownDistributionException, AlreadyDeclaredException,\
-                                            NonRandomSamplingException
+from deepppl.translation.exceptions import *
 
 import ast
 import pytest

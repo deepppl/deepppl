@@ -19,90 +19,49 @@ class DeepPPLException(Exception):
 
 
 class TranslationException(DeepPPLException):
-    pass
+    def __init__(self, *args):
+        msg = self._base_msg.format(*args)
+        super(TranslationException, self).__init__(msg)
+        self.args = args
+    
 
 
 class MissingPriorNetException(TranslationException):
-    def __init__(self, net, params):
-        str = "The following parameters of {} were note given a prior:{}"
-        msg = str.format(net, params)
-        super(MissingPriorNetException, self).__init__(msg)
-        self.net = net
-        self.params = params
+    _base_msg = "The following parameters of {} were note given a prior:{}"
 
 class MissingGuideNetException(TranslationException):
-    def __init__(self, net, params):
-        str = "The following parameters of {} were note given a guide:{}"
-        msg = str.format(net, params)
-        super(MissingGuideNetException, self).__init__(msg)
-        self.net = net
-        self.params = params
+    _base_msg = "The following parameters of {} were note given a guide:{}"
 
 class MissingModelExeption(TranslationException):
-    def __init__(self, latents):
-        str = "The following latents {} were not sampled on the model."
-        msg = str.format(latents)
-        super(MissingModelExeption, self).__init__(msg)
-        self.latents = latents
+    _base_msg = "The following latents {} were not sampled on the model."
 
 class MissingGuideExeption(TranslationException):
-    def __init__(self, latents):
-        str = "The following latents {} were not sampled on the guide."
-        msg = str.format(latents)
-        super(MissingGuideExeption, self).__init__(msg)
-        self.latents = latents
+    _base_msg = "The following latents {} were not sampled on the guide."
 
 class ObserveOnGuideExeption(TranslationException):
-    def __init__(self, data):
-        str = "Trying to observer data {} inside the guide."
-        msg = str.format(data)
-        super(ObserveOnGuideExeption, self).__init__(msg)
-        self.data = data
-
+    _base_msg = "Trying to observer data {} inside the guide."
+    
 class UnsupportedProperty(TranslationException):
-    def __init__(self, property):
-        msg = "Unsupported property: {}.".format(property)
-        super(UnsupportedProperty, self).__init__(msg)
-        self.prop = property
+    _base_msg = "Unsupported property: {}."
 
 class UndeclaredParametersException(TranslationException):
-    def __init__(self, parameters):
-        msg = "Use of undeclared parameters: {}.".format(parameters)
-        super(UndeclaredParametersException, self).__init__(msg)
-        self.parameters = parameters
+    _base_msg = "Use of undeclared parameters: {}."
 
 class UndeclaredNetworkException(TranslationException):
-    def __init__(self, net):
-        msg = "Use of undeclared network: {}.".format(net)
-        super(UndeclaredNetworkException, self).__init__(msg)
-        self.net = net
+    _base_msg = "Use of undeclared network: {}."
 
 class InvalidSamplingException(TranslationException):
-    def __init__(self, target):
-        msg = "Only identifiers and indexing are supported as lhs of sampling: {}.".format(target)
-        super(InvalidSamplingException, self).__init__(msg)
-        self.target = target
+    _base_msg = "Only identifiers and indexing are supported as lhs of sampling: {}."
 
 class NonRandomSamplingException(TranslationException):
-    def __init__(self, target):
-        msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?".format(target)
-        super(NonRandomSamplingException, self).__init__(msg)
-        self.target = target
+    _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"
 
 class UndeclaredVariableException(TranslationException):
-    def __init__(self, var):
-        msg = "Undeclared identifier: {}.".format(var)
-        super(UndeclaredVariableException, self).__init__(msg)
-        self.var = var
+    _base_msg = "Undeclared identifier: {}."
 
 class UnknownDistributionException(TranslationException):
-    def __init__(self, dist):
-        msg = "Unknown distribution: {}.".format(dist)
-        super(UnknownDistributionException, self).__init__(msg)
-        self.dist = dist
+    _base_msg = "Unknown distribution: {}."
 
 class AlreadyDeclaredException(TranslationException):
-    def __init__(self, var):
-        msg = "Variable '{}' already declared.".format(var)
-        super(AlreadyDeclaredException, self).__init__(msg)
-        self.var = var
+    _base_msg = "Variable '{}' already declared."
+    
