@@ -77,7 +77,7 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     def _delVariable(self, name):
         if not name in self.ctx:
-            assert False, "Trying to delete an inexistent variable:{}.".format(name)
+            assert False, "Trying to delete a nonexistent variable:{}.".format(name)
         del self.ctx[name]
     
     def visitProgram(self, program):
@@ -536,7 +536,6 @@ class Ir2PythonVisitor(IRVisitor):
                         ctx = ast.Load())
 
     def visitVariable(self, var):
-        assert var.block_name is not None
         return self.loadName(var.id)
 
     def visitCallStmt(self, call):
