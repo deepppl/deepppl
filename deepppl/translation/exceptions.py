@@ -64,4 +64,7 @@ class UnknownDistributionException(TranslationException):
 
 class AlreadyDeclaredException(TranslationException):
     _base_msg = "Variable '{}' already declared."
+
+class IncompatibleShapes(TranslationException):
+    _base_msg = "Trying to use incompatible shapes:{} and {}"
     

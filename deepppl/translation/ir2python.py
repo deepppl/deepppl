@@ -333,6 +333,83 @@ class PythonASTHelper(object):
         names_ = [ast.alias(name=name, asname = None) for name in names]
         return ast.ImportFrom(module, names_, 0)
 
+class IRShape(object):
+    def __init__(self, creator, value = None):
+        self.creator = creator
+        self.value = value
+
+    def __str__(self):
+        return 'Shape value: {}, creator: {}'.format(self.value, self.creator)
+
+class ShapeCheckingVisitor(IRVisitor):
+    def __init__(self):
+        super(ShapeCheckingVisitor, self).__init__()
+        self._ctx = {}
+        self._nets = {}
+
+    def defaultVisit(self, node):
+        return self._visitChildren(node) or None
+
+    def visitNetVariableProperty(self, netprop):
+        net = netprop.var
+        prop = netprop.prop
+        if prop != 'shape':
+            raise UnsupportedProperty(prop)
+        name = '.'.join([net.name,] + net.ids)
+        if name in self._nets:
+            answer = self._nets[name]
+        else:
+            answer = IRShape(netprop, name)
+            self._nets[name] = answer
+        return answer
+
+    def visitForStmt(self, for_):
+        self._ctx[for_.id] = IRShape(for_, 0)
+        self._visitChildren(for_)
+        del self._ctx[for_.id]
+
+    def visitVariableDecl(self, decl):
+        dim = decl.dim.accept(self) if decl.dim else None
+        ##XXX do not use isinstance
+        dim = dim if isinstance(dim, IRShape) else IRShape(decl, dim)
+        self._ctx[decl.id] = dim
+        return decl
+
+    def visitAssignStmt(self, assign):
+        target = assign.target
+        assert target not in self._ctx  ## XXX check presence 
+        self._ctx[target] = assign.value.accept(self)
+
+
+    def visitVariable(self, var):
+        return self._ctx[var.id] ## XXX check presence
+    
+    def visitNetVariable(self, netvar):
+        name = '.'.join([netvar.name] + netvar.ids)
+        return self._nets[name]
+
+    def visitSamplingDeclaration(self, sampling):
+        target_shape = sampling.target.accept(self)
+        ### XXX check that all are the same
+        args_shape = [x.accept(self) for x in sampling.args]
+        for shape in args_shape:
+            if shape.value != target_shape.value:
+                raise IncompatibleShapes(args_shape, target_shape)
+
+    def visitCallStmt(self, call):
+        args = call.args.accept(self)
+        assert len(args), "Calling a function with no arguments"
+        first = args[0]
+        for arg in args[1:]:
+            if arg.value != first.value:
+                raise IncompatibleShapes(arg, first)
+        return first
+
+    def visitVariableProperty(self, prop):
+        if prop.prop != 'shape':
+            raise UnsupportedProperty(prop)
+        return self._ctx[prop.var.id]  ## XXX check presence
+
 class Ir2PythonVisitor(IRVisitor):
     def __init__(self):
         super(Ir2PythonVisitor, self).__init__()
@@ -787,6 +864,8 @@ def ir2python(ir):
     ir = ir.accept(nets)
     consistency = SamplingConsistencyVisitor()
     ir = ir.accept(consistency)
+    shapes_checking = ShapeCheckingVisitor()
+    ir.accept(shapes_checking)
     visitor = Ir2PythonVisitor()
     return ir.accept(visitor)
 
