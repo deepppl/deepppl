@@ -410,7 +410,7 @@ class ShapeCheckingVisitor(IRVisitor):
         self._nets = {}
 
     def defaultVisit(self, node):
-        return self._visitChildren(node) or None
+        return self._visitChildren(node) or ShapeLinkedList(UnboundShape(node))
 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
@@ -447,9 +447,14 @@ class ShapeCheckingVisitor(IRVisitor):
         ## XXX check presence 
         self._ctx[target.id].pointTo(assign.value.accept(self))
 
+    def visitBinaryOperator(self, op):
+        left, right, op = self.defaultVisit(op)
+        left.pointTo(right)
+        return left
 
     def visitVariable(self, var):
         return self._ctx[var.id] ## XXX check presence
+
     
     def visitNetVariable(self, netvar):
         name = '.'.join([netvar.name] + netvar.ids)
