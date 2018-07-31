@@ -348,9 +348,9 @@ class IRShape(object):
     def isLeaf(self):
         return True
 
-class BoundShape(IRShape):
+class BoundedShape(IRShape):
     def __init__(self, creator, value):
-        super(BoundShape, self).__init__(creator)
+        super(BoundedShape, self).__init__(creator)
         self.value = value
 
     def inner(self):
@@ -362,19 +362,19 @@ class BoundShape(IRShape):
     def __str__(self):
         return 'Shape value: {}, creator: {}'.format(self.value, self.creator)
 
-class UnboundShape(IRShape):
+class UnboundedShape(IRShape):
     def __str__(self):
         return 'Unbound shape: {}'.format(self.creator)
 
 class ShapeLinkedList(IRShape):
     @classmethod
     def bounded(cls, creator, value):
-        shape = BoundShape(creator, value)
+        shape = BoundedShape(creator, value)
         return cls(shape)
 
     @classmethod
     def unbounded(cls, creator):
-        shape = UnboundShape(creator)
+        shape = UnboundedShape(creator)
         return cls(shape)
 
     def __init__(self, shape):
@@ -453,9 +453,9 @@ class ShapeCheckingVisitor(IRVisitor):
                 inner = decl.dim.accept(self).shape()
             else:
                 dim = decl.dim
-                inner = BoundShape(decl, dim)
+                inner = BoundedShape(decl, dim)
         else:
-            inner = UnboundShape(decl)
+            inner = UnboundedShape(decl)
         shape = ShapeLinkedList(inner)
         self._ctx[decl.id] = shape
         return decl
