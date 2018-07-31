@@ -56,7 +56,7 @@ guide {
     l1bloc = randn(l1bloc$shape);
     l1bscale = randn(l1bscale$shape);
     mlp.l1.bias ~ Normal(l1bloc, softplus(l1bscale));
-    l2wloc = randn(l1wloc$shape);
+    l2wloc = randn(l2wloc$shape);
     l2wscale = randn(l2wscale$shape);
     mlp.l2.weight ~ Normal(l2wloc, softplus(l2wscale));
     l2bloc = randn(l2bloc$shape);
