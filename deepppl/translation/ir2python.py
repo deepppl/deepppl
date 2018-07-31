@@ -22,7 +22,8 @@ import sys
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
-                SamplingParameters, Variable
+                SamplingParameters, Variable, Constant, BinaryOperator, \
+                Minus
 
 from .exceptions import *
 
@@ -348,7 +349,7 @@ class IRShape(object):
         return True
 
 class BoundShape(IRShape):
-    def __init__(self, creator, value=None):
+    def __init__(self, creator, value):
         super(BoundShape, self).__init__(creator)
         self.value = value
 
@@ -366,6 +367,16 @@ class UnboundShape(IRShape):
         return 'Unbound shape: {}'.format(self.creator)
 
 class ShapeLinkedList(IRShape):
+    @classmethod
+    def bounded(cls, creator, value):
+        shape = BoundShape(creator, value)
+        return cls(shape)
+
+    @classmethod
+    def unbounded(cls, creator):
+        shape = UnboundShape(creator)
+        return cls(shape)
+
     def __init__(self, shape):
         super(ShapeLinkedList, self).__init__(shape.creator)
         self._inner = shape
@@ -382,7 +393,7 @@ class ShapeLinkedList(IRShape):
         other_shape = other.shape()
         if shape.isBound():
             if other_shape.isBound():
-                if shape != other_shape:
+                if shape != other_shape and shape.value != other_shape.value:
                     raise IncompatibleShapes(shape.value, other_shape.value)
             else:
                 other.pointTo(self)
@@ -404,13 +415,17 @@ class ShapeLinkedList(IRShape):
 
 
 class ShapeCheckingVisitor(IRVisitor):
+    known_functions = set([
+        "randn", "exp", "log", "zeros", "ones", "softplus"
+    ])
+
     def __init__(self):
         super(ShapeCheckingVisitor, self).__init__()
         self._ctx = {}
         self._nets = {}
 
     def defaultVisit(self, node):
-        return self._visitChildren(node) or ShapeLinkedList(UnboundShape(node))
+        return self._visitChildren(node) or ShapeLinkedList.unbounded(node)
 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
@@ -421,24 +436,27 @@ class ShapeCheckingVisitor(IRVisitor):
         if name in self._nets:
             answer = self._nets[name]
         else:
-            shape = BoundShape(netprop, name)
-            answer = ShapeLinkedList(shape)
+            answer = ShapeLinkedList.bounded(netprop, name)
             self._nets[name] = answer
         return answer
 
     def visitForStmt(self, for_):
-        shape = BoundShape(for_, 0)
-        self._ctx[for_.id] = ShapeLinkedList(shape)
+        self._ctx[for_.id] = ShapeLinkedList.bounded(for_, Constant(0))
         self._visitChildren(for_)
         del self._ctx[for_.id]
 
     def visitVariableDecl(self, decl):
-        dim = decl.dim.accept(self) if decl.dim else None
-        ##XXX do not use isinstance
-        #dim = dim if isinstance(dim, IRShape) else IRShape(decl, dim)
-        shape = ShapeLinkedList(UnboundShape(decl))
-        # if dim:
-        #     shape.pointTo(dim)
+        """If dimensions uses `$shape` property, then mimics that shape. Otherwise, 
+            use the dimensions verbatim"""
+        if decl.dim:
+            if decl.dim.is_property():
+                inner = decl.dim.accept(self).shape()
+            else:
+                dim = decl.dim
+                inner = BoundShape(decl, dim)
+        else:
+            inner = UnboundShape(decl)
+        shape = ShapeLinkedList(inner)
         self._ctx[decl.id] = shape
         return decl
 
@@ -452,6 +470,18 @@ class ShapeCheckingVisitor(IRVisitor):
         left.pointTo(right)
         return left
 
+    def visitSubscript(self, subs):
+        id, index = self.defaultVisit(subs)
+        shape = id.shape()
+        assert shape.isBound(), "Subscripting unknown shape"
+        used = len(subs.index.exprs) if subs.index.is_tuple() else 1
+        used = Constant(value = used)
+        adjusted = BinaryOperator(
+                                    left = shape.value, 
+                                    right = used, 
+                                    op = Minus())
+        return ShapeLinkedList.bounded(subs, adjusted)
+
     def visitVariable(self, var):
         return self._ctx[var.id] ## XXX check presence
 
@@ -459,7 +489,7 @@ class ShapeCheckingVisitor(IRVisitor):
     def visitNetVariable(self, netvar):
         name = '.'.join([netvar.name] + netvar.ids)
         if not name in self._nets:
-            shape = ShapeLinkedList(BoundShape(netvar, name))
+            shape = ShapeLinkedList.bounded(netvar, name)
             self._nets[name] = shape
         return self._nets[name]
 
@@ -469,12 +499,16 @@ class ShapeCheckingVisitor(IRVisitor):
         [x.accept(self).pointTo(target_shape) for x in sampling.args]
 
     def visitCallStmt(self, call):
-        args = call.args.accept(self)
-        assert len(args), "Calling a function with no arguments"
-        first = args[0]
-        for arg in args[1:]:
-            arg.pointTo(first)
-        return first
+        if call.id in self.known_functions:
+            args = call.args.accept(self)
+            assert len(args), "Calling a function with no arguments"
+            first = args[0]
+            for arg in args[1:]:
+                arg.pointTo(first)
+            return first
+        else:
+            # If we don't know the function, we can't do much
+            return ShapeLinkedList.unbounded(call)
 
     def visitVariableProperty(self, prop):
         if prop.prop != 'shape':

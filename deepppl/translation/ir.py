@@ -10,10 +10,17 @@ class IR(metaclass=IRMeta):
     def is_variable_decl(self):
         return False
 
+    def is_property(self):
+        return False
+
+
     def is_variable(self):
         return False
 
     def is_net_var(self):
+        return False
+
+    def is_tuple(self):
         return False
 
     @property
@@ -70,6 +77,11 @@ class ProgramBlocks(IR):
     def __init__(self, body = []):
         super(ProgramBlocks, self).__init__()
         self.body = body
+
+    
+    def __eq__(self, other):
+        """Basic equality"""
+        return self.children == other.children
 
     @property
     def children(self):
@@ -306,6 +318,9 @@ class Tuple(Expression):
         super(Tuple, self).__init__()
         self.exprs = exprs
 
+    def is_tuple(self):
+        return True
+
     @property
     def children(self):
         return self.exprs
@@ -404,6 +419,10 @@ class Variable(Expression):
         self.id = id
         self.block_name = None
 
+    def __eq__(self, other):
+        return isinstance(other, Variable) and \
+                self.id == other.id
+
     def is_variable(self):
         return True
 
@@ -427,6 +446,9 @@ class VariableProperty(Expression):
         super(VariableProperty, self).__init__()
         self.var = var
         self.prop = prop
+
+    def is_property(self):
+        return True
 
 class NetVariableProperty(VariableProperty):
     pass
