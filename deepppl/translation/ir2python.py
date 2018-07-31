@@ -333,13 +333,75 @@ class PythonASTHelper(object):
         names_ = [ast.alias(name=name, asname = None) for name in names]
         return ast.ImportFrom(module, names_, 0)
 
+
 class IRShape(object):
-    def __init__(self, creator, value = None):
+    def __init__(self, creator):
         self.creator = creator
+  
+    def isBound(self):
+        return False
+
+    def inner(self):
+        raise NotImplementedError
+
+    def isLeaf(self):
+        return True
+
+class BoundShape(IRShape):
+    def __init__(self, creator, value=None):
+        super(BoundShape, self).__init__(creator)
         self.value = value
+
+    def inner(self):
+        return self
+
+    def isBound(self):
+        return True
 
     def __str__(self):
         return 'Shape value: {}, creator: {}'.format(self.value, self.creator)
+
+class UnboundShape(IRShape):
+    def __str__(self):
+        return 'Unbound shape: {}'.format(self.creator)
+
+class ShapeLinkedList(IRShape):
+    def __init__(self, shape):
+        super(ShapeLinkedList, self).__init__(shape.creator)
+        self._inner = shape
+
+    def inner(self):
+        return self._inner
+
+    def __str__(self):
+        shape = self.shape()
+        return '{}'.format(shape)
+
+    def pointTo(self, other):
+        shape = self.shape()
+        other_shape = other.shape()
+        if shape.isBound():
+            if other_shape.isBound():
+                if shape != other_shape:
+                    raise IncompatibleShapes(shape.value, other_shape.value)
+            else:
+                other.pointTo(self)
+        ## Avoid circular references
+        elif shape != other_shape:
+            self.last()._inner = other
+
+    def isLeaf(self):
+        return False
+
+    def last(self):
+        if self._inner.isLeaf():
+            return self
+        else:
+            return self._inner.last()
+
+    def shape(self):
+        return self.last()._inner
+
 
 class ShapeCheckingVisitor(IRVisitor):
     def __init__(self):
@@ -359,26 +421,31 @@ class ShapeCheckingVisitor(IRVisitor):
         if name in self._nets:
             answer = self._nets[name]
         else:
-            answer = IRShape(netprop, name)
+            shape = BoundShape(netprop, name)
+            answer = ShapeLinkedList(shape)
             self._nets[name] = answer
         return answer
 
     def visitForStmt(self, for_):
-        self._ctx[for_.id] = IRShape(for_, 0)
+        shape = BoundShape(for_, 0)
+        self._ctx[for_.id] = ShapeLinkedList(shape)
         self._visitChildren(for_)
         del self._ctx[for_.id]
 
     def visitVariableDecl(self, decl):
         dim = decl.dim.accept(self) if decl.dim else None
         ##XXX do not use isinstance
-        dim = dim if isinstance(dim, IRShape) else IRShape(decl, dim)
-        self._ctx[decl.id] = dim
+        #dim = dim if isinstance(dim, IRShape) else IRShape(decl, dim)
+        shape = ShapeLinkedList(UnboundShape(decl))
+        # if dim:
+        #     shape.pointTo(dim)
+        self._ctx[decl.id] = shape
         return decl
 
     def visitAssignStmt(self, assign):
         target = assign.target
-        assert target not in self._ctx  ## XXX check presence 
-        self._ctx[target] = assign.value.accept(self)
+        ## XXX check presence 
+        self._ctx[target.id].pointTo(assign.value.accept(self))
 
 
     def visitVariable(self, var):
@@ -386,23 +453,22 @@ class ShapeCheckingVisitor(IRVisitor):
     
     def visitNetVariable(self, netvar):
         name = '.'.join([netvar.name] + netvar.ids)
+        if not name in self._nets:
+            shape = ShapeLinkedList(BoundShape(netvar, name))
+            self._nets[name] = shape
         return self._nets[name]
 
     def visitSamplingDeclaration(self, sampling):
         target_shape = sampling.target.accept(self)
         ### XXX check that all are the same
-        args_shape = [x.accept(self) for x in sampling.args]
-        for shape in args_shape:
-            if shape.value != target_shape.value:
-                raise IncompatibleShapes(args_shape, target_shape)
+        [x.accept(self).pointTo(target_shape) for x in sampling.args]
 
     def visitCallStmt(self, call):
         args = call.args.accept(self)
         assert len(args), "Calling a function with no arguments"
         first = args[0]
         for arg in args[1:]:
-            if arg.value != first.value:
-                raise IncompatibleShapes(arg, first)
+            arg.pointTo(first)
         return first
 
     def visitVariableProperty(self, prop):
