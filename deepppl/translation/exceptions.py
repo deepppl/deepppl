@@ -53,9 +53,6 @@ class UndeclaredNetworkException(TranslationException):
 class InvalidSamplingException(TranslationException):
     _base_msg = "Only identifiers and indexing are supported as lhs of sampling: {}."
 
-class NonRandomSamplingException(TranslationException):
-    _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"
-
 class UndeclaredVariableException(TranslationException):
     _base_msg = "Undeclared identifier: {}."
 

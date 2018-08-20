@@ -14,6 +14,7 @@
 #  * limitations under the License.
 # */
 
+from collections import defaultdict
 import ast
 import torch
 import astpretty
@@ -64,21 +65,24 @@ class VariableAnnotationsVisitor(IRVisitor):
     def __init__(self):
         super(VariableAnnotationsVisitor, self).__init__()
         self.ctx = {}
+        self.block2decl = defaultdict(list)
         self.block = None
+        self._to_model = []
 
     def defaultVisit(self, node):
         answer = node
         answer.children = self._visitChildren(node)
         return answer
 
-    def _addVariable(self, name):
+    def _addVariable(self, name, decl):
         if name in self.ctx:
             raise AlreadyDeclaredException(name)
         self.ctx[name] = self.block
+        self.block2decl[self.block.blockName()].append(decl)
 
     def _delVariable(self, name):
         if not name in self.ctx:
-            assert False, "Trying to delete an inexistent variable:{}.".format(name)
+            assert False, "Trying to delete an nonexistent variable:{}.".format(name)
         del self.ctx[name]
     
     def visitProgram(self, program):
@@ -89,7 +93,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitForStmt(self, forstmt):
         id = forstmt.id
         answer = ForStmt(id = id)
-        self._addVariable(id)
+        self._addVariable(id, forstmt)
         answer.children = self._visitChildren(forstmt)
         self._delVariable(id)
         return answer
@@ -104,12 +108,10 @@ class VariableAnnotationsVisitor(IRVisitor):
         args = self._visitAll(sampling.args)
         if (self.block.is_prior() or self.block.is_guide()) and target.is_net_var():
             method = SamplingDeclaration
-        elif target.is_data_var():
-            method = SamplingObserved
-        elif target.is_params_var():
+        elif self.block.is_guide() and not target.is_net_var():
             method = SamplingParameters
         else:
-            raise NonRandomSamplingException(sampling)
+            method = SamplingObserved
         return method(target = target, args = args, id = sampling.id)
 
     def visitProgramBlock(self, block):
@@ -117,16 +119,47 @@ class VariableAnnotationsVisitor(IRVisitor):
         return self.defaultVisit(block)
 
     visitData = visitProgramBlock
-    visitModel = visitProgramBlock
-    visitParameters = visitProgramBlock
     visitGuide = visitProgramBlock
     visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
+
+    def visitModel(self, model):
+        model.body = self._to_model + model.body
+        return self.visitProgramBlock(model)
+
+    def visitParameters(self, params):
+        block = self.visitProgramBlock(params)
+        self._to_model = []
+        for decl in self.block2decl[block.blockName()]:              
+            target = Variable(id = decl.id)
+            target = target.accept(self)
+            #XXX check constraints
+            constraints = decl.type_.constraints
+            if constraints:
+                seen = {}
+                for const in constraints:
+                    seen[const.sort] = const.value
+                if 'lower' in seen and 'upper' in seen:
+                    dist = 'Uniform'
+                    args =  [seen['lower'], seen['upper']]
+                elif len(seen):
+                    assert False, 'one sided constraints not yet supported.'
+                else:
+                    dist = 'ImproperUniform'
+                    args = []
+                    
+            #XXX check dimensions
+            sampling = SamplingParameters(
+                            target = target, 
+                            args = args, 
+                            id = dist)
+            self._to_model.append(sampling)
+        return block
         
     def visitVariableDecl(self, decl):
         decl.dim = decl.dim.accept(self) if decl.dim else None
         name = decl.id
-        self._addVariable(name)
+        self._addVariable(name, decl)
         return decl
 
     def visitVariable(self, var):
@@ -272,14 +305,15 @@ class SamplingConsistencyVisitor(IRVisitor):
         return answer
 
     def visitSamplingBlock(self, block):
+        old = self._currentBlock
         self._currentBlock = block
         answer = self.defaultVisit(block)
-        self._currentBlock = None
+        self._currentBlock = old
         return answer
 
     visitGuide = visitSamplingBlock
     visitPrior = visitSamplingBlock
-    visitModel = visitSamplingBlock
+    visitParameters = visitSamplingBlock
 
     def visitSamplingParameters(self, sampling):
         if self._currentBlock is not None:
@@ -751,6 +785,8 @@ class Ir2PythonVisitor(IRVisitor):
         ## XXX We need keyword parameters
         elif id.lower() == 'CategoricalLogits'.lower():
             dist = self.loadName('CategoricalLogits')
+        elif id.lower() == 'ImproperUniform'.lower():
+            dist = self.loadName('ImproperUniform')
         else:
             raise UnknownDistributionException(id)
         return self.call(dist,
@@ -935,7 +971,7 @@ class Ir2PythonVisitor(IRVisitor):
     def buildHeaders(self, program):
         transform = lambda block: block.accept(self) if block else []
         basic = self.buildBasicHeaders()
-        self._model_header = basic + transform(program.data) + transform(program.parameters)
+        self._model_header = basic +  transform(program.data) + transform(program.parameters)
         self._guide_header = self._model_header + transform(program.guideparameters)
 
     def visitProgram(self, program):

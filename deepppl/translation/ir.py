@@ -77,6 +77,8 @@ class ProgramBlocks(IR):
     def __init__(self, body = []):
         super(ProgramBlocks, self).__init__()
         self.body = body
+        self._nets = []
+        self._blackBoxNets = set()
 
     
     def __eq__(self, other):
@@ -117,16 +119,17 @@ class ProgramBlocks(IR):
         return False
 
 
+
 class SamplingBlock(ProgramBlocks):
     """A program block where sampling is a valid statement """
     def __init__(self, body = []):
         super(SamplingBlock, self).__init__(body = body)
-        self._nets = []
-        self._blackBoxNets = set()
         self._sampled = set()
 
     def addSampled(self, variable):
         self._sampled.add(variable)
+
+
 
 class Model(SamplingBlock):
     def is_model(self):
@@ -160,10 +163,10 @@ class NetworksBlock(ProgramBlocks):
         return True
 
 
-
 class Parameters(ProgramBlocks):
     def is_parameters(self):
         return True
+
 
 class Data(ProgramBlocks):
     def is_data(self):
@@ -392,12 +395,14 @@ class Subscript(Expression):
         return self.id.is_prior_var()
 
 class VariableDecl(IR):
-    def __init__(self, id = None, dim = None, init = None):
+    def __init__(self, id = None, dim = None, init = None,
+                    type_ = None):
         super(VariableDecl, self).__init__()
         self.id = id
         self.dim = dim
         self.init = init
         self.data = False
+        self.type_ = type_
 
     def is_variable_decl(self):
         return True
@@ -407,11 +412,39 @@ class VariableDecl(IR):
 
     @property
     def children(self):
-        return [self.dim, self.init]
+        return [self.dim, self.init, self.type_]
 
     @children.setter
     def children(self, children):
-        [self.dim, self.init] = children
+        [self.dim, self.init, self.type_] = children
+
+class Type_(IR):
+    def __init__(self, type_ = None, constraints = None):
+        super(Type_, self).__init__()
+        self.type_ = type_
+        self.constraints = constraints
+    @property
+    def children(self):
+        return self.constraints
+
+    @children.setter
+    def children(self, constraints):
+        self.constraints = constraints
+
+class Constraint(IR):
+    def __init__(self, sort = None, value = None):
+        super(Constraint, self).__init__()
+        self.sort = sort
+        self.value = value
+
+    @property
+    def children(self):
+        return [self.value, ]
+
+    @children.setter
+    def children(self, values):
+        self.value, = values
+
 
 class Variable(Expression):
     def __init__(self, id = None):
