@@ -558,6 +558,7 @@ class Ir2PythonVisitor(IRVisitor):
         self.helper = PythonASTHelper()
         self._model_header = []
         self._guide_header = []
+        self._observed = 0
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -622,19 +623,24 @@ class Ir2PythonVisitor(IRVisitor):
                 returns = None
             )
 
-    def targetToName(self, target):
+    def targetToName(self, target, observed = None):
         if isinstance(target, ast.Name):
-            return ast.Str(target.id)
+            base = ast.Str(target.id)
         elif isinstance(target, ast.Subscript):
             base = self.targetToName(target.value)
             arg = target.slice.value
             format = self.loadAttr(ast.Str('{}'), 'format')
             formatted = self.call(format, args = [arg,])
-            return ast.BinOp(left = base,
+            base = ast.BinOp(left = base,
                              right = formatted,
                              op = ast.Add())
         else:
             assert False, "Don't know how to stringfy: {}".format(target)
+        if observed is None:
+            return base
+        else:
+            observed_str = ast.Str(str(observed))
+            return ast.BinOp(left = base, right = observed_str, op = ast.Add())
 
     def visitConstant(self, const):
         tensor = self.loadName('tensor')
@@ -799,10 +805,10 @@ class Ir2PythonVisitor(IRVisitor):
         dist = self.samplingDist(sampling)
         return self._assign(target, dist)
 
-    def samplingCall(self, sampling, target, keywords = []):
+    def samplingCall(self, sampling, target, keywords = [], observed = None):
         dist = self.samplingDist(sampling)
         sample = self._pyroattr('sample')
-        target_name = self.targetToName(target)
+        target_name = self.targetToName(target, observed = observed)
         return self.call(sample,
                         args = [target_name, dist],
                         keywords=keywords)
@@ -811,7 +817,11 @@ class Ir2PythonVisitor(IRVisitor):
         """Sample statement on data."""
         target = sampling.target.accept(self)
         keyword = ast.keyword(arg='obs', value = target)
-        call = self.samplingCall(sampling, target, keywords = [keyword])
+        self._observed += 1
+        call = self.samplingCall(sampling, 
+                                target, 
+                                keywords = [keyword], 
+                                observed = self._observed)
         return ast.Expr(value = call)
 
     def visitSamplingParameters(self, sampling):
