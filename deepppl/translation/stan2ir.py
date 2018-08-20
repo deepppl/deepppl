@@ -60,7 +60,38 @@ class StanToIR(stanListener):
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
         dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
-        ctx.ir = VariableDecl(id = vid, dim = dims)
+        type_ = ctx.type_().ir
+        ctx.ir = VariableDecl(id = vid, dim = dims, type_ = type_)
+
+    def exitType_(self, ctx):
+        ptype = ctx.primitiveType()
+        if ptype.INT():
+            type_ = 'int'
+        elif ptype.REAL():
+            type_ = 'real'
+        else:
+            assert False, f"unknown type: {ptype.getText()}"
+        constraints = ctx.typeConstraints().ir if ctx.typeConstraints() else None
+        ctx.ir = Type_(type_ = type_, constraints = constraints)
+
+    def exitTypeConstraints(self, ctx):
+        constraints_list = ctx.typeConstraintList()
+        if constraints_list:
+            ctx.ir = [x.ir for x in constraints_list.typeConstraint()]
+
+    def exitTypeConstraint(self, ctx):
+        id_ = ctx.IDENTIFIER()
+        if id_.getText() == 'lower':
+            sort = 'lower'
+        elif id_.getText() == 'upper':
+            sort = 'upper'
+        else:
+            assert False, f'unknown constraint: {id_.getText()}'
+        constant = ctx.atom().ir
+        assert isinstance(constant, Constant)
+        constraint = Constraint(sort = sort, value = constant)
+        ctx.ir = constraint
+        
 
     def exitArrayDim(self, ctx):
         elements = ctx.expressionCommaList().ir
