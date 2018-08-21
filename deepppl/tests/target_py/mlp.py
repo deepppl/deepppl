@@ -57,4 +57,4 @@ def model(batch_size, imgs, labels):
     mlp = prior_mlp(batch_size, imgs, labels)
     ___shape['logits'] = batch_size
     logits = mlp(imgs)
-    pyro.sample('labels', CategoricalLogits(logits), obs=labels)
+    pyro.sample('labels' + '1', CategoricalLogits(logits), obs=labels)
