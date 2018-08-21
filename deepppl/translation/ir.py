@@ -30,6 +30,12 @@ class IR(metaclass=IRMeta):
     @children.setter
     def children(self, children):
         assert not children, "Setting children to object without children"
+
+    def ensureReal(self):
+        assert False, "don't know how to ensure Real."
+
+    def ensureInt(self):
+        assert False, "don't know how to ensure Int."
     
 class Program(IR):
     def __init__(self, body = []):
@@ -315,6 +321,12 @@ class Constant(Expression):
         super(Constant, self).__init__()
         self.value = value
 
+    def ensureInt(self):
+        self.value = int(self.value)
+
+    def ensureReal(self):
+        self.value = float(self.value)
+
 
 class Tuple(Expression):
     def __init__(self, exprs = None):
@@ -423,6 +435,15 @@ class Type_(IR):
         super(Type_, self).__init__()
         self.type_ = type_
         self.constraints = constraints
+        if self.constraints:
+            if self.type_ == 'int':
+                f = lambda x: x.ensureInt()
+            elif self.type_ == 'real':
+                f = lambda x: x.ensureReal()
+            else:
+                assert False, f"Unknown type: {self.type_}"
+            [f(constraint) for constraint in self.constraints]
+
     @property
     def children(self):
         return self.constraints
@@ -436,6 +457,13 @@ class Constraint(IR):
         super(Constraint, self).__init__()
         self.sort = sort
         self.value = value
+
+    def ensureReal(self):
+        self.value.ensureReal()
+
+    def ensureInt(self):
+        self.value.ensureInt()
+
 
     @property
     def children(self):
