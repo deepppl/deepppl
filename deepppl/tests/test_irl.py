@@ -16,12 +16,22 @@
 
 from deepppl import dpplc
 from deepppl.translation.exceptions import *
+from contextlib import contextmanager
 
 import ast
 import pytest
 
 def code_to_normalized(code):
     return ast.dump(ast.parse(code))
+
+from contextlib import contextmanager
+
+@contextmanager
+def not_raises(exception):
+  try:
+    yield
+  except exception:
+    raise pytest.fail("DID RAISE {0}".format(exception))
 
 
 def normalize_and_compare(src_file, target_file):
@@ -88,8 +98,10 @@ def test_coin_guide_sample_obs():
         filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
         dpplc.stan2astpyFile(filename)
 
+
 def test_coin_guide_missing_model():
-    with pytest.raises(MissingModelException):
+    "Implicit prior allows to write missing model."
+    with not_raises(MissingModelException):
         filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
         dpplc.stan2astpyFile(filename)
 
@@ -135,12 +147,12 @@ def test_mlp_incorrect_shape4():
         dpplc.stan2astpyFile(filename)
 
 def test_coin_invalid_sampling():
-    with pytest.raises(InvalidSamplingException):
+    with not_raises(InvalidSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
         dpplc.stan2astpyFile(filename)
 
 def test_coin_invalid_sampling2():
-    with pytest.raises(NonRandomSamplingException):
+    with not_raises(NonRandomSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling2.stan'
         dpplc.stan2astpyFile(filename)
 
