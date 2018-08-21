@@ -149,9 +149,9 @@ class VariableAnnotationsVisitor(IRVisitor):
                 args =  [seen['lower'], seen['upper']]
             elif len(seen):
                 assert False, 'one sided constraints not yet supported.'
-            else:
-                dist = 'ImproperUniform'
-                args = []
+        else:
+            dist = 'ImproperUniform'
+            args = []
                 
         #XXX check dimensions
         sampling = SamplingParameters(

@@ -434,7 +434,7 @@ class Type_(IR):
     def __init__(self, type_ = None, constraints = None):
         super(Type_, self).__init__()
         self.type_ = type_
-        self.constraints = constraints
+        self.constraints = constraints if constraints else []
         if self.constraints:
             if self.type_ == 'int':
                 f = lambda x: x.ensureInt()
