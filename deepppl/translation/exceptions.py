@@ -65,3 +65,5 @@ class AlreadyDeclaredException(TranslationException):
 class IncompatibleShapes(TranslationException):
     _base_msg = "Trying to use incompatible shapes:{} and {}"
     
+class NonRandomSamplingException(TranslationException):
+    _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"

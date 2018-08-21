@@ -638,6 +638,9 @@ class Ir2PythonVisitor(IRVisitor):
             base = ast.BinOp(left = base,
                              right = formatted,
                              op = ast.Add())
+        elif observed is not None:
+            # arbitrary expressions
+            base = ast.Str('expr')
         else:
             assert False, "Don't know how to stringfy: {}".format(target)
         if observed is None:
