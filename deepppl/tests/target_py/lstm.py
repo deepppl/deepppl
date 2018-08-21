@@ -78,4 +78,4 @@ def model(input, n_characters, target):
     rnn = prior_rnn(input, n_characters, target)
     ___shape['logits'] = n_characters
     logits = rnn(input)
-    pyro.sample('target', CategoricalLogits(logits), obs=target)
+    pyro.sample('target' + '1', CategoricalLogits(logits), obs=target)
