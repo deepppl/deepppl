@@ -79,17 +79,17 @@ def test_lstm():
 
 
 def test_coin_guide_missing_var():
-    with pytest.raises(MissingGuideExeption):
+    with pytest.raises(MissingGuideException):
         filename = r'deepppl/tests/good/coin_guide_missing_var.stan'
         dpplc.stan2astpyFile(filename)
 
 def test_coin_guide_sample_obs():
-    with pytest.raises(ObserveOnGuideExeption):
+    with pytest.raises(ObserveOnGuideException):
         filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
         dpplc.stan2astpyFile(filename)
 
 def test_coin_guide_missing_model():
-    with pytest.raises(MissingModelExeption):
+    with pytest.raises(MissingModelException):
         filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
         dpplc.stan2astpyFile(filename)
 

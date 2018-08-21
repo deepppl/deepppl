@@ -32,13 +32,13 @@ class MissingPriorNetException(TranslationException):
 class MissingGuideNetException(TranslationException):
     _base_msg = "The following parameters of {} were note given a guide:{}"
 
-class MissingModelExeption(TranslationException):
+class MissingModelException(TranslationException):
     _base_msg = "The following latents {} were not sampled on the model."
 
-class MissingGuideExeption(TranslationException):
+class MissingGuideException(TranslationException):
     _base_msg = "The following latents {} were not sampled on the guide."
 
-class ObserveOnGuideExeption(TranslationException):
+class ObserveOnGuideException(TranslationException):
     _base_msg = "Trying to observer data {} inside the guide."
     
 class UnsupportedProperty(TranslationException):
