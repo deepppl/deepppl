@@ -17,6 +17,7 @@ def guide_(batch_size, nz, x):
 def model(batch_size, nz, x):
     ___shape = {}
     pyro.module('decoder', decoder)
-    latent = pyro.sample('latent', dist.Normal(zeros(nz), ones(nz), batch_size))
+    latent = pyro.sample('latent', ImproperUniform())
+    pyro.sample('latent' + '1', dist.Normal(zeros(nz), ones(nz), batch_size), obs=latent)
     loc_img = decoder(latent)
-    pyro.sample('x', dist.Bernoulli(loc_img), obs=x)
+    pyro.sample('x' + '2', dist.Bernoulli(loc_img), obs=x)
