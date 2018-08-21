@@ -130,31 +130,35 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitParameters(self, params):
         block = self.visitProgramBlock(params)
         self._to_model = []
-        for decl in self.block2decl[block.blockName()]:              
-            target = Variable(id = decl.id)
-            target = target.accept(self)
-            #XXX check constraints
-            constraints = decl.type_.constraints
-            if constraints:
-                seen = {}
-                for const in constraints:
-                    seen[const.sort] = const.value
-                if 'lower' in seen and 'upper' in seen:
-                    dist = 'Uniform'
-                    args =  [seen['lower'], seen['upper']]
-                elif len(seen):
-                    assert False, 'one sided constraints not yet supported.'
-                else:
-                    dist = 'ImproperUniform'
-                    args = []
-                    
-            #XXX check dimensions
-            sampling = SamplingParameters(
-                            target = target, 
-                            args = args, 
-                            id = dist)
+        for decl in self.block2decl[block.blockName()]:
+            sampling = self._buildSamplingFor(decl)              
             self._to_model.append(sampling)
         return block
+
+    def _buildSamplingFor(self, decl):
+        target = Variable(id = decl.id)
+        target = target.accept(self)
+        #XXX check constraints
+        constraints = decl.type_.constraints
+        if constraints:
+            seen = {}
+            for const in constraints:
+                seen[const.sort] = const.value
+            if 'lower' in seen and 'upper' in seen:
+                dist = 'Uniform'
+                args =  [seen['lower'], seen['upper']]
+            elif len(seen):
+                assert False, 'one sided constraints not yet supported.'
+            else:
+                dist = 'ImproperUniform'
+                args = []
+                
+        #XXX check dimensions
+        sampling = SamplingParameters(
+                        target = target, 
+                        args = args, 
+                        id = dist)
+        return sampling
         
     def visitVariableDecl(self, decl):
         decl.dim = decl.dim.accept(self) if decl.dim else None
