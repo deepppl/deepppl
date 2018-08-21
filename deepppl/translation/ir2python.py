@@ -304,8 +304,8 @@ class SamplingConsistencyVisitor(IRVisitor):
     def visitProgram(self, program):
         answer = Program()
         answer.children = self._visitChildren(program)
-        self.compareToOrRaise(answer.model, MissingModelExeption)
-        self.compareToOrRaise(answer.guide, MissingGuideExeption)
+        self.compareToOrRaise(answer.model, MissingModelException)
+        self.compareToOrRaise(answer.guide, MissingGuideException)
         return answer
 
     def visitSamplingBlock(self, block):
@@ -315,9 +315,9 @@ class SamplingConsistencyVisitor(IRVisitor):
         self._currentBlock = old
         return answer
 
+    visitModel = visitSamplingBlock
     visitGuide = visitSamplingBlock
     visitPrior = visitSamplingBlock
-    visitParameters = visitSamplingBlock
 
     def visitSamplingParameters(self, sampling):
         if self._currentBlock is not None:
@@ -333,7 +333,7 @@ class SamplingConsistencyVisitor(IRVisitor):
 
     def visitSamplingObserved(self, obs):
         if self._currentBlock and self._currentBlock.is_guide():
-            raise ObserveOnGuideExeption(obs.target.id)
+            raise ObserveOnGuideException(obs.target.id)
         return self.visitSamplingStmt(obs)
 
 
