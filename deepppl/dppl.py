@@ -22,7 +22,9 @@ import torch
 from torch.nn import functional as F
 import sys
 from . import dpplc
+from .utils import utils
 import inspect
+
 
 class DppplModel(object):
     def __init__(self, model_code = None, model_file = None, **kwargs):
@@ -60,6 +62,7 @@ class DppplModel(object):
                         torch.ones, 
                         F.softplus]}
         self._updateHooksAll(hooks)
+        self._updateHooksAll(utils.hooks)
         
     def posterior(self, num_samples=3000, method=infer.Importance):
         return method(self._model, num_samples=3000)
