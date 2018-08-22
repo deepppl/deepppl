@@ -230,6 +230,7 @@ STATIC_ASSERT: 'static_assert';
 STATIC_CAST: 'static_cast';
 STRUCT: 'struct';
 SWITCH: 'switch';
+TARGET: 'target';
 TEMPLATE: 'template';
 THIS: 'this';
 THREAD_LOCAL: 'thread_local';
@@ -420,7 +421,7 @@ expression
     | callExpr
     | expression TRANSPOSE_OP
     | <assoc=right> e1=expression POW_OP e2=expression
-    | op=(NOT_OP|PLUS_OP|MINUS_OP) expression
+    | op=(NOT_OP|PLUS_OP|MINUS_OP) e1=expression
     | e1=expression op=(DOT_MULT_OP|DOT_DIV_OP) e2=expression
     | e1=expression LEFT_DIV_OP e2=expression
     | e1=expression op=(MULT_OP|DIV_OP|MOD_OP) e2=expression
@@ -497,6 +498,10 @@ whileStmt
     : WHILE '(' expression ')' statement
     ;
 
+incrementLogProbStmt
+    : TARGET '+=' expression ';'
+    ;
+
 
 /** Blocks (section 5.7) */
 blockStmt
@@ -524,6 +529,7 @@ expressionOrStringCommaList:
 statement
     : assignStmt
     | samplingStmt
+    | incrementLogProbStmt
     | forStmt
     | conditionalStmt
     | whileStmt
