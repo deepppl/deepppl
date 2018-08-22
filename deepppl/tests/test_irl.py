@@ -47,6 +47,11 @@ def test_coin():
     target_file = r'deepppl/tests/target_py/coin.py'
     normalize_and_compare(filename, target_file)
 
+def test_gaussian():
+    filename = r'deepppl/tests/good/gaussian.stan'
+    target_file = r'deepppl/tests/target_py/gaussian.py'
+    normalize_and_compare(filename, target_file)
+
 
 def test_operators():
     filename = r'deepppl/tests/good/operators.stan'
