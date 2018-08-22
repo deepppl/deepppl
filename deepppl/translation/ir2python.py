@@ -321,15 +321,21 @@ class SamplingConsistencyVisitor(IRVisitor):
 
     def visitSamplingParameters(self, sampling):
         if self._currentBlock is not None:
-            if isinstance(sampling.target, Variable):
-                id = sampling.target.id
-            elif isinstance(sampling.target, Subscript): 
+            target = sampling.target
+            if isinstance(target, Variable):
+                id = target.id
+            elif isinstance(target, Subscript): 
                 ## XXX A more general logic must be applied elsewhere
-                id = sampling.target.id.id
+                id = target.id.id
             else:
                 raise InvalidSamplingException(sampling.target)
+            self._checkSamplingInGuide(target)
             self._currentBlock.addSampled(id)
         return self.visitSamplingStmt(sampling)
+
+    def _checkSamplingInGuide(self, target):
+        if not target.is_params_var():
+            raise ObserveOnGuideException(target.id)
 
     def visitSamplingObserved(self, obs):
         if self._currentBlock and self._currentBlock.is_guide():
