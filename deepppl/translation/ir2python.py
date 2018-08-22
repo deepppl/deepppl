@@ -24,7 +24,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Minus
+                Minus, UnaryOperator, UMinus
 
 from .exceptions import *
 
@@ -62,6 +62,9 @@ class TargetVisitor(IRVisitor):
 
 
 class VariableAnnotationsVisitor(IRVisitor):
+    """Annotate all variables with their declaration's block.
+    Additionally, replace each ~ with their corresponding object
+    as all the information is already available."""
     def __init__(self):
         super(VariableAnnotationsVisitor, self).__init__()
         self.ctx = {}
@@ -134,6 +137,21 @@ class VariableAnnotationsVisitor(IRVisitor):
             sampling = self._buildSamplingFor(decl)              
             self._to_model.append(sampling)
         return block
+
+    def visitSamplingFactor(self, sampling):
+        """
+        Implemented using an exponential distribution.
+        This behavior is achieved using the following identity:
+        ```
+            target += exp   ==   -exp ~ exponential(1)
+        ```
+        """
+        target = UnaryOperator(value = sampling.target, op = UMinus())
+        args = [Constant(1.0),]
+        observed = SamplingObserved(target = target,
+                                    id = 'Exponential',
+                                    args = args)
+        return self.defaultVisit(observed)
 
     def _buildSamplingFor(self, decl):
         target = Variable(id = decl.id)
@@ -337,6 +355,7 @@ class SamplingConsistencyVisitor(IRVisitor):
         if not target.is_params_var():
             raise ObserveOnGuideException(target.id)
 
+
     def visitSamplingObserved(self, obs):
         if self._currentBlock and self._currentBlock.is_guide():
             raise ObserveOnGuideException(obs.target.id)
@@ -508,6 +527,9 @@ class ShapeCheckingVisitor(IRVisitor):
         target = assign.target
         ## XXX check presence 
         self._ctx[target.id].pointTo(assign.value.accept(self))
+
+    def visitUnaryOperator(self, op):
+        return self.defaultVisit(op.value)
 
     def visitBinaryOperator(self, op):
         left, right, op = self.defaultVisit(op)
@@ -753,6 +775,19 @@ class Ir2PythonVisitor(IRVisitor):
         elif isinstance(op, ast.boolop):
             return ast.BoolOp(op = op, values = [left, right])
         return ast.BinOp(left = left, right = right, op = op)
+
+    def visitUnaryOperator(self, unaryop):
+        value, op = self._visitChildren(unaryop)
+        return ast.UnaryOp(operand = value, op=op)
+
+    def visitUPlus(self, dummy):
+        return ast.UAdd()
+
+    def visitUMinus(self, dummy):
+        return ast.USub()
+
+    def visitUNot(self, dummy):
+        return ast.Not()
 
     def visitPlus(self, dummy):
         return ast.Add()

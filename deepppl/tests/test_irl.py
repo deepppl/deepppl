@@ -54,7 +54,7 @@ def test_gaussian():
 
 def test_gaussian_log_density():
     filename = r'deepppl/tests/good/gaussian_log_density.stan'
-    target_file = r'deepppl/tests/target_py/gaussian.py'
+    target_file = r'deepppl/tests/target_py/gaussian_log_density.py'
     normalize_and_compare(filename, target_file)
 
 def test_double_gaussian():

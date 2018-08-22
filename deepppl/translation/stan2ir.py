@@ -151,43 +151,62 @@ class StanToIR(stanListener):
             return
         if ctx.TRANSPOSE_OP() is not None:
             assert False, "Not yet implemented"
-        else:
-            left = ctx.e1.ir
-            right = ctx.e2.ir
-            if is_active(ctx.LEFT_DIV_OP):
-                assert False, "Not yet implemented"
-            mapping = {
-                ctx.PLUS_OP : Plus,
-                ctx.MINUS_OP : Minus,
-                ctx.POW_OP : Pow,
-                ctx.OR_OP : Or,
-                ctx.AND_OP : And,
-                ctx.GT_OP : GT,
-                ctx.LT_OP : LT,
-                ctx.GE_OP : GE,
-                ctx.LE_OP : LE,
-                ctx.EQ_OP : EQ,
-                ctx.DOT_DIV_OP : Div,
-                ctx.DIV_OP : Div,
-                ctx.DOT_MULT_OP : Mult,
-                ctx.MULT_OP : Mult}
-            op = None
-            for src in mapping:
-                if is_active(src):
-                    op = mapping[src]()
-                    break
-            if op is not None:
-                ctx.ir = BinaryOperator(left = left, 
-                                        right = right, 
-                                        op = op)
-            elif '?' in ctx.getText():
-                false = ctx.e3.ir
-                ctx.ir = ConditionalStmt(test = left, 
-                                        true = right,
-                                        false = false)
+        elif ctx.e1 is not None and ctx.e2 is not None:
+            self._exitBinaryExpression(ctx)
+        elif ctx.e1 is not None:
+            if is_active(ctx.PLUS_OP):
+                op = UPlus()
+            elif is_active(ctx.MINUS_OP): 
+                op = UMinus()
+            elif is_active(ctx.NOT_OP):
+                op = UNot()
             else:
-                text = ctx.getText()
-                assert False, "Not yet implemented: {}".format(text)
+                assert False, f'Unknown operator: {ctx.getText()}'
+            ctx.ir = UnaryOperator(
+                        value = ctx.e1.ir, 
+                        op = op)
+        else:
+            text = ctx.getText()
+            assert False, "Not yet implemented: {}".format(text)
+
+    def _exitBinaryExpression(self, ctx):
+        left = ctx.e1.ir
+        right = ctx.e2.ir
+        if is_active(ctx.LEFT_DIV_OP):
+            assert False, "Not yet implemented"
+        mapping = {
+            ctx.PLUS_OP : Plus,
+            ctx.MINUS_OP : Minus,
+            ctx.POW_OP : Pow,
+            ctx.OR_OP : Or,
+            ctx.AND_OP : And,
+            ctx.GT_OP : GT,
+            ctx.LT_OP : LT,
+            ctx.GE_OP : GE,
+            ctx.LE_OP : LE,
+            ctx.EQ_OP : EQ,
+            ctx.DOT_DIV_OP : Div,
+            ctx.DIV_OP : Div,
+            ctx.DOT_MULT_OP : Mult,
+            ctx.MULT_OP : Mult}
+        op = None
+        for src in mapping:
+            if is_active(src):
+                op = mapping[src]()
+                break
+        if op is not None:
+            ctx.ir = BinaryOperator(left = left, 
+                                    right = right, 
+                                    op = op)
+        elif ctx.e3 is not None:
+            false = ctx.e3.ir
+            ctx.ir = ConditionalStmt(test = left, 
+                                    true = right,
+                                    false = false)
+        else:
+            text = ctx.getText()
+            assert False, "Not yet implemented: {}".format(text)
+
 
     def exitExpressionCommaList(self, ctx):
         ## TODO: check wheter we want to build a list of statements
@@ -372,6 +391,8 @@ class StanToIR(stanListener):
             ctx.ir = ctx.assignStmt().ir
         if ctx.samplingStmt() is not None:
             ctx.ir = ctx.samplingStmt().ir
+        if ctx.incrementLogProbStmt() is not None:
+            ctx.ir = ctx.incrementLogProbStmt().ir
         if ctx.forStmt() is not None:
             ctx.ir = ctx.forStmt().ir
         if ctx.conditionalStmt() is not None:
@@ -386,6 +407,9 @@ class StanToIR(stanListener):
             ctx.ir = BreakStmt()
         if ctx.CONTINUE() is not None:
             ctx.ir = ContinueStmt()
+
+    def exitIncrementLogProbStmt(self, ctx):
+        ctx.ir = SamplingFactor(target=ctx.expression().ir)
 
     def exitStatementsOpt(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)

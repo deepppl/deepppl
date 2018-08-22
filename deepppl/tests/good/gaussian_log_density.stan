@@ -20,5 +20,5 @@ parameters {
   real theta;
 }
 model {
-    target += -0.5*(x-1000)*(x-1000);
+    target += -0.5*(theta-1000.0)*(theta-1000.0);
 }

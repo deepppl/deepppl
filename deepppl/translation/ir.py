@@ -220,6 +220,20 @@ class SamplingObserved(SamplingStmt):
 class SamplingParameters(SamplingStmt):
     pass
 
+class SamplingFactor(SamplingStmt):
+    """
+    Like observe but without distribution, 
+    just the log-density.
+    This behavior is achieved using the following identity:
+    ```
+        target += exp   ==   -exp ~ exponential(1)
+    ```
+    """
+    def __init__(self, target = None):
+        super(SamplingFactor, self).__init__(target = target, 
+                                            id = None, 
+                                            args = [])
+
 class ForStmt(Statements):
     def __init__(self, id = None, from_ = None, to_ = None, body = None):
         super(ForStmt, self).__init__()
@@ -376,6 +390,21 @@ class BinaryOperator(Expression):
     @children.setter
     def children(self, children):
         [self.left, self.right, self.op] = children
+
+
+class UnaryOperator(Expression):
+    def __init__(self, value = None, op = None):
+        super(UnaryOperator, self).__init__()
+        self.value = value
+        self.op = op
+
+    @property
+    def children(self):
+        return [self.value, self.op]
+
+    @children.setter
+    def children(self, children):
+        [self.value, self.op] = children
 
 class Subscript(Expression):
     def __init__(self, id = None, index = None):
@@ -576,3 +605,14 @@ class EQ(Operator):
     pass
 
 
+class UOperator(Operator):
+    """Unary operators."""
+
+class UPlus(UOperator):
+    pass
+
+class UMinus(UOperator):
+    pass
+
+class UNot(UOperator):
+    pass
