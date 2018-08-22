@@ -64,8 +64,8 @@ class DppplModel(object):
         self._updateHooksAll(hooks)
         self._updateHooksAll(utils.hooks)
         
-    def posterior(self, num_samples=3000, method=infer.Importance):
-        return method(self._model, num_samples=3000)
+    def posterior(self, num_samples=3000, method=infer.Importance, **kwargs):
+        return method(self._model, num_samples=3000, **kwargs)
 
     def svi(self, optimizer = None, loss = None, params = {'lr' : 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
