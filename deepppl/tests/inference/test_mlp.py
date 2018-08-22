@@ -33,9 +33,6 @@ def build_mlp():
     return MLP()
 
 
-def CategoricalLogits(logits):
-    return dist.Categorical(logits=logits)
-
 def predict(data, posterior):
     predictions = [model(data) for model in posterior]
     prediction = torch.stack(predictions).mean(dim=0)
@@ -44,7 +41,7 @@ def predict(data, posterior):
 def test_mlp_inference():
     mlp = build_mlp()
     train_loader, test_loader = loadData(batch_size)
-    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/mlp.stan', mlp=mlp, CategoricalLogits=CategoricalLogits)
+    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/mlp.stan', mlp=mlp)
     svi = model.svi(params = {'lr' : 0.01})
 
     for epoch in range(2):  # loop over the dataset multiple times

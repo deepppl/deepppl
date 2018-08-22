@@ -93,13 +93,9 @@ def evaluate_samples(svi, first_letter='w', predict_len=100, temperature=0.8):
 
     return predicted
 
-def CategoricalLogits(logits):
-    return dist.Categorical(logits=logits)
-
-
 def test_lstm_inference():
     rnn = build_rnn()
-    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/lstm_modified.stan', rnn=rnn, CategoricalLogits=CategoricalLogits)
+    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/lstm_modified.stan', rnn=rnn)
     adam_params = {
         "lr": .1, #0.001,
         "betas": (0.96, 0.999),
