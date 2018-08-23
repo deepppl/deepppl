@@ -4,10 +4,10 @@ import pyro
 import pyro.distributions as dist
 
 
-def guide_rnn(input, n_characters, target):
+def guide_rnn(category, input, n_characters):
     ___shape = {}
     ___shape['input'] = n_characters
-    ___shape['target'] = n_characters
+    ___shape['category'] = n_characters
     ___shape['ewl'] = rnn.encoder.weight.shape
     ___shape['ews'] = rnn.encoder.weight.shape
     ___shape['gw1l'] = rnn.gru.weight_ih_l0.shape
@@ -48,10 +48,10 @@ def guide_rnn(input, n_characters, target):
     return lifted_rnn()
 
 
-def prior_rnn(input, n_characters, target):
+def prior_rnn(category, input, n_characters):
     ___shape = {}
     ___shape['input'] = n_characters
-    ___shape['target'] = n_characters
+    ___shape['category'] = n_characters
     prior_rnn = {}
     prior_rnn['encoder.weight'] = dist.Normal(zeros(rnn.encoder.weight.
         shape), ones(rnn.encoder.weight.shape))
@@ -71,11 +71,11 @@ def prior_rnn(input, n_characters, target):
     return lifted_rnn()
 
 
-def model(input, n_characters, target):
+def model(category, input, n_characters):
     ___shape = {}
     ___shape['input'] = n_characters
-    ___shape['target'] = n_characters
-    rnn = prior_rnn(input, n_characters, target)
+    ___shape['category'] = n_characters
+    rnn = prior_rnn(category, input, n_characters)
     ___shape['logits'] = n_characters
     logits = rnn(input)
-    pyro.sample('target' + '1', CategoricalLogits(logits), obs=target)
+    pyro.sample('category' + '1', CategoricalLogits(logits), obs=category)

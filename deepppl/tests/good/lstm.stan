@@ -18,7 +18,7 @@
 data {
     int n_characters;
     int input[n_characters];
-    int target[n_characters];
+    int category[n_characters];
 }
 
 network {
@@ -89,7 +89,7 @@ guide {
 model {
     int logits[n_characters];
     logits = rnn(input);
-    target ~ CategoricalLogits(logits);
+    category ~ CategoricalLogits(logits);
 }
 
 
