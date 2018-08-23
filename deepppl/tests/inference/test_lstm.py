@@ -110,7 +110,7 @@ def test_lstm_inference():
     print_every = 100
     epoch = 0
     for i, (input, target) in enumerate(data):
-            loss = svi.step(input, n_characters, target)
+            loss = svi.step(target, input, n_characters)
             loss = loss / len(input) 
 
             if (i+1) % print_every == 0:
