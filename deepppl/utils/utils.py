@@ -15,6 +15,7 @@
 #  */
 
 from pyro import distributions as dist
+from torch.distributions import constraints
 import torch
 
 ## Utils to be imported by DppplModel
@@ -31,7 +32,22 @@ class ImproperUniform(dist.Normal):
     def log_prob(self, x):
         return x.new_zeros(x.shape)
 
-hooks = {
-    CategoricalLogits.__name__ : CategoricalLogits,
-    ImproperUniform.__name__ : ImproperUniform
+class LowerConstrainedImproperUniform(ImproperUniform):
+    def __init__(self, lower_bound = 0, shape = None):
+        super(LowerConstrainedImproperUniform, self).__init__(shape)
+        self.support = constraints.greater_than(lower_bound)
+
+class UpperConstrainedImproperUniform(ImproperUniform):
+    def __init__(self, upper_bound = 0, shape = None):
+        super(UpperConstrainedImproperUniform, self).__init__(shape)
+        self.support = constraints.less_than(upper_bound)
+
+    
+
+hooks = { x.__name__ : x for x in [
+    CategoricalLogits,
+    ImproperUniform,
+    LowerConstrainedImproperUniform,
+    UpperConstrainedImproperUniform]
+
 }

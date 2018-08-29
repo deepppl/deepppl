@@ -58,9 +58,11 @@ class DppplModel(object):
         hooks = { x.__name__ : x for x in [
                         torch.randn,
                         torch.exp,
+                        torch.log,
                         torch.zeros,
                         torch.ones, 
                         F.softplus]}
+        hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
         self._updateHooksAll(utils.hooks)
         

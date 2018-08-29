@@ -62,6 +62,11 @@ def test_double_gaussian():
     target_file = r'deepppl/tests/target_py/double_gaussian.py'
     normalize_and_compare(filename, target_file)
 
+def test_log_normal():
+    filename = r'deepppl/tests/good/log_normal.stan'
+    target_file = r'deepppl/tests/target_py/log_normal.py'
+    normalize_and_compare(filename, target_file)
+
 
 def test_operators():
     filename = r'deepppl/tests/good/operators.stan'
