@@ -165,8 +165,14 @@ class VariableAnnotationsVisitor(IRVisitor):
             if 'lower' in seen and 'upper' in seen:
                 dist = 'Uniform'
                 args =  [seen['lower'], seen['upper']]
-            elif len(seen):
-                assert False, 'one sided constraints not yet supported.'
+            elif 'lower' in seen:
+                dist = 'LowerConstrainedImproperUniform'
+                args = [seen['lower'],]
+            elif 'upper' in seen:
+                dist = 'UpperConstrainedImproperUniform'
+                args = [seen['upper'],]
+            else:
+                assert False, 'unknown constraints: {}.'.format(seen)
         else:
             dist = 'ImproperUniform'
             args = []
@@ -582,6 +588,13 @@ class ShapeCheckingVisitor(IRVisitor):
         return self._ctx[prop.var.id]  ## XXX check presence
 
 class Ir2PythonVisitor(IRVisitor):
+    new_distributions = {name.lower():name for name in [
+                            'CategoricalLogits',
+                            'ImproperUniform',
+                            'LowerConstrainedImproperUniform',
+                            'UpperConstrainedImproperUniform'
+    ] }
+
     def __init__(self):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
@@ -837,10 +850,8 @@ class Ir2PythonVisitor(IRVisitor):
             # Check if the distribution exists in torch.distributions
             dist = self.loadAttr(self.loadName('dist'), id)
         ## XXX We need keyword parameters
-        elif id.lower() == 'CategoricalLogits'.lower():
-            dist = self.loadName('CategoricalLogits')
-        elif id.lower() == 'ImproperUniform'.lower():
-            dist = self.loadName('ImproperUniform')
+        elif id.lower() in self.new_distributions:
+            dist = self.loadName(self.new_distributions[id.lower()])
         else:
             raise UnknownDistributionException(id)
         return self.call(dist,
