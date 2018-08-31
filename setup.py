@@ -7,4 +7,4 @@ setup(name='DeepPPL',
       author='Many Authors',
       author_email='many.authors@ibm.com',
       license='Apache License 2.0',
-      packages=['deepppl', 'deepppl.parser', 'deepppl.translation'])
+      packages=['deepppl', 'deepppl.parser', 'deepppl.translation', 'deepppl.utils'])
