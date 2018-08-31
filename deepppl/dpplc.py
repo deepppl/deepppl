@@ -21,7 +21,7 @@ from .parser.stanParser import stanParser
 from .translation.stan2ir import StanToIR
 from .translation.ir2python import ir2python
 
-
+import astor
 import torch
 import pyro
 import pyro.distributions as dist
@@ -51,6 +51,11 @@ def stan2astpyFile(filename):
 def stan2astpyStr(str):
     stream = InputStream(str)
     return stan2astpy(stream)
+
+def stan2pystr(str):
+    """Return the program's python source code""" 
+    py = stan2astpyStr(str)
+    return astor.to_source(py)
 
 def do_compile(model_code = None, model_file = None):
     if not (model_code or model_file) or (model_code and model_file):
