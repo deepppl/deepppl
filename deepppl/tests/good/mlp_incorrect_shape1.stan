@@ -31,10 +31,14 @@ network {
 
 prior
 {
-    mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
-    mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
-    mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
-    mlp.l2.bias ~  Normal(zeros(mlp.l1.bias$shape), ones(mlp.l2.bias$shape));   //<- First argument has a different shape>
+//    mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
+    mlp.l1.weight ~  Normal(zeros(), ones());
+//    mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
+    mlp.l1.bias ~ Normal(zeros(), ones());
+//    mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
+    mlp.l2.weight ~ Normal(zeros(), ones());
+//    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l2.bias$shape));   //<- First argument has a different shape>
+    mlp.l2.bias ~  Normal(zeros(), ones());   //<- First argument has a different shape>
 }
 
 guide_parameters
@@ -50,17 +54,17 @@ guide_parameters
 }
 
 guide {
-    l1wloc = randn(l1wloc$shape);
-    l1wscale = randn(l1wscale$shape);
+    l1wloc = randn(); // l1wloc$shape);
+    l1wscale = randn(); // l1wscale$shape);
     mlp.l1.weight ~  Normal(l1wloc, softplus(l1wscale));
-    l1bloc = randn(l1bloc$shape);
-    l1bscale = randn(l1bscale$shape);
+    l1bloc = randn(); // l1bloc$shape);
+    l1bscale = randn(); // l1bscale$shape);
     mlp.l1.bias ~ Normal(l1bloc, softplus(l1bscale));
-    l2wloc = randn(l2wloc$shape);
-    l2wscale = randn(l2wscale$shape);
+    l2wloc = randn(); // l2wloc$shape);
+    l2wscale = randn(); // l2wscale$shape);
     mlp.l2.weight ~ Normal(l2wloc, softplus(l2wscale));
-    l2bloc = randn(l2bloc$shape);
-    l2bscale = randn(l2bscale$shape);
+    l2bloc = randn(); // l2bloc$shape);
+    l2bscale = randn(); // l2bscale$shape);
     mlp.l2.bias ~ Normal(l2bloc, softplus(l2bscale));
 }
 

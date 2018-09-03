@@ -24,7 +24,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Minus, UnaryOperator, UMinus
+                Minus, UnaryOperator, UMinus, AnonymousShapeProperty
 
 from .exceptions import *
 
@@ -491,6 +491,7 @@ class ShapeCheckingVisitor(IRVisitor):
     def __init__(self):
         super(ShapeCheckingVisitor, self).__init__()
         self._ctx = {}
+        self._anons = {}
         self._nets = {}
 
     def defaultVisit(self, node):
@@ -572,17 +573,31 @@ class ShapeCheckingVisitor(IRVisitor):
 
     def visitCallStmt(self, call):
         if call.id in self.known_functions:
+            if len(call.args.children) == 0:
+                anon = AnonymousShapeProperty()
+                call.args.children.append(anon)
+                shape = ShapeLinkedList.unbounded(call)
+                self._ctx[anon.var.id] = shape
+                self._anons[anon.var.id] = shape
+
             args = call.args.accept(self)
-            assert len(args), "Calling a function with no arguments"
-            first = args[0]
-            for arg in args[1:]:
-                arg.pointTo(first)
-            return first
+            if isinstance(args, ShapeLinkedList):
+                return args
+            else:
+                first = args[0]
+                for arg in args[1:]:
+                    arg.pointTo(first)
+                return first
         else:
             # If we don't know the function, we can't do much
             return ShapeLinkedList.unbounded(call)
 
     def visitVariableProperty(self, prop):
+        if prop.prop != 'shape':
+            raise UnsupportedProperty(prop)
+        return self._ctx[prop.var.id]  ## XXX check presence
+
+    def visitAnonymousShapeProperty(self, prop):
         if prop.prop != 'shape':
             raise UnsupportedProperty(prop)
         return self._ctx[prop.var.id]  ## XXX check presence
@@ -595,7 +610,7 @@ class Ir2PythonVisitor(IRVisitor):
                             'UpperConstrainedImproperUniform'
     ] }
 
-    def __init__(self):
+    def __init__(self, anons):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
         self._priors = {}
@@ -604,6 +619,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._model_header = []
         self._guide_header = []
         self._observed = 0
+        self._anons = anons
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -727,6 +743,9 @@ class Ir2PythonVisitor(IRVisitor):
         elts = self._visitAll(list.elements)
         return ast.List(elts= elts,
                         ctx = ast.Load())
+
+    def visitAnonymousShapeProperty(self, prop):
+        pass
 
     def visitVariable(self, var):
         assert var.block_name is not None
@@ -908,6 +927,21 @@ class Ir2PythonVisitor(IRVisitor):
             slice = ast.Index(value = var),
             ctx = ast.Load()
         )
+    
+    def pathAttr(self, path):
+        paths = path.split('.')
+        piter = iter(paths)
+        p = self.loadName(next(piter))
+        for attrib in piter:
+            p = self.loadAttr(p, attrib)
+        p = self.loadAttr(p, 'shape')
+        return p
+
+    def visitAnonymousShapeProperty(self, prop):
+        anonid = prop.var.id
+        boundshape = self._anons[anonid].shape()
+        vid = boundshape.value
+        return self.pathAttr(vid)
 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
@@ -1040,8 +1074,11 @@ class Ir2PythonVisitor(IRVisitor):
     def buildHeaders(self, program):
         transform = lambda block: block.accept(self) if block else []
         basic = self.buildBasicHeaders()
-        self._model_header = basic +  transform(program.data) + transform(program.parameters)
-        self._guide_header = self._model_header + transform(program.guideparameters)
+        tpd = transform(program.data) 
+        tpp = transform(program.parameters)
+        self._model_header = basic + tpd + tpp
+        tpgp = transform(program.guideparameters)
+        self._guide_header = self._model_header + tpgp
 
     def visitProgram(self, program):
         self.buildHeaders(program)
@@ -1076,7 +1113,7 @@ def ir2python(ir):
     ir = ir.accept(consistency)
     shapes_checking = ShapeCheckingVisitor()
     ir.accept(shapes_checking)
-    visitor = Ir2PythonVisitor()
+    visitor = Ir2PythonVisitor(shapes_checking._anons)
     return ir.accept(visitor)
 
 

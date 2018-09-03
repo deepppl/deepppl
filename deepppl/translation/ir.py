@@ -540,6 +540,20 @@ class VariableProperty(Expression):
     def is_property(self):
         return True
 
+class AnonymousShapeProperty(VariableProperty):
+
+    @classmethod
+    def newvar(cls):
+        if hasattr(cls, 'counter'):
+            cls.counter = cls.counter+1
+        else:
+            cls.counter = 0
+        return Variable(id="anon"+str(cls.counter))
+
+    def __init__(self):
+        super(AnonymousShapeProperty, self).__init__(var = AnonymousShapeProperty.newvar(), prop="shape")
+
+
 class NetVariableProperty(VariableProperty):
     pass
 
