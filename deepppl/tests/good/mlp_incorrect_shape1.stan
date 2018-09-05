@@ -65,7 +65,7 @@ guide {
     mlp.l2.weight ~ Normal(l2wloc, softplus(l2wscale));
     l2bloc = randn(); // l2bloc$shape);
     l2bscale = randn(); // l2bscale$shape);
-    mlp.l2.bias ~ Normal(l2bloc, softplus(l2bscale));
+    mlp.l2.bias ~ Normal(l1bloc, softplus(l2bscale));
 }
 
 model {
