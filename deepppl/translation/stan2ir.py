@@ -270,7 +270,7 @@ class StanToIR(stanListener):
             ids.extend(ir)
         ctx.ir = ids
 
-    def exitNetworkBlock(self, ctx):
+    def exitNetworksBlock(self, ctx):
         ops = ctx.netVariableDeclsOpt()
         decls = [x.ir for x in ops.netVariableDecl()]
         nets = NetworksBlock(decls = decls)

@@ -147,7 +147,7 @@ COV_MATRIX: 'cov_matrix';
 FUNCTIONS: 'functions';
 MODEL: 'model';
 DATA: 'data';
-NETWORK: 'network';
+NETWORKS: 'networks';
 PRIOR: 'prior';
 GUIDE: 'guide';
 GUIDEPARAMETERS : 'guide_parameters';
@@ -592,8 +592,8 @@ dataBlock
     : DATA '{' variableDeclsOpt '}'
     ;
 
-networkBlock
-    : NETWORK '{' netVariableDeclsOpt '}'
+networksBlock
+    : NETWORKS '{' netVariableDeclsOpt '}'
     ;
 
 priorBlock
@@ -635,7 +635,7 @@ program
         transformedDataBlock?
         parametersBlock?
         transformedParametersBlock?
-        networkBlock?
+        networksBlock?
         priorBlock?
         guideParametersBlock?
         guideBlock?

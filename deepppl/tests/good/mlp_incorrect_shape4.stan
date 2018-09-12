@@ -21,7 +21,7 @@ data {
     int <lower=0, upper=10>  labels[batch_size];
 }
 
-network {
+networks {
     MLP mlp with parameters:
         l1.weight;
         l1.bias;

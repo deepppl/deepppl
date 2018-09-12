@@ -21,7 +21,7 @@ data {
     int category[n_characters];
 }
 
-network {
+networks {
     RNN rnn with parameters:
         encoder.weight;
         gru.weight_ih_l0;

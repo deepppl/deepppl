@@ -27,7 +27,7 @@ parameters {
     int latent;
 }
 
-network {
+networks {
     Decoder decoder;
     Encoder encoder;
 }

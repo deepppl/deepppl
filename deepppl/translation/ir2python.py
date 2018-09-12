@@ -198,9 +198,9 @@ class VariableAnnotationsVisitor(IRVisitor):
         return var
 
 
-class NetworkVisitor(IRVisitor):
+class NetworksVisitor(IRVisitor):
     def __init__(self):
-        super(NetworkVisitor, self).__init__()
+        super(NetworksVisitor, self).__init__()
         self._nets = {}
         self._priors = {}
         self._guides = {}
@@ -1107,7 +1107,7 @@ class Ir2PythonVisitor(IRVisitor):
 def ir2python(ir):
     annotator = VariableAnnotationsVisitor()
     ir = ir.accept(annotator)
-    nets = NetworkVisitor()
+    nets = NetworksVisitor()
     ir = ir.accept(nets)
     consistency = SamplingConsistencyVisitor()
     ir = ir.accept(consistency)
