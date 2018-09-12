@@ -15,25 +15,27 @@
  */
 
 
+networks {
+    RNN rnn;
+}
+
 data {
     int n_characters;
     int input[n_characters];
     int category[n_characters];
 }
 
-networks {
-    RNN rnn with parameters:
-        encoder.weight;
-        gru.weight_ih_l0;
-        gru.weight_hh_l0;
-        gru.bias_ih_l0;
-        gru.bias_hh_l0;
-        decoder.weight;
-        decoder.bias;
+parameters {
+    real[] rnn.encoder.weight;
+    real[] rnn.gru.weight_ih_l0;
+    real[] rnn.gru.weight_hh_l0;
+    real[] rnn.gru.bias_ih_l0;
+    real[] rnn.gru.bias_hh_l0;
+    real[] rnn.decoder.weight;
+    real[] rnn.decoder.bias;
 }
 
-prior
-{
+prior {
     rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
     rnn.gru.weight_ih_l0 ~ Normal(zeros(rnn.gru.weight_ih_l0$shape), ones(rnn.gru.weight_ih_l0$shape));
     rnn.gru.weight_hh_l0 ~ Normal(zeros(rnn.gru.weight_hh_l0$shape), ones(rnn.gru.weight_hh_l0$shape));
@@ -43,8 +45,7 @@ prior
     rnn.decoder.bias ~  Normal(zeros(rnn.decoder.bias$shape), ones(rnn.decoder.bias$shape));
 }
 
-variational parameters
-{
+variational parameters {
     real ewl[rnn.encoder.weight$shape];
     real ews[rnn.encoder.weight$shape];
     real gw1l[rnn.gru.weight_ih_l0$shape];

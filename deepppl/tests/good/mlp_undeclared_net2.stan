@@ -28,7 +28,7 @@ data {
 parameters {
     real[] mlp.l1.weight;
     real[] mlp.l1.bias;
-    real[] mlp.l2.weight;
+    real[] mlq.l2.weight;  // <-- UndeclaredNetworkException
     real[] mlp.l2.bias;
 }
 
@@ -36,7 +36,7 @@ prior {
     mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
     mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
     mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
-    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l1.bias$shape));   // <- second argument has a different shape>
+    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l2.bias$shape));
 }
 
 variational parameters {

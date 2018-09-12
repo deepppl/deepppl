@@ -15,24 +15,25 @@
  */
 
 
+networks {
+    RNN rnn;
+}
+
 data {
     int n_characters;
     int input[n_characters];
     int category[n_characters];
 }
 
-networks {
-    RNN rnn with parameters:
-         encoder.weight;
+parameters {
+    real[] rnn.encoder.weight;
 }
 
-prior
-{
+prior {
      rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
 }
 
-variational parameters
-{
+variational parameters {
      real ewl[rnn.encoder.weight$shape];
      real ews[rnn.encoder.weight$shape];
 }

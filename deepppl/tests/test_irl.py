@@ -131,9 +131,14 @@ def test_mlp_undeclared_parameters():
         filename = r'deepppl/tests/good/mlp_undeclared_parameters.stan'
         dpplc.stan2astpyFile(filename)
 
-def test_mlp_undeclared_network():
+def test_mlp_undeclared_network1():
     with pytest.raises(UndeclaredNetworkException):
-        filename = r'deepppl/tests/good/mlp_undeclared_net.stan'
+        filename = r'deepppl/tests/good/mlp_undeclared_net1.stan'
+        dpplc.stan2astpyFile(filename)
+
+def test_mlp_undeclared_network2():
+    with pytest.raises(UndeclaredNetworkException):
+        filename = r'deepppl/tests/good/mlp_undeclared_net2.stan'
         dpplc.stan2astpyFile(filename)
 
 def test_mlp_missing_guide():

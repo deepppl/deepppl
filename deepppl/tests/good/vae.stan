@@ -15,21 +15,19 @@
  */
 
 
+networks {
+    Decoder decoder;
+    Encoder encoder;
+}
+
 data {
     int x;
     int nz;
     int batch_size;
 }
 
-
-
 parameters {
     int latent;
-}
-
-networks {
-    Decoder decoder;
-    Encoder encoder;
 }
 
 guide {
@@ -48,5 +46,3 @@ model {
     loc_img = decoder(latent);
     x ~ Bernoulli(loc_img);
 }
-
-

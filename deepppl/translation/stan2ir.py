@@ -46,7 +46,7 @@ def gatherChildrenIR(ctx):
         return irs
 
 def is_active(f):
-    return f() is not None
+    return f is not None and f() is not None
 
 def idxFromExprList(exprList):
     if len(exprList) == 1:
@@ -57,6 +57,9 @@ def idxFromExprList(exprList):
 
 
 class StanToIR(stanListener):
+    def __init__(self):
+        self.networks = None
+
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
         dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
@@ -91,7 +94,6 @@ class StanToIR(stanListener):
         assert isinstance(constant, Constant)
         constraint = Constraint(sort = sort, value = constant)
         ctx.ir = constraint
-        
 
     def exitArrayDim(self, ctx):
         elements = ctx.expressionCommaList().ir
@@ -99,6 +101,15 @@ class StanToIR(stanListener):
             ctx.ir = elements[0]
         else:
             ctx.ir = List(elements = elements)
+
+    def exitParameterDecl(self, ctx):
+        if is_active(ctx.variableDecl):
+            ctx.ir = ctx.variableDecl().ir
+        else: # Could be more defensive
+            pass
+
+    def exitParameterDeclsOpt(self, ctx):
+        ctx.ir = gatherChildrenIR(ctx)
 
     def exitVariableDeclsOpt(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)
@@ -274,6 +285,7 @@ class StanToIR(stanListener):
         ops = ctx.netVariableDeclsOpt()
         decls = [x.ir for x in ops.netVariableDecl()]
         nets = NetworksBlock(decls = decls)
+        self.networks = nets
         ctx.ir = nets
 
     def exitNetClass(self, ctx):
@@ -284,13 +296,22 @@ class StanToIR(stanListener):
     def exitNetVariableDecl(self, ctx):
         netCls = ctx.netClass().ir
         name = ctx.netName().ir
-        parameters = [x.ir for x in ctx.netParamDecl()]
+        parameters = []
         ctx.ir = NetDeclaration(name = name, cls = netCls, \
                                 params = parameters)
 
     def exitNetParamDecl(self, ctx):
-        ctx.ir = ctx.netParam().ir
-        
+        netName = ctx.netName().getText()
+        if self.networks is not None:
+            nets = [x for x in self.networks.decls if x.name == netName]
+            if len(nets) == 1:
+                nets[0].params.append(ctx.netParam().ir)
+            elif len(nets) > 1:
+                raise AlreadyDeclaredException(netName)
+            else:
+                raise UndeclaredNetworkException(netName)
+        else:
+            raise UndeclaredNetworkException(netName)
 
     def exitNetLValue(self, ctx):
         name = ctx.netName().getText()
@@ -307,7 +328,6 @@ class StanToIR(stanListener):
             cls = VariableProperty
         else:
             assert False, "Not yet implemented."
-        
         ctx.ir = cls(var = var, prop= property)
 
     def exitSamplingStmt(self, ctx):

@@ -340,7 +340,6 @@ variableDecl
 
 netVariableDecl
     : netClass netName ';'
-    | netClass netName WITHPARAMS ':' netParamDecl+
     ;
 
 netClass
@@ -352,7 +351,7 @@ netName
     ;
 
 netParamDecl
-    : netParam ';'
+    : type_ netName '.' netParam arrayDim? ';'
     ;
 
 netParam
@@ -365,6 +364,15 @@ netLValue
 
 arrayDim
     : '[' expressionCommaList ']'
+    ;
+
+parameterDecl
+    : variableDecl
+    | netParamDecl
+    ;
+
+parameterDeclsOpt
+    : parameterDecl*
     ;
 
 variableDeclsOpt
@@ -547,20 +555,20 @@ statementsOpt
 /** Functions (section 7) */
 
 functionType
-    : type_ IDENTIFIER '(' parameterCommaListopt ')'
-    | VOID IDENTIFIER '(' parameterCommaListopt ')'
+    : type_ IDENTIFIER '(' funParameterCommaListopt ')'
+    | VOID IDENTIFIER '(' funParameterCommaListopt ')'
     ;
 
-parameterDecl
+funParameterDecl
     : type_ IDENTIFIER
     ;
 
-parameterCommaList
-    : parameterDecl (',' parameterDecl)*
+funParameterCommaList
+    : funParameterDecl (',' funParameterDecl)*
     ;
 
-parameterCommaListopt
-    : parameterCommaList?
+funParameterCommaListopt
+    : funParameterCommaList?
     ;
 
 functionStatement
@@ -614,7 +622,7 @@ transformedDataBlock
     ;
 
 parametersBlock
-    : PARAMETERS '{' variableDeclsOpt '}'
+    : PARAMETERS '{' parameterDeclsOpt '}'
     ;
 
 transformedParametersBlock
@@ -631,11 +639,11 @@ generatedQuantitiesBlock
 
 program
     : functionBlock?
+        networksBlock?
         dataBlock?
         transformedDataBlock?
         parametersBlock?
         transformedParametersBlock?
-        networksBlock?
         priorBlock?
         guideParametersBlock?
         guideBlock?

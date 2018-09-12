@@ -15,31 +15,32 @@
  */
 
 
+networks {
+    MLP mlp;
+}
+
 data {
     int batch_size;
-    int <lower=0, upper=1> imgs[28,28,batch_size]; 
+    int <lower=0, upper=1> imgs[28,28,batch_size];
     int <lower=0, upper=10>  labels[batch_size];
 }
 
-networks {
-    MLP mlp with parameters:
-        l1.weight;
-        l1.bias;
-        l2.weight;
-        l2.bias;
+parameters {
+    real[] mlp.l1.weight;
+    real[] mlp.l1.bias;
+    real[] mlp.l2.weight;
+    real[] mlp.l2.bias;
 }
 
-prior
-{
+prior {
     mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
     mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
     mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
     mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l2.bias$shape));
 }
 
-variational parameters
-{
-    real l1wloc[mlp.l1.weight$shape];   
+variational parameters {
+    real l1wloc[mlp.l1.weight$shape];
     real l1wscale[mlp.l1.weight$shape];
     real l1bloc[mlp.l1.bias$shape];
     real l1bscale[mlp.l1.bias$shape];
