@@ -649,4 +649,5 @@ program
         guideBlock?
         modelBlock?
         generatedQuantitiesBlock?
+        EOF
     ;

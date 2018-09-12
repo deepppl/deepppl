@@ -16,6 +16,7 @@
 
 import sys
 from antlr4 import *
+from antlr4.error.ErrorListener import ErrorListener
 from .parser.stanLexer import stanLexer
 from .parser.stanParser import stanParser
 from .translation.stan2ir import StanToIR
@@ -26,10 +27,17 @@ import torch
 import pyro
 import pyro.distributions as dist
 
+class MyErrorListener(ErrorListener):
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        print('Line ' + str(line) + ':' + str(column) +
+              ': Syntax error, ' + str(msg))
+        raise SyntaxError
+
 def streamToParsetree(stream):
     lexer = stanLexer(stream)
     stream = CommonTokenStream(lexer)
     parser = stanParser(stream)
+    parser._listeners = [MyErrorListener()]
     tree = parser.program()
     return tree
 
