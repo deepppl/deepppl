@@ -15,3 +15,15 @@ pip install ..
 ```
 
 To create a symbolic link to the code use: `pip install -e ..` instead
+
+## Tests
+
+Launch tests:
+```
+pytest -v
+```
+
+Tests without doing inference:
+```
+pytest -v -k 'not inference'
+```
