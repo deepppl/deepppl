@@ -37,7 +37,7 @@ prior
     // mlp.l2.bias ~  Normal(0, 1);
 }
 
-guide_parameters
+variational parameters
 {
     real l1wloc;
     real l1wscale;

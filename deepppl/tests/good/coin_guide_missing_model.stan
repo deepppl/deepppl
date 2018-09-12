@@ -22,7 +22,7 @@ parameters {
 }
 
 
-guide_parameters
+variational parameters
 {
   real<lower=0>  alpha_q;
   real<lower=0>  beta_q;
