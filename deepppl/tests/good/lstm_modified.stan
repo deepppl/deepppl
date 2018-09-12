@@ -33,7 +33,7 @@ prior {
      rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
 }
 
-variational parameters {
+guide parameters {
      real ewl[rnn.encoder.weight$shape];
      real ews[rnn.encoder.weight$shape];
 }

@@ -150,7 +150,6 @@ DATA: 'data';
 NETWORKS: 'networks';
 PRIOR: 'prior';
 GUIDE: 'guide';
-VARIATIONAL : 'variational';
 PARAMETERS: 'parameters';
 QUANTITIES: 'quantities';
 TRANSFORMED: 'transformed';
@@ -613,7 +612,7 @@ guideBlock
     ;
 
 guideParametersBlock
-    : VARIATIONAL PARAMETERS '{' variableDeclsOpt '}'
+    : GUIDE PARAMETERS '{' variableDeclsOpt '}'
     ;
 
 

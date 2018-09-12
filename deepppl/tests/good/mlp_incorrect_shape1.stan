@@ -43,7 +43,7 @@ prior {
     mlp.l2.bias ~  Normal(zeros(), ones());   //<- First argument has a different shape>
 }
 
-variational parameters {
+guide parameters {
     real l1wloc[mlp.l1.weight$shape];
     real l1wscale[mlp.l1.weight$shape];
     real l1bloc[mlp.l1.bias$shape];

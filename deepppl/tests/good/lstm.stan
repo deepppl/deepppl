@@ -45,7 +45,7 @@ prior {
     rnn.decoder.bias ~  Normal(zeros(rnn.decoder.bias$shape), ones(rnn.decoder.bias$shape));
 }
 
-variational parameters {
+guide parameters {
     real ewl[rnn.encoder.weight$shape];
     real ews[rnn.encoder.weight$shape];
     real gw1l[rnn.gru.weight_ih_l0$shape];
