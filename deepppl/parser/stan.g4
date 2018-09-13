@@ -360,8 +360,13 @@ netLValue
     : netName '.' netParam
     ;
 
+inferredArrayShape
+    : '_'
+    ;
+
 arrayDim
     : '[' expressionCommaList ']'
+    | '[' inferredArrayShape ']'
     ;
 
 parameterDecl

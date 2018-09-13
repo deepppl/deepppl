@@ -33,14 +33,14 @@ parameters {
 }
 
 guide parameters {
-    real l1wloc[mlp.l1.weight$shape];
-    real l1wscale[mlp.l1.weight$shape];
-    real l1bloc[mlp.l1.bias$shape];
-    real l1bscale[mlp.l1.bias$shape];
-    real l2wloc[mlp.l2.weight$shape];
-    real l2wscale[mlp.l2.weight$shape];
-    real l2bloc[mlp.l2.bias$shape];
-    real l2bscale[mlp.l2.bias$shape];
+    real l1wloc[_];
+    real l1wscale[_];
+    real l1bloc[_];
+    real l1bscale[_];
+    real l2wloc[_];
+    real l2wscale[_];
+    real l2bloc[_];
+    real l2bscale[_];
 }
 
 guide {

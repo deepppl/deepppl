@@ -536,8 +536,14 @@ class ShapeCheckingVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         """If dimensions uses `$shape` property, then mimics that shape. Otherwise, 
             use the dimensions verbatim"""
+        isanon = False
         if decl.dim:
-            if decl.dim.is_property():
+            if isinstance(decl.dim, AnonymousShapeProperty):
+                inner = UnboundedShape(decl)
+                isanon = True
+                anonid = decl.dim.var.id
+
+            elif decl.dim.is_property():
                 inner = decl.dim.accept(self).shape()
             else:
                 dim = decl.dim
@@ -546,6 +552,8 @@ class ShapeCheckingVisitor(IRVisitor):
             inner = UnboundedShape(decl)
         shape = ShapeLinkedList(inner)
         self._ctx[decl.id] = shape
+        if isanon:
+            self._anons[anonid] = shape
         return decl
 
     def visitAssignStmt(self, assign):
@@ -1127,7 +1135,7 @@ class Ir2PythonVisitor(IRVisitor):
         module.body += body
         ast.fix_missing_locations(module)
         if from_test():
-            astpretty.pprint(module)
+            # astpretty.pprint(module)
             print(astor.to_source(module))
         return module
 

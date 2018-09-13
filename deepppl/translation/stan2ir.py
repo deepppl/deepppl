@@ -96,11 +96,15 @@ class StanToIR(stanListener):
         ctx.ir = constraint
 
     def exitArrayDim(self, ctx):
-        elements = ctx.expressionCommaList().ir
-        if len(elements) == 1:
-            ctx.ir = elements[0]
-        else:
-            ctx.ir = List(elements = elements)
+        cl = ctx.expressionCommaList()
+        if cl:
+            elements = cl.ir
+            if len(elements) == 1:
+                ctx.ir = elements[0]
+            else:
+                ctx.ir = List(elements = elements)
+        elif ctx.inferredArrayShape():
+            ctx.ir = AnonymousShapeProperty()
 
     def exitParameterDecl(self, ctx):
         if is_active(ctx.variableDecl):
