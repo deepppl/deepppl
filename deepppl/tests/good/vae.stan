@@ -30,6 +30,13 @@ parameters {
     int latent;
 }
 
+model {
+    int loc_img;
+    latent ~ Normal(zeros(nz), ones(nz), batch_size);
+    loc_img = decoder(latent);
+    x ~ Bernoulli(loc_img);
+}
+
 guide {
     real encoded[2];
     real mu;
@@ -38,11 +45,4 @@ guide {
     mu = encoded[1];
     sigma = encoded[2];
     latent ~ Normal(mu, sigma, batch_size);
-}
-
-model {
-    int loc_img;
-    latent ~ Normal(zeros(nz), ones(nz), batch_size);
-    loc_img = decoder(latent);
-    x ~ Bernoulli(loc_img);
 }

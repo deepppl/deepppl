@@ -21,22 +21,19 @@ parameters {
   real<lower=0.0,upper=1.0> theta;
 }
 
+model {
+  theta ~ Beta(10.0, 10.0);
+  for (i in 1:10)
+    x[i] ~ Bernoulli(theta);
+}
 
-guide parameters
-{
+guide parameters {
   real<lower=0>  alpha_q;
   real<lower=0>  beta_q;
 }
 
 guide {
-
   alpha_q = 15.0;
   beta_q = 15.0;
   theta ~ Beta(alpha_q, beta_q);
-}
-
-model {
-  theta ~ Beta(10.0, 10.0);
-  for (i in 1:10)
-    x[i] ~ Bernoulli(theta);
 }

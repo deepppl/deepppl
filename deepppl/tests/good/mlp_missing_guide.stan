@@ -32,6 +32,16 @@ parameters {
     real[] mlp.l2.bias;
 }
 
+model {
+    real logits[batch_size];
+    mlp.l1.weight ~  Normal(0, 1);
+    mlp.l1.bias ~ Normal(0, 1);
+    mlp.l2.weight ~ Normal(0, 1);
+    mlp.l2.bias ~  Normal(0, 1);
+    logits = mlp(imgs);
+    labels ~ Categorical(logits);
+}
+
 guide parameters {
     real l1wloc;
     real l1wscale;
@@ -57,15 +67,3 @@ guide {
     // l2bscale = exp(randn());
     // mlp.l2.bias ~ Normal(l2bloc, l2bscale);
 }
-
-model {
-    real logits[batch_size];
-    mlp.l1.weight ~  Normal(0, 1);
-    mlp.l1.bias ~ Normal(0, 1);
-    mlp.l2.weight ~ Normal(0, 1);
-    mlp.l2.bias ~  Normal(0, 1);
-    logits = mlp(imgs);
-    labels ~ Categorical(logits);
-}
-
-

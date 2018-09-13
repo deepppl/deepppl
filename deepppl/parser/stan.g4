@@ -643,9 +643,9 @@ program
         transformedDataBlock?
         parametersBlock?
         transformedParametersBlock?
+	modelBlock?
         guideParametersBlock?
         guideBlock?
-        modelBlock?
         generatedQuantitiesBlock?
         EOF
     ;
