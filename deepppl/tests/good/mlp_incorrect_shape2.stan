@@ -32,12 +32,6 @@ parameters {
     real[] mlp.l2.bias;
 }
 
-prior {
-    mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
-    mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
-    mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
-    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l1.bias$shape));   // <- second argument has a different shape>
-}
 
 guide parameters {
     real l1wloc[mlp.l1.weight$shape];
@@ -66,7 +60,12 @@ guide {
 }
 
 model {
-    real logits[batch_size];
+    real logits[batch_size];    
+    mlp.l1.weight ~  Normal(zeros(mlp.l1.weight$shape), ones(mlp.l1.weight$shape));
+    mlp.l1.bias ~ Normal(zeros(mlp.l1.bias$shape), ones(mlp.l1.bias$shape));
+    mlp.l2.weight ~ Normal(zeros(mlp.l2.weight$shape), ones(mlp.l2.weight$shape));
+    mlp.l2.bias ~  Normal(zeros(mlp.l2.bias$shape), ones(mlp.l1.bias$shape));   // <- second argument has a different shape>
+
     logits = mlp(imgs);
     labels ~ CategoricalLogits(logits);
 }

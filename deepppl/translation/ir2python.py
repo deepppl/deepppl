@@ -241,7 +241,7 @@ class NetworksVisitor(IRVisitor):
         if not net in self._nets:
             raise UndeclaredNetworkException(net)
         if not params in self._nets[net].params:
-            raise UndeclaredParametersException(params.id)
+            raise UndeclaredParametersException('.'.join(params))
         if self._shouldRemove and not self.is_on_model():
             del self._currdict[net][var.id]
         return var
@@ -585,9 +585,13 @@ class ShapeCheckingVisitor(IRVisitor):
         return self._nets[name]
 
     def visitSamplingDeclaration(self, sampling):
-        target_shape = sampling.target.accept(self)
-        ### XXX check that all are the same
-        [x.accept(self).pointTo(target_shape) for x in sampling.args]
+        if sampling.target.is_net_var():
+            target_shape = sampling.target.accept(self)
+            
+            ### XXX check that all are the same
+            [x.accept(self).pointTo(target_shape) for x in sampling.args]
+
+    visitSamplingObserved = visitSamplingDeclaration
 
     def visitCallStmt(self, call):
         if call.id in self.known_functions:

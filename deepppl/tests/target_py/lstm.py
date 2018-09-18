@@ -53,20 +53,13 @@ def prior_rnn(category, input, n_characters):
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     prior_rnn = {}
-    prior_rnn['encoder.weight'] = dist.Normal(zeros(rnn.encoder.weight.
-        shape), ones(rnn.encoder.weight.shape))
-    prior_rnn['gru.weight_ih_l0'] = dist.Normal(zeros(rnn.gru.weight_ih_l0.
-        shape), ones(rnn.gru.weight_ih_l0.shape))
-    prior_rnn['gru.weight_hh_l0'] = dist.Normal(zeros(rnn.gru.weight_hh_l0.
-        shape), ones(rnn.gru.weight_hh_l0.shape))
-    prior_rnn['gru.bias_ih_l0'] = dist.Normal(zeros(rnn.gru.bias_ih_l0.
-        shape), ones(rnn.gru.bias_ih_l0.shape))
-    prior_rnn['gru.bias_hh_l0'] = dist.Normal(zeros(rnn.gru.bias_hh_l0.
-        shape), ones(rnn.gru.bias_hh_l0.shape))
-    prior_rnn['decoder.weight'] = dist.Normal(zeros(rnn.decoder.weight.
-        shape), ones(rnn.decoder.weight.shape))
-    prior_rnn['decoder.bias'] = dist.Normal(zeros(rnn.decoder.bias.shape),
-        ones(rnn.decoder.bias.shape))
+    prior_rnn['encoder.weight'] = ImproperUniform(rnn.encoder.weight.shape)
+    prior_rnn['gru.weight_ih_l0'] = ImproperUniform(rnn.gru.weight_ih_l0.shape)
+    prior_rnn['gru.weight_hh_l0'] = ImproperUniform(rnn.gru.weight_hh_l0.shape)
+    prior_rnn['gru.bias_ih_l0'] = ImproperUniform(rnn.gru.bias_ih_l0.shape)
+    prior_rnn['gru.bias_hh_l0'] = ImproperUniform(rnn.gru.bias_hh_l0.shape)
+    prior_rnn['decoder.weight'] = ImproperUniform(rnn.decoder.weight.shape)
+    prior_rnn['decoder.bias'] = ImproperUniform(rnn.decoder.bias.shape)
     lifted_rnn = pyro.random_module('rnn', rnn, prior_rnn)
     return lifted_rnn()
 
@@ -76,6 +69,28 @@ def model(category, input, n_characters):
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     rnn = prior_rnn(category, input, n_characters)
+    model_rnn = rnn.state_dict()
     ___shape['logits'] = n_characters
+    pyro.sample('model_rnn' + '{}'.format('encoder.weight') + '1', dist.
+        Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.
+        shape)), obs=model_rnn['encoder.weight'])
+    pyro.sample('model_rnn' + '{}'.format('gru.weight_ih_l0') + '2', dist.
+        Normal(zeros(rnn.gru.weight_ih_l0.shape), ones(rnn.gru.weight_ih_l0
+        .shape)), obs=model_rnn['gru.weight_ih_l0'])
+    pyro.sample('model_rnn' + '{}'.format('gru.weight_hh_l0') + '3', dist.
+        Normal(zeros(rnn.gru.weight_hh_l0.shape), ones(rnn.gru.weight_hh_l0
+        .shape)), obs=model_rnn['gru.weight_hh_l0'])
+    pyro.sample('model_rnn' + '{}'.format('gru.bias_ih_l0') + '4', dist.
+        Normal(zeros(rnn.gru.bias_ih_l0.shape), ones(rnn.gru.bias_ih_l0.
+        shape)), obs=model_rnn['gru.bias_ih_l0'])
+    pyro.sample('model_rnn' + '{}'.format('gru.bias_hh_l0') + '5', dist.
+        Normal(zeros(rnn.gru.bias_hh_l0.shape), ones(rnn.gru.bias_hh_l0.
+        shape)), obs=model_rnn['gru.bias_hh_l0'])
+    pyro.sample('model_rnn' + '{}'.format('decoder.weight') + '6', dist.
+        Normal(zeros(rnn.decoder.weight.shape), ones(rnn.decoder.weight.
+        shape)), obs=model_rnn['decoder.weight'])
+    pyro.sample('model_rnn' + '{}'.format('decoder.bias') + '7', dist.
+        Normal(zeros(rnn.decoder.bias.shape), ones(rnn.decoder.bias.shape)),
+        obs=model_rnn['decoder.bias'])
     logits = rnn(input)
-    pyro.sample('category' + '1', CategoricalLogits(logits), obs=category)
+    pyro.sample('category' + '8', CategoricalLogits(logits), obs=category)
