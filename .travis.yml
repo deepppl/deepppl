@@ -8,7 +8,7 @@ before_install:
   - sudo apt-get install -y antlr4
 install:
   - pip install --upgrade pip
-  - pip install -r deepppl/requirements.txt #--progress-bar off
+  - pip install -r deepppl/requirements.txt --progress-bar off
 # command to run tests
 before_script:
   - cd deepppl
