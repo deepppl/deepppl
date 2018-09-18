@@ -1066,20 +1066,28 @@ class Ir2PythonVisitor(IRVisitor):
     def modelArgs(self):
         return [ast.arg(name, None) for name in sorted(self.data_names)]
 
-    def buildModel(self, inner_body):
-        pre_body = []
-        for prior in self._priors:
-            pre_body.append(
-                self._assign(self.loadName(prior),
+    def buildPrior(self, prior, basename):
+        lifted_prior = self._assign(self.loadName(prior),
                              self.call(
                                         id = self.loadName(self._priors[prior]),
                                         args = self.modelArgsAsParams()
                                         )
                             )
-            )
+        states = self.call(self.loadAttr(self.loadName(prior), 'state_dict'))
+        states_dict = self._assign(
+                            self.loadName(f'{basename}_{prior}'),
+                            states
+                        )
+        return [lifted_prior, states_dict]
+
+    def buildModel(self, inner_body):
+        name = 'model'
+        pre_body = []
+        for prior in self._priors:
+            pre_body.extend(self.buildPrior(prior, name))
         body = self._model_header + pre_body + inner_body
         model = self._funcDef(
-                            name = 'model',
+                            name = name,
                             args = self.modelArgs(),
                             body = body)
         return model
