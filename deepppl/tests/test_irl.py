@@ -147,7 +147,7 @@ def test_mlp_missing_guide():
         dpplc.stan2astpyFile(filename)
 
 def test_mlp_missing_model():
-    with pytest.raises(MissingPriorNetException):
+    with not_raises(MissingPriorNetException):
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
         dpplc.stan2astpyFile(filename)
 

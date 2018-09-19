@@ -38,14 +38,10 @@ def prior_mlp(batch_size, imgs, labels):
     ___shape['imgs'] = [tensor(28), tensor(28), batch_size]
     ___shape['labels'] = batch_size
     prior_mlp = {}
-    prior_mlp['l1.weight'] = dist.Normal(zeros(mlp.l1.weight.shape), ones(
-        mlp.l1.weight.shape))
-    prior_mlp['l1.bias'] = dist.Normal(zeros(mlp.l1.bias.shape), ones(mlp.
-        l1.bias.shape))
-    prior_mlp['l2.weight'] = dist.Normal(zeros(mlp.l2.weight.shape), ones(
-        mlp.l2.weight.shape))
-    prior_mlp['l2.bias'] = dist.Normal(zeros(mlp.l2.bias.shape), ones(mlp.
-        l2.bias.shape))
+    prior_mlp['l1.weight'] = ImproperUniform(mlp.l1.weight.shape)
+    prior_mlp['l1.bias'] = ImproperUniform(mlp.l1.bias.shape)
+    prior_mlp['l2.weight'] = ImproperUniform(mlp.l2.weight.shape)
+    prior_mlp['l2.bias'] = ImproperUniform(mlp.l2.bias.shape)
     lifted_mlp = pyro.random_module('mlp', mlp, prior_mlp)
     return lifted_mlp()
 
@@ -55,6 +51,19 @@ def model(batch_size, imgs, labels):
     ___shape['imgs'] = [tensor(28), tensor(28), batch_size]
     ___shape['labels'] = batch_size
     mlp = prior_mlp(batch_size, imgs, labels)
+    model_mlp = mlp.state_dict()
     ___shape['logits'] = batch_size
+    pyro.sample('model_mlp' + '{}'.format('l1.weight') + '1', dist.Normal(
+        zeros(mlp.l1.weight.shape), ones(mlp.l1.weight.shape)), obs=
+        model_mlp['l1.weight'])
+    pyro.sample('model_mlp' + '{}'.format('l1.bias') + '2', dist.Normal(
+        zeros(mlp.l1.bias.shape), ones(mlp.l1.bias.shape)), obs=model_mlp[
+        'l1.bias'])
+    pyro.sample('model_mlp' + '{}'.format('l2.weight') + '3', dist.Normal(
+        zeros(mlp.l2.weight.shape), ones(mlp.l2.weight.shape)), obs=
+        model_mlp['l2.weight'])
+    pyro.sample('model_mlp' + '{}'.format('l2.bias') + '4', dist.Normal(
+        zeros(mlp.l2.bias.shape), ones(mlp.l2.bias.shape)), obs=model_mlp[
+        'l2.bias'])
     logits = mlp(imgs)
-    pyro.sample('labels' + '1', CategoricalLogits(logits), obs=labels)
+    pyro.sample('labels' + '5', CategoricalLogits(logits), obs=labels)

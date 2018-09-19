@@ -24,7 +24,8 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Minus, UnaryOperator, UMinus, AnonymousShapeProperty
+                Minus, UnaryOperator, UMinus, AnonymousShapeProperty,\
+                NetVariableProperty, Prior
 
 from .exceptions import *
 
@@ -109,10 +110,11 @@ class VariableAnnotationsVisitor(IRVisitor):
     def visitSamplingStmt(self, sampling):
         target = sampling.target.accept(self)
         args = self._visitAll(sampling.args)
-        if (self.block.is_prior() or self.block.is_guide()) and target.is_net_var():
-            method = SamplingDeclaration
-        elif self.block.is_guide() and not target.is_net_var():
-            method = SamplingParameters
+        if self.block.is_guide():
+            if target.is_net_var():
+                method = SamplingDeclaration
+            else:
+                method = SamplingParameters
         else:
             method = SamplingObserved
         return method(target = target, args = args, id = sampling.id)
@@ -205,6 +207,7 @@ class NetworksVisitor(IRVisitor):
         self._priors = {}
         self._guides = {}
         self._shouldRemove = False
+        self._shouldAddNetPrior = False
 
     def defaultVisit(self, node):
         answer = node
@@ -214,6 +217,9 @@ class NetworksVisitor(IRVisitor):
     def visitProgram(self, program):
         answer = Program()
         answer.children = self._visitChildren(program)
+        if self._shouldAddNetPrior:
+            prior = self.netPrior()
+            answer.prior = prior.accept(self)
         return answer
 
     def visitSamplingBlock(self, sampling):
@@ -226,29 +232,33 @@ class NetworksVisitor(IRVisitor):
     visitSamplingDeclaration = visitSamplingBlock
     visitSamplingParameters = visitSamplingBlock
 
+    def is_on_model(self):
+        return self._currBlock and self._currBlock.is_model()
+
     def visitNetVariable(self, var):
         net = var.name
         params = var.ids
         if not net in self._nets:
             raise UndeclaredNetworkException(net)
         if not params in self._nets[net].params:
-            raise UndeclaredParametersException('.'.join([net] + params))
-        if self._shouldRemove:
-            self._currdict[net].remove(self._param_to_name(params))
+            raise UndeclaredParametersException('.'.join(params))
+        if self._shouldRemove and not self.is_on_model():
+            del self._currdict[net][var.id]
         return var
 
-    def visitPrior(self, prior):
-        self._currdict = self._priors
-        self._currBlock = prior
-        nets = [net for net in self._currdict if self._currdict[net]]
-        prior.children = self._visitChildren(prior)
-        prior._nets = nets
-        for net in self._currdict:
-            params = self._currdict[net]
-            if params:
-                raise MissingPriorNetException(net, params)
-        self._currdict = None
-        self._currBlock = None
+    def netPrior(self):
+        body = []
+        prior = Prior(body = body)
+        for net in self._priors:
+            for var in self._priors[net].values():
+                shape = NetVariableProperty(var = var, prop = 'shape')
+                sampling = SamplingDeclaration(
+                            target = var,
+                            id  = 'ImproperUniform',
+                            args = [shape]
+                        )
+                var.block_name = prior.blockName()
+                body.append(sampling)
         return prior
 
     def visitModel(self, model):
@@ -265,20 +275,25 @@ class NetworksVisitor(IRVisitor):
                 self._currBlock._blackBoxNets.add(call.id)
         return call
 
+    def visitPrior(self, prior):
+        return self._visitGenerativeBlock(prior, self._priors, MissingPriorNetException)
 
     def visitGuide(self, guide):
-        self._currdict = self._guides
-        self._currBlock = guide
+        return self._visitGenerativeBlock(guide, self._guides, MissingGuideNetException)
+
+    def _visitGenerativeBlock(self, block, dict, exception):
+        self._currdict = dict
+        self._currBlock = block
         nets = [net for net in self._currdict if self._currdict[net]]
-        guide.children = self._visitChildren(guide)
-        guide._nets = nets
+        block.children = self._visitChildren(block)
+        block._nets = nets
         for net in self._currdict:
             params = self._currdict[net]
             if params:
-                raise MissingGuideNetException(net, params)
+                raise exception(net, params)
         self._currdict = None
         self._currBlock = None
-        return guide
+        return block
         
     def _param_to_name(self, params):
         return '.'.join(params)
@@ -287,8 +302,11 @@ class NetworksVisitor(IRVisitor):
         name = decl.name
         self._nets[name] = decl
         if decl.params:
-            self._guides[name] = set([self._param_to_name(x) for x in decl.params])
-            self._priors[name] = set([self._param_to_name(x) for x in decl.params])
+            vars = [NetVariable(name = name, ids = x) 
+                                            for x in decl.params]
+            self._guides[name] = {var.id: var for var in vars}
+            self._priors[name] = {var.id: var for var in vars}
+            self._shouldAddNetPrior = True
         return decl
 
 
@@ -567,9 +585,13 @@ class ShapeCheckingVisitor(IRVisitor):
         return self._nets[name]
 
     def visitSamplingDeclaration(self, sampling):
-        target_shape = sampling.target.accept(self)
-        ### XXX check that all are the same
-        [x.accept(self).pointTo(target_shape) for x in sampling.args]
+        if sampling.target.is_net_var():
+            target_shape = sampling.target.accept(self)
+            
+            ### XXX check that all are the same
+            [x.accept(self).pointTo(target_shape) for x in sampling.args]
+
+    visitSamplingObserved = visitSamplingDeclaration
 
     def visitCallStmt(self, call):
         if call.id in self.known_functions:
@@ -1048,20 +1070,28 @@ class Ir2PythonVisitor(IRVisitor):
     def modelArgs(self):
         return [ast.arg(name, None) for name in sorted(self.data_names)]
 
-    def buildModel(self, inner_body):
-        pre_body = []
-        for prior in self._priors:
-            pre_body.append(
-                self._assign(self.loadName(prior),
+    def buildPrior(self, prior, basename):
+        lifted_prior = self._assign(self.loadName(prior),
                              self.call(
                                         id = self.loadName(self._priors[prior]),
                                         args = self.modelArgsAsParams()
                                         )
                             )
-            )
+        states = self.call(self.loadAttr(self.loadName(prior), 'state_dict'))
+        states_dict = self._assign(
+                            self.loadName(f'{basename}_{prior}'),
+                            states
+                        )
+        return [lifted_prior, states_dict]
+
+    def buildModel(self, inner_body):
+        name = 'model'
+        pre_body = []
+        for prior in self._priors:
+            pre_body.extend(self.buildPrior(prior, name))
         body = self._model_header + pre_body + inner_body
         model = self._funcDef(
-                            name = 'model',
+                            name = name,
                             args = self.modelArgs(),
                             body = body)
         return model

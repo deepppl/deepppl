@@ -148,7 +148,6 @@ FUNCTIONS: 'functions';
 MODEL: 'model';
 DATA: 'data';
 NETWORKS: 'networks';
-PRIOR: 'prior';
 GUIDE: 'guide';
 PARAMETERS: 'parameters';
 QUANTITIES: 'quantities';
@@ -603,10 +602,6 @@ networksBlock
     : NETWORKS '{' netVariableDeclsOpt '}'
     ;
 
-priorBlock
-    : PRIOR '{' samplingStmt* '}'
-    ;
-
 guideBlock
     : GUIDE '{' variableDeclsOpt statementsOpt '}'
     ;
@@ -643,7 +638,6 @@ program
         transformedDataBlock?
         parametersBlock?
         transformedParametersBlock?
-        priorBlock?
         guideParametersBlock?
         guideBlock?
         modelBlock?
