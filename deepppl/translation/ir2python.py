@@ -427,6 +427,7 @@ class VariableInitializationVisitor(IRVisitor):
         super(VariableInitializationVisitor, self).__init__()
         self._currentBlock = None
         self._to_guide = []
+        self._emitNext = None
 
     @contextmanager
     def _inBlock(self, block):
@@ -441,11 +442,23 @@ class VariableInitializationVisitor(IRVisitor):
         with self._inBlock(block):
             return self.defaultVisit(block)
 
+    def _visitAll(self, iterable):
+        filter = lambda x: (x is not None) or None
+        answer = []
+        for x in iterable:
+            answer.append(filter(x) and x.accept(self))
+            if self._emitNext is not None:
+                _next = self._emitNext
+                self._emitNext = None
+                answer.append(_next.accept(self))
+        return answer
+
+
     visitData = _visitBlock
     visitParameters = _visitBlock
     visitGuideParameters = _visitBlock
     visitModel = _visitBlock
-    
+
     def visitGuide(self, guide):
         guide.body = self._to_guide + guide.body
         return self._visitBlock(guide)
@@ -457,10 +470,12 @@ class VariableInitializationVisitor(IRVisitor):
             assert self._currentBlock is not None, "declaration outside a block."
             if self._currentBlock.is_data() or self._currentBlock.is_parameters():
                 assert False, "Initialization of data or parameters is forbiden."
+            initialized = self._buildInit(answer)
+            answer.init = None
             if self._currentBlock.is_guide_parameters():
-                initialized = self._buildInit(answer)
                 self._to_guide.append(initialized)
-                answer.init = None
+            else:
+                self._emitNext = initialized
         return answer
 
     def _buildInit(self, decl):
