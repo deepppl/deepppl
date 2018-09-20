@@ -15,6 +15,7 @@
 # */
 
 from collections import defaultdict
+from contextlib import contextmanager
 import ast
 import torch
 import astpretty
@@ -420,6 +421,66 @@ class PythonASTHelper(object):
     def importFrom_(self, module, names):
         names_ = [ast.alias(name=name, asname = None) for name in names]
         return ast.ImportFrom(module, names_, 0)
+
+class VariableInitializationVisitor(IRVisitor):
+    def __init__(self):
+        super(VariableInitializationVisitor, self).__init__()
+        self._currentBlock = None
+        self._to_guide = []
+
+    @contextmanager
+    def _inBlock(self, block):
+        try:
+            old = self._currentBlock
+            self._currentBlock = block
+            yield
+        finally:
+            self._currentBlock = old
+
+    def _visitBlock(self, block):
+        with self._inBlock(block):
+            return self.defaultVisit(block)
+
+    visitData = _visitBlock
+    visitParameters = _visitBlock
+    visitGuideParameters = _visitBlock
+    visitModel = _visitBlock
+    
+    def visitGuide(self, guide):
+        guide.body = self._to_guide + guide.body
+        return self._visitBlock(guide)
+
+
+    def visitVariableDecl(self, decl):
+        answer = self.defaultVisit(decl)
+        if decl.init:
+            assert self._currentBlock is not None, "declaration outside a block."
+            if self._currentBlock.is_data() or self._currentBlock.is_parameters():
+                assert False, "Initialization of data or parameters is forbiden."
+            if self._currentBlock.is_guide_parameters():
+                initialized = self._buildInit(answer)
+                self._to_guide.append(initialized)
+                answer.init = None
+        return answer
+
+    def _buildInit(self, decl):
+        target = Variable(id = decl.id)
+        value = decl.init
+        return AssignStmt(target = target, value = value)
+
+    def defaultVisit(self, node):
+        answer = node
+        answer.children = self._visitChildren(node)
+        return answer
+
+    def visitProgram(self, program):
+        answer = Program()
+        answer.children = self._visitChildren(program)
+        return answer
+
+
+        
+
 
 
 class IRShape(object):
@@ -1135,6 +1196,8 @@ class Ir2PythonVisitor(IRVisitor):
 
 
 def ir2python(ir):
+    initialization = VariableInitializationVisitor()
+    ir.accept(initialization)
     annotator = VariableAnnotationsVisitor()
     ir = ir.accept(annotator)
     nets = NetworksVisitor()
