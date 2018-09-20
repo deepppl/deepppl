@@ -100,6 +100,11 @@ def test_coin_guide():
     target_file = r'deepppl/tests/target_py/coin_guide.py'
     normalize_and_compare(filename, target_file)
 
+def test_coin_guide_init():
+    filename = r'deepppl/tests/good/coin_guide_init.stan'
+    target_file = r'deepppl/tests/target_py/coin_guide_init.py'
+    normalize_and_compare(filename, target_file)
+
 
 def test_lstm():
     filename = r'deepppl/tests/good/lstm.stan'

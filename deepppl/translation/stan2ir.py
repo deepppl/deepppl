@@ -64,7 +64,12 @@ class StanToIR(stanListener):
         vid = ctx.IDENTIFIER().getText()
         dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
         type_ = ctx.type_().ir
-        ctx.ir = VariableDecl(id = vid, dim = dims, type_ = type_)
+        init = ctx.expression().ir if is_active(ctx.expression) else None
+        ctx.ir = VariableDecl(
+                    id = vid, 
+                    dim = dims, 
+                    type_ = type_,
+                    init = init)
 
     def exitType_(self, ctx):
         ptype = ctx.primitiveType()
