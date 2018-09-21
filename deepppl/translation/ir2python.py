@@ -14,7 +14,7 @@
 #  * limitations under the License.
 # */
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from contextlib import contextmanager
 import ast
 import torch
@@ -26,7 +26,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
                 Minus, UnaryOperator, UMinus, AnonymousShapeProperty,\
-                NetVariableProperty, Prior
+                VariableProperty, NetVariableProperty, Prior
 
 from .exceptions import *
 
@@ -428,6 +428,7 @@ class VariableInitializationVisitor(IRVisitor):
         self._currentBlock = None
         self._to_guide = []
         self._emitNext = None
+        self._variationalParameters = OrderedDict()
 
     @contextmanager
     def _inBlock(self, block):
@@ -460,14 +461,40 @@ class VariableInitializationVisitor(IRVisitor):
     visitModel = _visitBlock
 
     def visitGuide(self, guide):
-        guide.body = self._to_guide + guide.body
-        return self._visitBlock(guide)
+        with self._inBlock(guide):
+            guide.body = self._to_guide + guide.body
+            answer = self.defaultVisit(guide)
+            defaultInits = self._buildDefaultInits()
+            answer.body = defaultInits + answer.body
+            return answer
+
+    def _buildDefaultInits(self):
+        answer = []
+        for name in list(self._variationalParameters):
+            target = Variable(id = name)
+            shape = VariableProperty(var = target, prop = 'shape')
+            args = List(elements = [shape,])
+            value = CallStmt(id = 'randn', args = args)
+            assign = AssignStmt(target = target, value = value).accept(self)
+            answer.append(assign)
+        return answer
+
+
+    def visitAssignStmt(self, assign):
+        if self._currentBlock.is_guide():
+            if assign.target.is_variable():
+                id = assign.target.id
+                if id in self._variationalParameters:
+                    del self._variationalParameters[id]
+        return self.defaultVisit(assign)
 
 
     def visitVariableDecl(self, decl):
         answer = self.defaultVisit(decl)
+        assert self._currentBlock is not None, "declaration outside a block."
+        if self._currentBlock.is_guide_parameters():
+            self._variationalParameters[decl.id] = decl
         if decl.init:
-            assert self._currentBlock is not None, "declaration outside a block."
             if self._currentBlock.is_data() or self._currentBlock.is_parameters():
                 assert False, "Initialization of data or parameters is forbiden."
             initialized = self._buildInit(answer)
@@ -829,19 +856,7 @@ class Ir2PythonVisitor(IRVisitor):
                                     ctx = ast.Store())
 
             return self._assign(shapes, dims)
-        if decl.init:
-            ## XXX
-            if True:
-                raise NotImplementedError
-            assert not decl.data, "Data cannot be initialized"
-            init = decl.init.accept(self)
-            torch_ = self.loadName('torch')
-            zeros_fn = self.loadAttr(torch_, 'zeros')
-            dims = [ast.List(elts=dims, ctx=ast.Load())]
-            zeros = self.call(zeros_fn, args = dims)
-            return ast.Assign(
-                    targets=[ast.Name(id=decl.id, ctx=ast.Store())],
-                    value=zeros)
+        assert decl.init is None, "Variables declaration should be handled before this point."
         return None
 
 
