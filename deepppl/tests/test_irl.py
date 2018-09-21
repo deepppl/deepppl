@@ -225,6 +225,11 @@ def test_mlp():
     target_file = r'deepppl/tests/target_py/mlp.py'
     normalize_and_compare(filename, target_file)
 
+def test_mlp_default_init():
+    filename = r'deepppl/tests/good/mlp_default_init.stan'
+    target_file = r'deepppl/tests/target_py/mlp.py'
+    normalize_and_compare(filename, target_file)
+
 
 def test_vae():
     filename = r'deepppl/tests/good/vae.stan'
