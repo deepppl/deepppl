@@ -4,6 +4,7 @@
 # DeepPPL
 Deep Probabilistic Programming Language
 
+Paper: https://arxiv.org/abs/1810.00873
 
 ## Installation
 ```
