@@ -738,6 +738,7 @@ class ShapeCheckingVisitor(IRVisitor):
 class Ir2PythonVisitor(IRVisitor):
     new_distributions = {name.lower():name for name in [
                             'CategoricalLogits',
+                            'bernoulli_logit',
                             'ImproperUniform',
                             'LowerConstrainedImproperUniform',
                             'UpperConstrainedImproperUniform'
@@ -996,7 +997,6 @@ class Ir2PythonVisitor(IRVisitor):
             raise UnknownDistributionException(id)
         return self.call(dist,
                         args = args)
-        
 
     def visitSamplingDeclaration(self, sampling):
         """This node represents when a variable is declared to have a given distribution"""

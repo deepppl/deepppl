@@ -23,6 +23,9 @@ import torch
 def CategoricalLogits(logits):
     return dist.Categorical(logits=logits)
 
+def bernoulli_logit(logits):
+    return dist.Bernoulli(logits=logits)
+
 class ImproperUniform(dist.Normal):
     def __init__(self, shape = None):
         zeros = torch.zeros(shape) if shape else 0
