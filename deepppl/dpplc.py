@@ -74,17 +74,29 @@ def do_compile(model_code = None, model_file = None):
         ast_ = stan2astpyFile(model_file)
     return compile(ast_, "<deepppl_ast>", 'exec')
 
-def main(argv):
-    return stan2astpyFile(argv[1])
+def main(file):
+    return stan2astpyFile(file)
 
 
 if __name__ == '__main__':
+    import argparse
     import pandas as pd
-    ast_ = main(sys.argv)
+    parser = argparse.ArgumentParser(description='DeepPPL compiler')
+    parser.add_argument('file', type=str,
+                        help='A Stan file to compile')
+    parser.add_argument('--print', action='store_true',
+                        help='Print the generated Pyro code')
+    parser.add_argument('--noinfer', action='store_true',
+                    help='Do not launch inference')
+    args = parser.parse_args()
+    ast_ = main(args.file)
+    if args.print:
+        print(astor.to_source(ast_))
     co = compile(ast_, "<ast>", 'exec')
     eval(co)
-    x = torch.Tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0])
-    posterior = pyro.infer.Importance(model, num_samples=1000)
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(x), sites='theta')
-    serie = pd.Series([marginal().item() for _ in range(1000)])
-    print(serie.describe())
+    if not args.noinfer:
+        x = torch.Tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+        posterior = pyro.infer.Importance(model, num_samples=1000)
+        marginal = pyro.infer.EmpiricalMarginal(posterior.run(x), sites='theta')
+        serie = pd.Series([marginal().item() for _ in range(1000)])
+        print(serie.describe())
