@@ -848,12 +848,7 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         if decl.data:
             self.data_names.add(decl.id)
-        if isinstance(decl.dim, Constant):
-            dims = ast.Num(decl.dim.value)
-        elif (decl.dim is not None):
-            dims = decl.dim.accept(self)
-        else:
-            dims = ast.Tuple(elts=[])
+        dims = decl.dim.accept(self) if decl.dim else None
         if dims:
             ## XXX we are ignoring the initialization.
             shapes = ast.Subscript(
@@ -1225,7 +1220,7 @@ class Ir2PythonVisitor(IRVisitor):
         module = ast.Module()
         module.body = [
             self.import_('torch'),
-            self.importFrom_('torch', ['tensor','randn']),
+            self.importFrom_('torch', ['tensor',]),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
         module.body += body
@@ -1251,7 +1246,6 @@ def ir2python(ir):
     ir.accept(shapes_checking)
     visitor = Ir2PythonVisitor(shapes_checking._anons)
     return ir.accept(visitor)
-
 
 
 
