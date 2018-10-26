@@ -89,7 +89,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         if not name in self.ctx:
             assert False, "Trying to delete an nonexistent variable:{}.".format(name)
         del self.ctx[name]
-    
+
     def visitProgram(self, program):
         answer = Program()
         answer.children = self._visitChildren(program)
@@ -137,7 +137,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         block = self.visitProgramBlock(params)
         self._to_model = []
         for decl in self.block2decl[block.blockName()]:
-            sampling = self._buildSamplingFor(decl)              
+            sampling = self._buildSamplingFor(decl)
             self._to_model.append(sampling)
         return block
 
@@ -179,14 +179,14 @@ class VariableAnnotationsVisitor(IRVisitor):
         else:
             dist = 'ImproperUniform'
             args = []
-                
+
         #XXX check dimensions
         sampling = SamplingParameters(
-                        target = target, 
-                        args = args, 
+                        target = target,
+                        args = args,
                         id = dist)
         return sampling
-        
+
     def visitVariableDecl(self, decl):
         decl.dim = decl.dim.accept(self) if decl.dim else None
         name = decl.id
@@ -295,7 +295,7 @@ class NetworksVisitor(IRVisitor):
         self._currdict = None
         self._currBlock = None
         return block
-        
+
     def _param_to_name(self, params):
         return '.'.join(params)
 
@@ -303,7 +303,7 @@ class NetworksVisitor(IRVisitor):
         name = decl.name
         self._nets[name] = decl
         if decl.params:
-            vars = [NetVariable(name = name, ids = x) 
+            vars = [NetVariable(name = name, ids = x)
                                             for x in decl.params]
             self._guides[name] = {var.id: var for var in vars}
             self._priors[name] = {var.id: var for var in vars}
@@ -367,7 +367,7 @@ class SamplingConsistencyVisitor(IRVisitor):
             target = sampling.target
             if isinstance(target, Variable):
                 id = target.id
-            elif isinstance(target, Subscript): 
+            elif isinstance(target, Subscript):
                 ## XXX A more general logic must be applied elsewhere
                 id = target.id.id
             else:
@@ -521,14 +521,14 @@ class VariableInitializationVisitor(IRVisitor):
         return answer
 
 
-        
+
 
 
 
 class IRShape(object):
     def __init__(self, creator):
         self.creator = creator
-  
+
     def isBound(self):
         return False
 
@@ -637,7 +637,7 @@ class ShapeCheckingVisitor(IRVisitor):
         del self._ctx[for_.id]
 
     def visitVariableDecl(self, decl):
-        """If dimensions uses `$shape` property, then mimics that shape. Otherwise, 
+        """If dimensions uses `$shape` property, then mimics that shape. Otherwise,
             use the dimensions verbatim"""
         isanon = False
         if decl.dim:
@@ -661,7 +661,7 @@ class ShapeCheckingVisitor(IRVisitor):
 
     def visitAssignStmt(self, assign):
         target = assign.target
-        ## XXX check presence 
+        ## XXX check presence
         self._ctx[target.id].pointTo(assign.value.accept(self))
 
     def visitUnaryOperator(self, op):
@@ -679,15 +679,15 @@ class ShapeCheckingVisitor(IRVisitor):
         used = len(subs.index.exprs) if subs.index.is_tuple() else 1
         used = Constant(value = used)
         adjusted = BinaryOperator(
-                                    left = shape.value, 
-                                    right = used, 
+                                    left = shape.value,
+                                    right = used,
                                     op = Minus())
         return ShapeLinkedList.bounded(subs, adjusted)
 
     def visitVariable(self, var):
         return self._ctx[var.id] ## XXX check presence
 
-    
+
     def visitNetVariable(self, netvar):
         name = '.'.join([netvar.name] + netvar.ids)
         if not name in self._nets:
@@ -698,7 +698,7 @@ class ShapeCheckingVisitor(IRVisitor):
     def visitSamplingDeclaration(self, sampling):
         if sampling.target.is_net_var():
             target_shape = sampling.target.accept(self)
-            
+
             ### XXX check that all are the same
             [x.accept(self).pointTo(target_shape) for x in sampling.args]
 
@@ -848,7 +848,12 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         if decl.data:
             self.data_names.add(decl.id)
-        dims = decl.dim.accept(self) if decl.dim else None
+        if isinstance(decl.dim, Constant):
+            dims = ast.Num(decl.dim.value)
+        elif (decl.dim is not None):
+            dims = decl.dim.accept(self)
+        else:
+            dims = ast.Tuple(elts=[])
         if dims:
             ## XXX we are ignoring the initialization.
             shapes = ast.Subscript(
@@ -897,16 +902,16 @@ class Ir2PythonVisitor(IRVisitor):
         ## TODO: id is not an object of ir!
         id = forstmt.id
         from_, to_, body = self._visitChildren(forstmt)
-        incl_to = ast.BinOp(left = to_, 
-                            right = ast.Num(1), 
+        incl_to = ast.BinOp(left = to_,
+                            right = ast.Num(1),
                             op = ast.Add())
         interval = [from_, incl_to]
-        iter = self.call(self.loadName('range'), 
+        iter = self.call(self.loadName('range'),
                                 interval)
         body = self._ensureStmtList(body)
-        return ast.For(target = ast.Name(id = id, ctx=ast.Store()), 
+        return ast.For(target = ast.Name(id = id, ctx=ast.Store()),
                         iter = iter,
-                        body = body, 
+                        body = body,
                         orelse = [])
 
     def visitConditionalStmt(self, conditional):
@@ -923,8 +928,8 @@ class Ir2PythonVisitor(IRVisitor):
     def visitBinaryOperator(self, binaryop):
         left, right, op = self._visitChildren(binaryop)
         if isinstance(op, ast.cmpop):
-            return ast.Compare(left = left, 
-                               ops = [op], 
+            return ast.Compare(left = left,
+                               ops = [op],
                                comparators =[right])
         elif isinstance(op, ast.boolop):
             return ast.BoolOp(op = op, values = [left, right])
@@ -1017,9 +1022,9 @@ class Ir2PythonVisitor(IRVisitor):
         target = sampling.target.accept(self)
         keyword = ast.keyword(arg='obs', value = target)
         self._observed += 1
-        call = self.samplingCall(sampling, 
-                                target, 
-                                keywords = [keyword], 
+        call = self.samplingCall(sampling,
+                                target,
+                                keywords = [keyword],
                                 observed = self._observed)
         return ast.Expr(value = call)
 
@@ -1048,7 +1053,7 @@ class Ir2PythonVisitor(IRVisitor):
             slice = ast.Index(value = var),
             ctx = ast.Load()
         )
-    
+
     def pathAttr(self, path):
         paths = path.split('.')
         piter = iter(paths)
@@ -1114,8 +1119,8 @@ class Ir2PythonVisitor(IRVisitor):
         rand_mod = self._pyroattr('random_module')
         lifted_name = 'lifted_' + name
         lifted = self.loadName(lifted_name)
-        lifter = self.call(rand_mod, 
-                    args = [ast.Str(name), 
+        lifter = self.call(rand_mod,
+                    args = [ast.Str(name),
                             self.loadName(name),
                             self.loadName(dict_name)])
         return [
@@ -1124,7 +1129,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def liftBody(self, block, name, dict_name):
         inner_body = [x for x in self._visitChildren(block) if x is not None]
-        body = [self._assign(self.loadName(dict_name), 
+        body = [self._assign(self.loadName(dict_name),
                             ast.Dict(keys = [], values=[])),]
         body += inner_body
         body += self.liftModule(name, dict_name)
@@ -1161,8 +1166,8 @@ class Ir2PythonVisitor(IRVisitor):
             inner_body = [x for x in self._visitChildren(guide) if x is not None]
         body = self._guide_header + pre_body + inner_body
 
-        f = self._funcDef(name = name_guide, 
-                            args = self.modelArgs(), 
+        f = self._funcDef(name = name_guide,
+                            args = self.modelArgs(),
                             body = body)
         return f
 
@@ -1203,7 +1208,7 @@ class Ir2PythonVisitor(IRVisitor):
     def buildHeaders(self, program):
         transform = lambda block: block.accept(self) if block else []
         basic = self.buildBasicHeaders()
-        tpd = transform(program.data) 
+        tpd = transform(program.data)
         tpp = transform(program.parameters)
         self._model_header = basic + tpd + tpp
         tpgp = transform(program.guideparameters)
@@ -1220,7 +1225,7 @@ class Ir2PythonVisitor(IRVisitor):
         module = ast.Module()
         module.body = [
             self.import_('torch'),
-            self.importFrom_('torch', ['tensor',]),
+            self.importFrom_('torch', ['tensor','randn']),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
         module.body += body
@@ -1230,7 +1235,7 @@ class Ir2PythonVisitor(IRVisitor):
             print(astor.to_source(module))
         return module
 
-            
+
 
 
 def ir2python(ir):
@@ -1249,4 +1254,4 @@ def ir2python(ir):
 
 
 
-                                    
+
