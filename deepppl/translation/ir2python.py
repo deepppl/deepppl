@@ -125,6 +125,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         return self.defaultVisit(block)
 
     visitData = visitProgramBlock
+    visitTransformedData = visitProgramBlock
     visitGuide = visitProgramBlock
     visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
@@ -456,6 +457,7 @@ class VariableInitializationVisitor(IRVisitor):
 
 
     visitData = _visitBlock
+    visitTransformedData = _visitBlock
     visitParameters = _visitBlock
     visitGuideParameters = _visitBlock
     visitModel = _visitBlock
@@ -747,6 +749,7 @@ class Ir2PythonVisitor(IRVisitor):
     def __init__(self, anons):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
+        self._transformed_data_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
@@ -848,6 +851,8 @@ class Ir2PythonVisitor(IRVisitor):
     def visitVariableDecl(self, decl):
         if decl.data:
             self.data_names.add(decl.id)
+        if decl.transformed_data:
+            self._transformed_data_names.add(decl.id)
         dims = decl.dim.accept(self) if decl.dim else None
         if dims:
             ## XXX we are ignoring the initialization.
@@ -1085,6 +1090,20 @@ class Ir2PythonVisitor(IRVisitor):
         answer = self._visitChildren(data)
         return self._ensureStmtList(answer)
 
+    def visitTransformedData(self, transformed_data):
+        name = 'transformed_data'
+        args = self.modelArgs(no_transformed_data=True)
+        body = []
+        body.extend(self._visitChildren(transformed_data))
+        k = [ast.Str(td_name) for td_name in self._transformed_data_names]
+        v = [self.loadName(td_name) for td_name in self._transformed_data_names]
+        body.append(ast.Return(ast.Dict(k, v)))
+        body = self._ensureStmtList(body)
+        f = self._funcDef(name = name,
+                          args = args,
+                          body = body)
+        return f
+
     visitParameters = visitData
     visitGuideParameters = visitParameters
 
@@ -1143,7 +1162,15 @@ class Ir2PythonVisitor(IRVisitor):
         self._priors = {name : name_prior}
         return f
 
-    def modelArgsAsParams(self):
+    def modelArgsAsParams(self, no_transformed_data=False):
+        args = [self.loadName(name) for name in sorted(self.data_names)]
+        if not no_transformed_data and self._transformed_data_names:
+            td_args = modelArgsAsParams(self, no_transformed_data=True)
+            td_call = self.call(
+                id = self.loadName('transformed_data'),
+                args = td_args
+            )
+            args.append(ast.arg(td_call))
         return [self.loadName(name) for name in sorted(self.data_names)]
 
 
@@ -1166,8 +1193,11 @@ class Ir2PythonVisitor(IRVisitor):
                             body = body)
         return f
 
-    def modelArgs(self):
-        return [ast.arg(name, None) for name in sorted(self.data_names)]
+    def modelArgs(self, no_transformed_data=False):
+        args = [ast.arg(name, None) for name in sorted(self.data_names)]
+        if not no_transformed_data and self._transformed_data_names:
+            args.append(ast.arg('transformed_data', None))
+        return args
 
     def buildPrior(self, prior, basename):
         lifted_prior = self._assign(self.loadName(prior),
@@ -1188,6 +1218,12 @@ class Ir2PythonVisitor(IRVisitor):
         pre_body = []
         for prior in self._priors:
             pre_body.extend(self.buildPrior(prior, name))
+        for td_name in self._transformed_data_names:
+            access = ast.Subscript(value = self.loadName('transformed_data'),
+                                   slice = ast.Index(value = ast.Str(td_name)),
+                                   ctx = ast.Load())
+            decl = self._assign(self.loadName(td_name),access)
+            pre_body.append(decl)
         body = self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = name,
@@ -1212,6 +1248,7 @@ class Ir2PythonVisitor(IRVisitor):
     def visitProgram(self, program):
         self.buildHeaders(program)
         python_nodes = [node.accept(self) for node in [
+                                                        program.transformeddata,
                                                         program.guide,
                                                         program.prior,
                                                         program.model]

@@ -454,6 +454,13 @@ class StanToIR(stanListener):
                 ir.set_data()
         ctx.ir = Data(body = body)
 
+    def exitTransformedDataBlock(self, ctx):
+        body = gatherChildrenIRList(ctx)
+        for ir in body:
+            if ir.is_variable_decl():
+                ir.set_transformed_data()
+        ctx.ir = TransformedData(body = body)
+
     def code_block(self, ctx, cls):
         body = gatherChildrenIRList(ctx)
         ctx.ir = cls(body = body)

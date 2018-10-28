@@ -36,7 +36,7 @@ class IR(metaclass=IRMeta):
 
     def ensureInt(self):
         assert False, "don't know how to ensure Int."
-    
+
 class Program(IR):
     def __init__(self, body = []):
         super(Program, self).__init__()
@@ -62,7 +62,7 @@ class Program(IR):
             if getattr(self, name) is not None:
                 assert False, "trying to set :{} twice.".format(name)
             setattr(self, name, block)
-    
+
     def blocks(self):
         ## impose an evaluation order
         for name in self.blockNames():
@@ -72,12 +72,12 @@ class Program(IR):
 
     def blockNames(self):
         return [
-                    'data', 'parameters', 'networksblock',  \
+            'data', 'transformeddata', 'parameters', 'networksblock',  \
                     'guideparameters', \
                     'guide', 'prior', 'model']
 
 
-        
+
 
 class ProgramBlocks(IR):
     def __init__(self, body = []):
@@ -86,7 +86,7 @@ class ProgramBlocks(IR):
         self._nets = []
         self._blackBoxNets = set()
 
-    
+
     def __eq__(self, other):
         """Basic equality"""
         return self.children == other.children
@@ -104,6 +104,9 @@ class ProgramBlocks(IR):
         return cls.__name__.lower()
 
     def is_data(self):
+        return False
+
+    def is_transformed_data(self):
         return False
 
     def is_model(self):
@@ -178,6 +181,10 @@ class Data(ProgramBlocks):
     def is_data(self):
         return True
 
+class TransformedData(ProgramBlocks):
+    def is_transformed_data(self):
+        return True
+
 class Statements(IR):
     pass
 
@@ -222,7 +229,7 @@ class SamplingParameters(SamplingStmt):
 
 class SamplingFactor(SamplingStmt):
     """
-    Like observe but without distribution, 
+    Like observe but without distribution,
     just the log-density.
     This behavior is achieved using the following identity:
     ```
@@ -230,8 +237,8 @@ class SamplingFactor(SamplingStmt):
     ```
     """
     def __init__(self, target = None):
-        super(SamplingFactor, self).__init__(target = target, 
-                                            id = None, 
+        super(SamplingFactor, self).__init__(target = target,
+                                            id = None,
                                             args = [])
 
 class ForStmt(Statements):
@@ -305,7 +312,7 @@ class CallStmt(Statements):
 
     @children.setter
     def children(self, children):
-        [self.args,] = children  
+        [self.args,] = children
 
 
 class BreakStmt(Statements):
@@ -317,6 +324,9 @@ class ContinueStmt(Statements):
 class Expression(Statements):
     def is_data_var(self):
         return all(x.is_data_var() for x in self.children)
+
+    def is_transformed_data_var(self):
+        return all(x.is_transformed_data_var() for x in self.children)
 
     def is_params_var(self):
         return (x.is_params_var() for x in self.children)
@@ -381,7 +391,7 @@ class BinaryOperator(Expression):
         super(BinaryOperator, self).__init__()
         self.left = left
         self.right = right
-        self.op = op 
+        self.op = op
 
     @property
     def children(self):
@@ -410,7 +420,7 @@ class Subscript(Expression):
     def __init__(self, id = None, index = None):
         super(Subscript, self).__init__()
         self.id = id
-        self.index = index 
+        self.index = index
 
     @property
     def children(self):
@@ -422,6 +432,9 @@ class Subscript(Expression):
 
     def is_data_var(self):
         return self.id.is_data_var()
+
+    def is_transformed_data_var(self):
+        return self.id.is_transformed_data_var()
 
     def is_params_var(self):
         return self.id.is_params_var()
@@ -443,6 +456,7 @@ class VariableDecl(IR):
         self.dim = dim
         self.init = init
         self.data = False
+        self.transformed_data = False
         self.type_ = type_
 
     def is_variable_decl(self):
@@ -450,6 +464,9 @@ class VariableDecl(IR):
 
     def set_data(self):
         self.data = True
+
+    def set_transformed_data(self):
+        self.transformed_data = True
 
     @property
     def children(self):
@@ -519,6 +536,9 @@ class Variable(Expression):
     def is_data_var(self):
         return self.block_name == Data.blockName()
 
+    def is_transformed_data_var(self):
+        return self.block_name == Data.blockName()
+
     def is_params_var(self):
         return self.block_name == Parameters.blockName()
 
@@ -577,22 +597,22 @@ class NetVariable(Expression):
 
     def is_net_var(self):
         return True
-    
+
 
 class Operator(Expression):
     pass
 
 class Plus(Operator):
-    pass 
+    pass
 
 class Minus(Operator):
-    pass 
+    pass
 
 class Pow(Operator):
     pass
 
 class Mult(Operator):
-    pass  
+    pass
 
 class Div(Operator):
     pass
