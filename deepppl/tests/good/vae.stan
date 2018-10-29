@@ -21,28 +21,24 @@ networks {
 }
 
 data {
-    int x;
-    int nz;
-    int batch_size;
+    int<lower=0, upper=1> x[28, 28];
+    int nz; int batch_size;
 }
 
 parameters {
-    int latent;
+    int z[nz];
 }
 
 model {
-    int loc_img;
-    latent ~ Normal(zeros(nz), ones(nz), batch_size);
-    loc_img = decoder(latent);
-    x ~ Bernoulli(loc_img);
+    int mu[28, 28];
+    z ~ Normal(zeros(nz), ones(nz), batch_size);
+    mu = decoder(z);
+    x ~ Bernoulli(mu);
 }
 
 guide {
-    real encoded[2];
-    real mu;
-    real sigma;
-    encoded = encoder(x);
-    mu = encoded[1];
-    sigma = encoded[2];
-    latent ~ Normal(mu, sigma, batch_size);
+    real encoded[2, nz] = encoder(x);
+    real mu_z = encoded[1];
+    real sigma_z = encoded[2];
+    z ~ Normal(mu_z, sigma_z, batch_size);
 }

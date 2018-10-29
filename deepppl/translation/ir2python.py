@@ -851,17 +851,16 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
-        dims = decl.dim.accept(self) if decl.dim else None
-        if dims:
-            ## XXX we are ignoring the initialization.
-            shapes = ast.Subscript(
-                                    value = self.loadName('___shape'),
-                                    slice = ast.Index(value = ast.Str(decl.id)),
-                                    ctx = ast.Store())
-
-            return self._assign(shapes, dims)
-        assert decl.init is None, "Variables declaration should be handled before this point."
-        return None
+        # dims = decl.dim.accept(self) if decl.dim else None
+        if (decl.dim is not None):
+            dims = decl.dim.accept(self)
+        else:
+            dims = ast.Tuple(elts=[], ctx=ast.Load())
+        shapes = ast.Subscript(
+                                value = self.loadName('___shape'),
+                                slice = ast.Index(value = ast.Str(decl.id)),
+                                ctx = ast.Store())
+        return self._assign(shapes, dims)
 
 
     def visitList(self, list):
@@ -1255,7 +1254,7 @@ class Ir2PythonVisitor(IRVisitor):
         module = ast.Module()
         module.body = [
             self.import_('torch'),
-            self.importFrom_('torch', ['tensor',]),
+            self.importFrom_('torch', ['tensor', 'randn']),
             self.import_('pyro'),
             self.import_('pyro.distributions', 'dist')]
         module.body += body

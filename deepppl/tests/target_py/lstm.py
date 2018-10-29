@@ -1,11 +1,12 @@
 import torch
-from torch import tensor
+from torch import tensor, randn
 import pyro
 import pyro.distributions as dist
 
 
 def guide_rnn(category, input, n_characters):
     ___shape = {}
+    ___shape['n_characters'] = ()
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     ___shape['ewl'] = rnn.encoder.weight.shape
@@ -50,6 +51,7 @@ def guide_rnn(category, input, n_characters):
 
 def prior_rnn(category, input, n_characters):
     ___shape = {}
+    ___shape['n_characters'] = ()
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     prior_rnn = {}
@@ -66,6 +68,7 @@ def prior_rnn(category, input, n_characters):
 
 def model(category, input, n_characters):
     ___shape = {}
+    ___shape['n_characters'] = ()
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     rnn = prior_rnn(category, input, n_characters)
