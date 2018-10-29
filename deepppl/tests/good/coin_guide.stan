@@ -28,12 +28,10 @@ model {
 }
 
 guide parameters {
-  real<lower=0>  alpha_q;
-  real<lower=0>  beta_q;
+  real<lower=0>  alpha_q = tensor(15.0);
+  real<lower=0>  beta_q = tensor(15.0);
 }
 
 guide {
-  alpha_q = 15.0;
-  beta_q = 15.0;
   theta ~ Beta(alpha_q, beta_q);
 }

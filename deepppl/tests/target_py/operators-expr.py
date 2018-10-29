@@ -6,13 +6,11 @@ import pyro.distributions as dist
 
 def model(x):
     ___shape = {}
-    ___shape['x'] = tensor(10)
-    theta = pyro.sample('theta', dist.Uniform(tensor(0.0), tensor(1.0)))
-    pyro.sample('theta' + '1', dist.Uniform(tensor(0) * tensor(3) / tensor(
-        5), tensor(1) + tensor(5) - tensor(5)), obs=theta)
-    for i in range(tensor(1), tensor(10) + 1):
-        if tensor(1) <= tensor(10) and (tensor(1) > tensor(5) or tensor(2) <
-            tensor(1)):
+    ___shape['x'] = 10
+    theta = pyro.sample('theta', dist.Uniform(0.0, 1.0))
+    pyro.sample('theta' + '1', dist.Uniform(0 * 3 / 5, 1 + 5 - 5), obs=theta)
+    for i in range(1, 10 + 1):
+        if 1 <= 10 and (1 > 5 or 2 < 1):
             pyro.sample('x' + '{}'.format(i - 1) + '2', dist.Bernoulli(
                 theta), obs=x[i - 1])
     print(x)
