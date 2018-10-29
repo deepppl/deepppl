@@ -844,9 +844,7 @@ class Ir2PythonVisitor(IRVisitor):
             return ast.BinOp(left = base, right = observed_str, op = ast.Add())
 
     def visitConstant(self, const):
-        tensor = self.loadName('tensor')
-        args = [ast.Num(const.value)]
-        return self.call(tensor, args = args)
+        return ast.Num(const.value)
 
     def visitVariableDecl(self, decl):
         if decl.data:
