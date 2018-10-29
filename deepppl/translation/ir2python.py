@@ -477,7 +477,8 @@ class VariableInitializationVisitor(IRVisitor):
             shape = VariableProperty(var = target, prop = 'shape')
             args = List(elements = [shape,])
             value = CallStmt(id = 'randn', args = args)
-            assign = AssignStmt(target = target, value = value).accept(self)
+            constraints = self._variationalParameters[name].type_.constraints
+            assign = AssignStmt(target = target, value = value, constraints = constraints).accept(self)
             answer.append(assign)
         return answer
 
@@ -883,12 +884,50 @@ class Ir2PythonVisitor(IRVisitor):
         if ir.target.is_variable():
             if ir.target.is_guide_parameters_var():
                 target_name = self.targetToName(target)
+                if ir.constraints:
+                    seen = {}
+                    for const in ir.constraints:
+                        seen[const.sort] = self.visitConstant(const.value)
+                    if 'lower' in seen and 'upper' in seen:
+                        cstr = self.call(
+                            ast.Attribute(
+                                value=ast.Name(id='constraints', ctx=ast.Load()),
+                                attr='integer_interval', ctx=ast.Load()
+                                ),
+                            args=[seen['lower'], seen['upper']])
+                    elif 'lower' in seen:
+                        if seen['lower'].n == 0.0:
+                            cstr = ast.Attribute(
+                                value=ast.Name(id='constraints', ctx=ast.Load()),
+                                attr='positive', ctx=ast.Load())
+                        else:
+                            cstr = self.call(
+                                ast.Attribute(
+                                    value=ast.Name(id='constraints', ctx=ast.Load()),
+                                    attr='greater_than', ctx=ast.Load()
+                                    ),
+                                args=[seen['lower'],])
+                    elif 'upper' in seen:
+                        cstr = self.call(
+                            ast.Attribute(
+                                value=ast.Name(id='constraints', ctx=ast.Load()),
+                                attr='interval', ctx=ast.Load()
+                                ),
+                            args = [ast.Num(- float("inf")), seen['upper'],])
+                    else:
+                        assert False, 'unknown constraints: {}.'.format(seen)
+                    keywords = [ast.keyword(
+                                arg='constraint',
+                                value=cstr)]
+                else:
+                    keywords = []
                 value = self.call(self._pyroattr('param'),
-                                args = [
-                                        target_name,
-                                        value,
-                                        ## XXX possible constraints
-                                ])
+                            args = [
+                                    target_name,
+                                    value,
+                                    ## XXX possible constraints
+                            ],
+                            keywords=keywords)
         return self._assign(target, value)
 
 
@@ -1256,6 +1295,7 @@ class Ir2PythonVisitor(IRVisitor):
             self.import_('torch'),
             self.importFrom_('torch', ['tensor', 'randn']),
             self.import_('pyro'),
+            self.import_('torch.distributions.constraints', 'constraints'),
             self.import_('pyro.distributions', 'dist')]
         module.body += body
         ast.fix_missing_locations(module)

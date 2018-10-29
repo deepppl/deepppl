@@ -1,6 +1,7 @@
 import torch
 from torch import tensor, randn
 import pyro
+import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
@@ -10,8 +11,8 @@ def guide_(x):
     ___shape['theta'] = ()
     ___shape['alpha_q'] = ()
     ___shape['beta_q'] = ()
-    alpha_q = pyro.param('alpha_q', randn(___shape['alpha_q']))
-    beta_q = pyro.param('beta_q', randn(___shape['beta_q']))
+    alpha_q = pyro.param('alpha_q', randn(___shape['alpha_q']), constraint=constraints.positive)
+    beta_q = pyro.param('beta_q', randn(___shape['beta_q']), constraint=constraints.positive)
     theta = pyro.sample('theta', dist.Beta(alpha_q, beta_q))
 
 
