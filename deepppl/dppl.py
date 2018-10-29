@@ -34,7 +34,9 @@ class DppplModel(object):
 
 
     def _updateHooksAll(self, hooks):
-        [self._updateHooks(f, hooks) for f in (self._model, self._guide)]
+        [self._updateHooks(f, hooks) for f in (self._model,
+                                               self._guide,
+                                               self._transformed_data)]
 
     def _updateHooks(self, f, hooks):
         if f:
@@ -47,11 +49,14 @@ class DppplModel(object):
         self._model = locals_['model']
         self._updateHooks(self._model, locals_)
         self._guide = None
+        self._transformed_data = None
         for k in locals_.keys():
             if k.startswith('guide_'):
                 self._guide = locals_[k]
                 self._updateHooks(self._model, locals_)
-                break
+            if k.startswith('transformed_data'):
+                self._transformed_data = locals_[k]
+                self._updateHooks(self._model, locals_)
         self._loadBasicHooks()
 
     def _loadBasicHooks(self):
@@ -60,12 +65,12 @@ class DppplModel(object):
                         torch.exp,
                         torch.log,
                         torch.zeros,
-                        torch.ones, 
+                        torch.ones,
                         F.softplus]}
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
         self._updateHooksAll(utils.hooks)
-        
+
     def posterior(self, num_samples=3000, method=infer.Importance, **kwargs):
         return method(self._model, num_samples=3000, **kwargs)
 
@@ -75,6 +80,8 @@ class DppplModel(object):
         svi = infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi)
 
+    def transformed_data(self, *args, **kwargs):
+        return self._transformed_data(*args, **kwargs)
 
 class SVIProxy(object):
     def __init__(self, svi):
@@ -87,4 +94,3 @@ class SVIProxy(object):
 
     def step(self, *args):
         return self.svi.step(*args)
-

@@ -1092,6 +1092,7 @@ class Ir2PythonVisitor(IRVisitor):
         name = 'transformed_data'
         args = self.modelArgs(no_transformed_data=True)
         body = []
+        body.extend(self.buildBasicHeaders())
         body.extend(self._visitChildren(transformed_data))
         k = [ast.Str(td_name) for td_name in self._transformed_data_names]
         v = [self.loadName(td_name) for td_name in self._transformed_data_names]
@@ -1213,16 +1214,17 @@ class Ir2PythonVisitor(IRVisitor):
 
     def buildModel(self, inner_body):
         name = 'model'
-        pre_body = []
-        for prior in self._priors:
-            pre_body.extend(self.buildPrior(prior, name))
+        td_access = []
         for td_name in self._transformed_data_names:
             access = ast.Subscript(value = self.loadName('transformed_data'),
                                    slice = ast.Index(value = ast.Str(td_name)),
                                    ctx = ast.Load())
             decl = self._assign(self.loadName(td_name),access)
-            pre_body.append(decl)
-        body = self._model_header + pre_body + inner_body
+            td_access.append(decl)
+        pre_body = []
+        for prior in self._priors:
+            pre_body.extend(self.buildPrior(prior, name))
+        body = td_access + self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = name,
                             args = self.modelArgs(),
