@@ -189,10 +189,11 @@ class Statements(IR):
     pass
 
 class AssignStmt(Statements):
-    def __init__(self, target = None, value = None):
+    def __init__(self, target = None, value = None, constraints = None):
         super(AssignStmt, self).__init__()
         self.target = target
         self.value = value
+        self.constraints = constraints
 
     @property
     def children(self):

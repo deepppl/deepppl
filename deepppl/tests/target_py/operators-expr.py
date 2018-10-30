@@ -1,12 +1,14 @@
 import torch
-from torch import tensor
+from torch import tensor, randn
 import pyro
+import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
 def model(x):
     ___shape = {}
     ___shape['x'] = 10
+    ___shape['theta'] = ()
     theta = pyro.sample('theta', dist.Uniform(0.0, 1.0))
     pyro.sample('theta' + '1', dist.Uniform(0 * 3 / 5, 1 + 5 - 5), obs=theta)
     for i in range(1, 10 + 1):

@@ -1,11 +1,13 @@
 import torch
-from torch import tensor
+from torch import tensor, randn
 import pyro
+import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
 def guide_mlp(batch_size, imgs, labels):
     ___shape = {}
+    ___shape['batch_size'] = ()
     ___shape['imgs'] = [28, 28, batch_size]
     ___shape['labels'] = batch_size
     ___shape['l1wloc'] = mlp.l1.weight.shape
@@ -35,6 +37,7 @@ def guide_mlp(batch_size, imgs, labels):
 
 def prior_mlp(batch_size, imgs, labels):
     ___shape = {}
+    ___shape['batch_size'] = ()
     ___shape['imgs'] = [28, 28, batch_size]
     ___shape['labels'] = batch_size
     prior_mlp = {}
@@ -48,6 +51,7 @@ def prior_mlp(batch_size, imgs, labels):
 
 def model(batch_size, imgs, labels):
     ___shape = {}
+    ___shape['batch_size'] = ()
     ___shape['imgs'] = [28, 28, batch_size]
     ___shape['labels'] = batch_size
     mlp = prior_mlp(batch_size, imgs, labels)
