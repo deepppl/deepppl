@@ -21,7 +21,6 @@ def guide_(batch_size, nz, x):
     z = pyro.sample('z', dist.Normal(mu_z, sigma_z, batch_size))
 
 
-
 def model(batch_size, nz, x):
     ___shape = {}
     ___shape['x'] = [28, 28]
@@ -31,7 +30,7 @@ def model(batch_size, nz, x):
     pyro.module('decoder', decoder)
     z = pyro.sample('z', ImproperUniform())
     ___shape['mu'] = [28, 28]
+    mu = zeros(___shape['mu'])
     pyro.sample('z' + '1', dist.Normal(zeros(nz), ones(nz), batch_size), obs=z)
     mu = decoder(z)
     pyro.sample('x' + '2', dist.Bernoulli(mu), obs=x)
-

@@ -83,6 +83,10 @@ def test_coin_vectorized():
     target_file = r'deepppl/tests/target_py/coin_vectorized.py'
     normalize_and_compare(filename, target_file)
 
+def test_coin_transormed_data():
+    filename = r'deepppl/tests/good/coin_transformed_data.stan'
+    target_file = r'deepppl/tests/target_py/coin_transformed_data.py'
+    normalize_and_compare(filename, target_file)
 
 
 @pytest.mark.xfail(strict=True)

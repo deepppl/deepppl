@@ -75,6 +75,7 @@ def model(category, input, n_characters):
     rnn = prior_rnn(category, input, n_characters)
     model_rnn = rnn.state_dict()
     ___shape['logits'] = n_characters
+    logits = zeros(___shape['logits'])
     pyro.sample('model_rnn' + '{}'.format('encoder.weight') + '1', dist.
         Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.
         shape)), obs=model_rnn['encoder.weight'])

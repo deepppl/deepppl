@@ -506,12 +506,30 @@ class VariableInitializationVisitor(IRVisitor):
                 self._to_guide.append(initialized)
             else:
                 self._emitNext = initialized
+        else:
+            if (self._currentBlock.is_data()
+                or self._currentBlock.is_parameters()
+                or self._currentBlock.is_guide_parameters()
+                or self._currentBlock.is_guide()):
+                pass
+            else:
+                self._emitNext = self._buildDefaultArray(answer)
         return answer
 
     def _buildInit(self, decl):
         target = Variable(id = decl.id)
         value = decl.init
         return AssignStmt(target = target, value = value)
+
+    def _buildDefaultArray(self, decl):
+        if decl.type_.is_array or decl.dim is not None:
+            target = Variable(id = decl.id)
+            shape = VariableProperty(var = target, prop = 'shape')
+            args = List(elements = [shape,])
+            value = CallStmt(id = 'zeros', args = args) # XXX This value should depend on the type of the variable
+            return AssignStmt(target = target, value = value)
+        else:
+            return None
 
     def defaultVisit(self, node):
         answer = node
