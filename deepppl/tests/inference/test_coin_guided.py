@@ -6,6 +6,8 @@ import deepppl
 import os
 import numpy as np
 
+torch.manual_seed(11)
+
 def test_coin_guided_inference():
     model = deepppl.DppplModel(model_file = 'deepppl/tests/good/coin_guide.stan')
     svi = model.svi(params={'lr':0.1})
