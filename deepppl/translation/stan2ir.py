@@ -82,7 +82,8 @@ class StanToIR(stanListener):
         else:
             assert False, f"unknown type: {ptype.getText()}"
         constraints = ctx.typeConstraints().ir if ctx.typeConstraints() else None
-        ctx.ir = Type_(type_ = type_, constraints = constraints)
+        is_array = ctx.isArray is not None
+        ctx.ir = Type_(type_ = type_, constraints = constraints, is_array = is_array)
 
     def exitTypeConstraints(self, ctx):
         constraints_list = ctx.typeConstraintList()
