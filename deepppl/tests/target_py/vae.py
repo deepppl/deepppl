@@ -20,7 +20,6 @@ def guide_(batch_size, nz, x):
     sigma_z = encoded[2 - 1]
     z = pyro.sample('z', dist.Normal(mu_z, sigma_z))
 
-
 def model(batch_size, nz, x):
     ___shape = {}
     ___shape['nz'] = ()
