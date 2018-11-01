@@ -21,24 +21,24 @@ networks {
 }
 
 data {
-    int<lower=0, upper=1> x[28, 28];
     int nz; int batch_size;
+    int<lower=0, upper=1> x[28, 28, batch_size];
 }
 
 parameters {
-    int z[nz];
+    int z[nz, batch_size];
 }
 
 model {
-    int mu[28, 28];
-    z ~ Normal(zeros(nz), ones(nz), batch_size);
+    int mu[28, 28, batch_size];
+    z ~ Normal(zeros(nz), ones(nz));
     mu = decoder(z);
     x ~ Bernoulli(mu);
 }
 
 guide {
-    real encoded[2, nz] = encoder(x);
-    real mu_z = encoded[1];
-    real sigma_z = encoded[2];
-    z ~ Normal(mu_z, sigma_z, batch_size);
+    real encoded[2, nz, batch_size] = encoder(x);
+    real mu_z[nz, batch_size] = encoded[1];
+    real sigma_z[nz, batch_size] = encoded[2];
+    z ~ Normal(mu_z, sigma_z);
 }
