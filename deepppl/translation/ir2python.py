@@ -683,7 +683,8 @@ class ShapeCheckingVisitor(IRVisitor):
     def visitAssignStmt(self, assign):
         target = assign.target
         ## XXX check presence
-        self._ctx[target.id].pointTo(assign.value.accept(self))
+        # XXX Avi: this should not be commented XXX
+        # self._ctx[target.id].pointTo(assign.value.accept(self))
 
     def visitUnaryOperator(self, op):
         return self.defaultVisit(op.value)
