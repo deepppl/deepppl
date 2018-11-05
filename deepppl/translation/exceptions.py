@@ -22,8 +22,11 @@ class TranslationException(DeepPPLException):
     def __init__(self, *args):
         msg = self._base_msg.format(*args)
         super(TranslationException, self).__init__(msg)
+        self.msg = msg
         self.args = args
     
+    def __str__(self):
+        return self.msg
 
 
 class MissingPriorNetException(TranslationException):
@@ -64,6 +67,9 @@ class AlreadyDeclaredException(TranslationException):
 
 class IncompatibleShapes(TranslationException):
     _base_msg = "Trying to use incompatible shapes:{} and {}"
-    
+
+class IncompatibleTypes(TranslationException):
+    _base_msg = "Trying to unify incompatible types:{} and {}"
+
 class NonRandomSamplingException(TranslationException):
     _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"
