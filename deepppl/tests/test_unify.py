@@ -16,7 +16,9 @@
 
 from deepppl import dpplc
 from deepppl.translation.exceptions import *
-from deepppl.translation.stype import Type_
+from deepppl.translation.stype import Type_, \
+        Sreal, Sint, Sindexed, Svector, Srow_vector, Smatrix, Sarray, \
+        SnamedVariable, SnewVariable
 
 from contextlib import contextmanager
 import pytest
@@ -35,118 +37,118 @@ def not_raises(exception):
     raise pytest.fail("DID RAISE {0}".format(str(exception)))
 
 def test_unify_int_int():
-        Type_.int().unify({}, Type_.int())
+        Sint().unify(Sint())
 
 def test_unify_real_real():
-        Type_.real().unify({}, Type_.real())
+        Sreal().unify(Sreal())
 
 def test_unify_int_real():
         with pytest.raises(IncompatibleTypes):
-                Type_.int().unify({}, Type_.real())
+                Sint().unify(Sreal())
 
 def test_unify_real_int():
         with pytest.raises(IncompatibleTypes):
-                Type_.real().unify({}, Type_.int())
+                Sreal().unify(Sint())
 
 def test_unify_array_real():
         with pytest.raises(IncompatibleTypes):
-                Type_.array(Type_.real()).unify({}, Type_.real())
+                Sarray(Sreal()).unify(Sreal())
 
 def test_unify_array_vector():
         with pytest.raises(IncompatibleTypes):
-                Type_.array(Type_.real()).unify({}, Type_.vector())
+                Sarray(Sreal()).unify(Svector())
 
 def test_unify_array_indexed():
-        Type_.array(Type_.real()).unify({}, Type_.indexed())
+        Sarray(Sreal()).unify(Sindexed())
 
 def test_unify_array_indexed_real():
-        Type_.array(Type_.real()).unify({}, Type_.indexed(Type_.real()))
+        Sarray(Sreal()).unify(Sindexed(Sreal()))
 
 def test_unify_array_indexed_int():
         with pytest.raises(IncompatibleTypes):
-                Type_.array(Type_.real()).unify({}, Type_.indexed(Type_.int()))
+                Sarray(Sreal()).unify(Sindexed(Sint()))
 
 def test_unify_vector_indexed_real():
-        Type_.vector().unify({}, Type_.indexed(Type_.real()))
+        Svector().unify(Sindexed(Sreal()))
 
 def test_unify_vector_indexed_int():
         with pytest.raises(IncompatibleTypes):
-                Type_.vector().unify({}, Type_.indexed(Type_.int()))
+                Svector().unify(Sindexed(Sint()))
 
 def test_unify_matrix_indexed1():
-        Type_.matrix().unify({}, Type_.indexed())
+        Smatrix().unify(Sindexed())
 
 def test_unify_matrix_indexed_real1():
         with pytest.raises(IncompatibleTypes):
-                Type_.matrix().unify({}, Type_.indexed(Type_.real()))
+                Smatrix().unify(Sindexed(Sreal()))
 
 def test_unify_matrix_indexed2():
-        Type_.matrix().unify({}, Type_.indexed(Type_.indexed()))
+        Smatrix().unify(Sindexed(Sindexed()))
 
 def test_unify_matrix_indexed_real2():
-        Type_.matrix().unify({}, Type_.indexed(Type_.indexed(Type_.real())))
+        Smatrix().unify(Sindexed(Sindexed(Sreal())))
 
 def test_unify_matrix_indexed3():
         with pytest.raises(IncompatibleTypes):
-                Type_.matrix().unify({}, Type_.indexed(Type_.indexed(Type_.indexed())))
+                Smatrix().unify(Sindexed(Sindexed(Sindexed())))
 
 def test_unify_matrix_indexed_real3():
         with pytest.raises(IncompatibleTypes):
-                Type_.matrix().unify({}, Type_.indexed(Type_.indexed(Type_.indexed(Type_.real()))))
+                Smatrix().unify(Sindexed(Sindexed(Sindexed(Sreal()))))
 
 def test_unify_variable_int():
-        Type_.newVariable().unify({}, Type_.indexed(Type_.int()))
+        SnewVariable().unify(Sindexed(Sint()))
 
 def test_unify_variable_indexed():
-        Type_.newVariable().unify({}, Type_.indexed(Type_.int()))
+        SnewVariable().unify(Sindexed(Sint()))
 
 def test_unify_named_variable_int():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.indexed(Type_.int()))
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(Sindexed(Sint()), tenv=tenv)
 
 def test_unify_named_variable_indexed():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.indexed(Type_.int()))
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(Sindexed(Sint()), tenv=tenv)
 
 def test_unify_named_variable_variable():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.newVariable())
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(SnewVariable(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_same():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.namedVariable(env, "x"))
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(SnamedVariable(tenv, "x"), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.namedVariable(env, "y"))
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(SnamedVariable(tenv, "y"), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different_no_conflict():
-        env = {}
-        Type_.namedVariable(env, "x").unify(env, Type_.int())
-        Type_.namedVariable(env, "y").unify(env, Type_.real())
+        tenv = {}
+        SnamedVariable(tenv, "x").unify(Sint(), tenv=tenv)
+        SnamedVariable(tenv, "y").unify(Sreal(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_same_conflict():
         with pytest.raises(IncompatibleTypes):
-                env = {}
-                Type_.namedVariable(env, "x").unify(env, Type_.int())
-                Type_.namedVariable(env, "x").unify(env, Type_.real())
+                tenv = {}
+                SnamedVariable(tenv, "x").unify(Sint(), tenv=tenv)
+                SnamedVariable(tenv, "x").unify(Sreal(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different_conflict():
         with pytest.raises(IncompatibleTypes):
-                env = {}
-                Type_.namedVariable(env, "x").unify(env, Type_.int())
-                Type_.namedVariable(env, "y").unify(env, Type_.real())
-                Type_.namedVariable(env, "y").unify(env, Type_.namedVariable(env, "x"))
+                tenv = {}
+                SnamedVariable(tenv, "x").unify(Sint(), tenv=tenv)
+                SnamedVariable(tenv, "y").unify(Sreal(), tenv=tenv)
+                SnamedVariable(tenv, "y").unify(SnamedVariable(tenv, "x"), tenv=tenv)
 
 def test_unify_matrix_indexed_named_variable_real():
-        env = {}
-        Type_.matrix().unify(env, Type_.indexed(Type_.namedVariable(env, "x")))
-        Type_.indexed(Type_.namedVariable(env, "y")).unify(env, Type_.namedVariable(env, "x"))
-        Type_.real().unify(env, Type_.namedVariable(env, "y"))
+        tenv = {}
+        Smatrix().unify(Sindexed(SnamedVariable(tenv, "x")), tenv=tenv)
+        Sindexed(SnamedVariable(tenv, "y")).unify(SnamedVariable(tenv, "x"), tenv=tenv)
+        Sreal().unify(SnamedVariable(tenv, "y"), tenv=tenv)
 
 def test_unify_matrix_indexed_named_variable_int():
         with pytest.raises(IncompatibleTypes):
-                env = {}
-                Type_.matrix().unify(env, Type_.indexed(Type_.namedVariable(env, "x")))
-                Type_.indexed(Type_.namedVariable(env, "y")).unify(env, Type_.namedVariable(env, "x"))
-                Type_.int().unify(env, Type_.namedVariable(env, "y"))
+                tenv = {}
+                Smatrix().unify(Sindexed(SnamedVariable(tenv, "x")), tenv=tenv)
+                Sindexed(SnamedVariable(tenv, "y")).unify(SnamedVariable(tenv, "x"), tenv=tenv)
+                Sint().unify(SnamedVariable(tenv, "y"), tenv=tenv)

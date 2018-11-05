@@ -15,15 +15,16 @@
  """
 
 from .exceptions import IncompatibleTypes
+from .sdim import Dimension
+
+# This defines a type system for Stan, extended with support for Type Variables
+# We do not currently model constraints.
 
 class TypeDesc(object):
     """ This is the (abstract) base class for type descriptions.
         These are wrapped by Type_ objects, which are generally what you want to use.
     """
     pass
-
-# This defines a type system for Stan, extended with support for Type Variables
-# We do not currently model constraints.
 
 class Type_(object):
     """ Creates a new type object, which represents the type of something.
@@ -41,7 +42,7 @@ class Type_(object):
     def __str__(self):
         return str(self.desc)
 
-    def unify(self, env, other):
+    def unify(self, other, *, denv={}, tenv={}):
         """ Unifies two types.  This may change the type descriptions that they point to.
             If the two types are not unifiable, this will raise an IncompatibleTypes exception
             with the type descriptions that are not compatible.
@@ -87,24 +88,26 @@ class Type_(object):
         if not isinstance(self.desc, Indexed) or not isinstance(other.desc, Indexed) :
             raise IncompatibleTypes(self, other)
 
+        self.desc.dimension.unify(other.desc.dimension, denv=denv)
+
         if isinstance(self.desc, SomeIndexed):
-            self.desc.component().unify(env, other.desc.component())
+            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
             self.desc = other.desc
             return
         if isinstance(other.desc, SomeIndexed):
-            self.desc.component().unify(env, other.desc.component())
+            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
             other.desc = self.desc
             return
         
         # If neither one is a SomeIndexed, then they both need to be 
         # related
         if type(self.desc) is type(other.desc):
-            self.desc.component().unify(env,other.desc.component())
+            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
         elif issubclass(type(self.desc), type(other.desc)):
-            self.desc.component().unify(env, other.desc.component())
+            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
             other.desc = self.desc
         elif issubclass(type(other.desc), type(self.desc)):
-            self.desc.component().unify(env, other.desc.component())
+            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
             self.desc = other.desc
         else:
             raise IncompatibleTypes(self, other)
@@ -113,13 +116,13 @@ class Type_(object):
 
     ### These are the constructor methods for various types
     @classmethod
-    def namedVariable(cls, env, name):
+    def namedVariable(cls, tenv, name):
         """Create a new type representing a Type Variable (unknown type), in a given environment"""
-        if name in env:
-            return env[name]
+        if name in tenv:
+            return tenv[name]
         else:
             v = cls(Variable(name))
-            env[name] = v    
+            tenv[name] = v    
             return v
 
     @classmethod
@@ -138,31 +141,51 @@ class Type_(object):
         return cls(Int())
 
     @classmethod
-    def indexed(cls, component:'Type_'=None) -> 'Type_':
+    def indexed(cls, component:'Type_'=None, *, dimension:Dimension=None) -> 'Type_':
         """Create a new type representing some indexable thing"""
         if not component:
             component = cls.newVariable()
-        return cls(SomeIndexed(component))
+        if not dimension:
+            dimension = Dimension.newVariable()
+        return cls(SomeIndexed(dimension, component))
 
     @classmethod
-    def vector(cls) -> 'Type_':
+    def vector(cls, *, dimension:Dimension=None) -> 'Type_':
         """Create a new type representing a stan column vector"""
-        return cls(Vector())
+        if not dimension:
+            dimension = Dimension.newVariable()
+
+        return cls(Vector(dimension))
 
     @classmethod
-    def row_vector(cls) -> 'Type_':
+    def row_vector(cls, *, dimension:Dimension=None) -> 'Type_':
         """Create a new type representing a stan row vector"""
-        return cls(RowVector())
+        if not dimension:
+            dimension = Dimension.newVariable()
+
+        return cls(RowVector(dimension))
 
     @classmethod
-    def matrix(cls) -> 'Type_':
+    def matrix(cls, *, dimension1:Dimension=None, dimension2:Dimension=None) -> 'Type_':
         """Create a new type representing a stan matrix"""
-        return cls(Matrix())
+        if not dimension1:
+            dimension1 = Dimension.newVariable()
+
+        if not dimension2:
+            dimension2 = Dimension.newVariable()
+
+        return cls(Matrix(dimension1, dimension2))
 
     @classmethod
-    def array(cls, component:'Type_') -> 'Type_':
+    def array(cls, component:'Type_'=None, *, dimension:Dimension=None) -> 'Type_':
         """Create a new type representing a stan array"""
-        return cls(Array(component))
+        if not component:
+            component = cls.newVariable()
+
+        if not dimension:
+            dimension = Dimension.newVariable()
+
+        return cls(Array(dimension, component))
 
     ### These test methods determine what kind of type it is    
     def isVariable(self) -> bool:
@@ -215,14 +238,16 @@ class Int(Primitive):
 
 class Indexed(TypeDesc):
     """Base class for representing Stan types that can be indexed, such as arrays and vectors"""
-    def __init__(self):
+    def __init__(self, dimension:Dimension):
         super(Indexed, self).__init__()
+        self.dimension = dimension
 
 #    @abstractmethod
     def component(self) -> Type_:
         pass
+
     
-    def subscript(dims:int):
+    """ def subscript(dims:int):
         c = self
         for _ in range(dims):
             if isinstance(c, Indexed):
@@ -230,28 +255,29 @@ class Indexed(TypeDesc):
             else:
                 raise ValueError("Attempting to subscript {} with too many dimensions {}".format(self, dims))
         return c
-
+ """
 class SomeIndexed(Indexed):
     """Represents some (unknown) stan object that supports indexing"""
-    def __init__(self,  component:Type_):
-        super(SomeIndexed, self).__init__()
+    def __init__(self,  dimension:Dimension, component:Type_):
+        super(SomeIndexed, self).__init__(dimension)
         self.c = component
 
     def component(self) -> Type_:
         return self.c
 
     def __str__(self):
-        dims = 1
+        s = str(self.component()) + "[!"
         c = self
         while isinstance(c.component().desc, SomeIndexed):
+            s = s + str(c.dimension) + ","
             c = c.component().desc
-            dims = dims + 1
-        return "{}[|{}]".format(str(c.component()), ","*(dims-1))
+        s = s + str(c.dimension) + "]"
+        return s
 
 class Vector(Indexed):
     """Represents a Stan column vector"""
-    def __init__(self):
-        super(Vector, self).__init__()
+    def __init__(self, dimension:Dimension):
+        super(Vector, self).__init__(dimension)
     
     def component(self) -> Type_:
         return Type_.real()
@@ -262,8 +288,8 @@ class Vector(Indexed):
 
 class RowVector(Indexed):
     """Represents a Stan row vector"""
-    def __init__(self):
-        super(RowVector, self).__init__()
+    def __init__(self, dimension:Dimension):
+        super(RowVector, self).__init__(dimension)
 
     def component(self) -> Type_:
         return Type_.real()
@@ -271,43 +297,53 @@ class RowVector(Indexed):
     def __str__(self):
         return "row_vector"
 
-
-class Matrix(Indexed):
-    """Represents a Stan matrix"""
-    def __init__(self):
-        super(Matrix, self).__init__()
-
-    def component(self) -> Type_:
-        return Type_(MatrixSlice())
-
-    def __str__(self):
-        return "matrix"
-
 class MatrixSlice(Indexed):
     """Represents a slice of a stan matrix (a matrix that has already been subscripted)"""
-    def __init__(self):
-        super(MatrixSlice, self).__init__()
+    def __init__(self, dimension:Dimension):
+        super(MatrixSlice, self).__init__(dimension)
 
     def component(self) -> Type_:
         return Type_.real()
     
     def __str__(self):
-        return "matrix/slice"
+        return "matrix/slice[{}]".format(self.dimension)
+
+class Matrix(Indexed):
+    """Represents a Stan matrix"""
+    def __init__(self, dimension1:Dimension, dimension2:Dimension):
+        super(Matrix, self).__init__(dimension1)
+        self.sliceDim = dimension2
+
+    def component(self) -> Type_:
+        return Type_(MatrixSlice(self.sliceDim))
+
+    def __str__(self):
+        return "matrix[{},{}]".format(self.dimension, self.sliceDim)
 
 class Array(Indexed):
     """Represents a Stan array"""
-    def __init__(self, component:Type_):
-        super(Array, self).__init__()
+    def __init__(self, dimension:Dimension, component:Type_):
+        super(Array, self).__init__(dimension)
         self.c = component
 
     def component(self) -> Type_:
         return self.c
 
     def __str__(self):
-        dims = 1
+        s = str(self.component()) + "["
         c = self
-        while isinstance(c.component().desc, SomeIndexed):
+        while isinstance(c.component().desc, Array):
+            s = s + str(c.dimension) + ","
             c = c.component().desc
-            dims = dims + 1
-        return "{}[{}]".format(str(c.component()), ","*(dims-1))
+        s = s + str(c.dimension) + "]"
+        return s
 
+SnamedVariable = Type_.namedVariable
+SnewVariable = Type_.newVariable
+Sreal = Type_.real
+Sint = Type_.int
+Sindexed = Type_.indexed
+Svector = Type_.vector
+Srow_vector = Type_.row_vector
+Smatrix = Type_.matrix
+Sarray = Type_.array
