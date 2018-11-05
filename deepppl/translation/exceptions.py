@@ -71,5 +71,8 @@ class IncompatibleShapes(TranslationException):
 class IncompatibleTypes(TranslationException):
     _base_msg = "Trying to unify incompatible types:{} and {}"
 
+class IncompatibleDimensions(IncompatibleTypes):
+    _base_msg = "Trying to unify incompatible dimensions:{} and {}"
+
 class NonRandomSamplingException(TranslationException):
     _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"
