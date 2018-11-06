@@ -14,7 +14,7 @@
  limitations under the License.
  """
 
-from .exceptions import IncompatibleTypes
+from .exceptions import IncompatibleDimensions
 
 # This defines a dimension system for Stan, extended with support for Dimension Variables
 # This will be used by the Type System
@@ -125,9 +125,12 @@ class AnonymousDimensionVariable(DimensionVariable):
 
 class PathDimension(DimensionDesc):
     def __init__(self, path):
-        super(Primitive, self).__init__()
+        super(PathDimension, self).__init__()
         self.path = path
     
     def __str__(self):
         return "${}".format(self.path)
 
+DnewVariable = Dimension.newVariable
+DnamedVariable = Dimension.namedVariable
+DpathDimension = Dimension.pathDimension
