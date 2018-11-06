@@ -338,12 +338,12 @@ class Array(Indexed):
         s = s + str(c.dimension) + "]"
         return s
 
-SnamedVariable = Type_.namedVariable
-SnewVariable = Type_.newVariable
-Sreal = Type_.real
-Sint = Type_.int
-Sindexed = Type_.indexed
-Svector = Type_.vector
-Srow_vector = Type_.row_vector
-Smatrix = Type_.matrix
-Sarray = Type_.array
+TnamedVariable = Type_.namedVariable
+TnewVariable = Type_.newVariable
+Treal = Type_.real
+Tint = Type_.int
+Tindexed = Type_.indexed
+Tvector = Type_.vector
+Trow_vector = Type_.row_vector
+Tmatrix = Type_.matrix
+Tarray = Type_.array
