@@ -338,8 +338,8 @@ class Array(Indexed):
         s = s + str(c.dimension) + "]"
         return s
 
-TnamedVariable = Type_.namedVariable
-TnewVariable = Type_.newVariable
+Tnamed = Type_.namedVariable
+Tnew = Type_.newVariable
 Treal = Type_.real
 Tint = Type_.int
 Tindexed = Type_.indexed

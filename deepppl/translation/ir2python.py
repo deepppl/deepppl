@@ -30,6 +30,7 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 TransformedParameters, Model
 
 from .exceptions import *
+from .stype_infer import TypeInferenceVisitor
 
 from_test = lambda: hasattr(sys, "_called_from_test")
 
@@ -1445,6 +1446,7 @@ def ir2python(ir):
     ir = ir.accept(consistency)
     shapes_checking = ShapeCheckingVisitor()
     ir.accept(shapes_checking)
+    type_infer = TypeInferenceVisitor.run(ir)
     visitor = Ir2PythonVisitor(shapes_checking._anons)
     return ir.accept(visitor)
 
