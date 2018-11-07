@@ -65,6 +65,26 @@ class Dimension(object):
             other.desc = self.desc
             return
 
+        # If one of them is a constant, we will enforce that the other is as well.
+        # We could also imagine allowing it unify with a pathDimension, 
+        # along with a runtime check for equality
+        if isinstance(self.desc, ConstantDimension):
+            if isinstance(other.desc, ConstantDimension):
+                if self.desc.val == other.desc.val:
+                    return
+                else:
+                    raise IncompatibleDimensions(self, other)
+            else:
+                raise IncompatibleDimensions(self, other)
+        if isinstance(other.desc, ConstantDimension):
+            if isinstance(self.desc, ConstantDimension):
+                if self.desc.val == other.desc.val:
+                    return
+                else:
+                    raise IncompatibleDimensions(self, other)
+            else:
+                raise IncompatibleDimensions(self, other)
+
         # At this point, the only dimensions possible should be path dimension types
         if not isinstance(self.desc, PathDimension) or not isinstance(other.desc, PathDimension):
             raise IncompatibleDimensions(self, other)
@@ -100,6 +120,11 @@ class Dimension(object):
         """Create a new dimension representing a path from a known runtime entity (e.g. an MLP)"""
         return cls(PathDimension(path))
 
+    @classmethod
+    def constantDimension(cls, val) -> 'Dimension':
+        """Create a new dimension representing a constant (e.g. 2)"""
+        return cls(ConstantDimension(val))
+
 class DimensionVariable(DimensionDesc):
     def __init__(self, name):
         super(DimensionVariable, self).__init__()
@@ -131,6 +156,15 @@ class PathDimension(DimensionDesc):
     def __str__(self):
         return "${}".format(self.path)
 
-DnewVariable = Dimension.newVariable
-DnamedVariable = Dimension.namedVariable
-DpathDimension = Dimension.pathDimension
+class ConstantDimension(DimensionDesc):
+    def __init__(self, val):
+        super(ConstantDimension, self).__init__()
+        self.val = val
+    
+    def __str__(self):
+        return str(self.val)
+
+Dnew = Dimension.newVariable
+Dnamed = Dimension.namedVariable
+Dpath = Dimension.pathDimension
+Dconstant = Dimension.constantDimension

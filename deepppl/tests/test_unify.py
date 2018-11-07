@@ -17,10 +17,10 @@
 from deepppl import dpplc
 from deepppl.translation.exceptions import *
 from deepppl.translation.sdim import Dimension, \
-        DnewVariable, DnamedVariable, DpathDimension
+        Dnew, Dnamed, Dpath, Dconstant
 from deepppl.translation.stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
-        TnamedVariable, TnewVariable
+        Tnamed, Tnew
 
 from contextlib import contextmanager
 import pytest
@@ -40,42 +40,53 @@ def not_raises(exception):
 
 ### This section tests unification of dimensions
 def test_unify_dim_variable_variable():
-        DnewVariable().unify(DnewVariable())
+        Dnew().unify(Dnew())
 
 def test_unify_dim_variable_named_variable():
-        DnewVariable().unify(DnamedVariable({}, "x"))
+        Dnew().unify(Dnamed({}, "x"))
 
 def test_unify_dim_named_variable_named_variable_same_wrong_envs():
-        DnamedVariable({}, "x").unify(DnamedVariable({}, "x"))
+        Dnamed({}, "x").unify(Dnamed({}, "x"))
 
 def test_unify_dim_named_variable_named_variable_same():
         denv={}
-        DnamedVariable(denv, "x").unify(DnamedVariable(denv, "x"), denv=denv)
+        Dnamed(denv, "x").unify(Dnamed(denv, "x"), denv=denv)
 
 def test_unify_dim_named_variable_named_variable_different():
         denv={}
-        DnamedVariable(denv, "x").unify(DnamedVariable(denv, "y"), denv=denv)
+        Dnamed(denv, "x").unify(Dnamed(denv, "y"), denv=denv)
 
 def test_unify_dim_variable_path():
-        DnewVariable().unify(DpathDimension("mlp.size"))
+        Dnew().unify(Dpath("mlp.size"))
 
 def test_unify_dim_named_variable_path():
         denv = {}
-        DnamedVariable(denv, "x").unify(DpathDimension("mlp.size"))
+        Dnamed(denv, "x").unify(Dpath("mlp.size"))
 
 def test_unify_dim_path_path_same():
-        DpathDimension("mlp.size").unify(DpathDimension("mlp.size"))
+        Dpath("mlp.size").unify(Dpath("mlp.size"))
 
 def test_unify_dim_path_path_different():
         with pytest.raises(IncompatibleDimensions):
-                DpathDimension("mlp.size").unify(DpathDimension("mlp.other_size"))
+                Dpath("mlp.size").unify(Dpath("mlp.other_size"))
 
 def test_unify_dim_path_path_different_via_named():
         with pytest.raises(IncompatibleDimensions):
                 denv = {}
-                DnamedVariable(denv, "x").unify(DpathDimension("mlp.size"),denv=denv)
-                DpathDimension("mlp.size_other").unify(DnamedVariable(denv, "y"),denv=denv)
-                DnamedVariable(denv, "x").unify(DnamedVariable(denv, "y"),denv=denv)
+                Dnamed(denv, "x").unify(Dpath("mlp.size"),denv=denv)
+                Dpath("mlp.size_other").unify(Dnamed(denv, "y"),denv=denv)
+                Dnamed(denv, "x").unify(Dnamed(denv, "y"),denv=denv)
+
+def test_unify_dim_constant_same():
+        Dconstant(3).unify(Dconstant(3))
+
+def test_unify_dim_constant_different():
+        with pytest.raises(IncompatibleDimensions):
+                Dconstant(3).unify(Dconstant(4))
+
+def test_unify_dim_constant_path():
+        with pytest.raises(IncompatibleDimensions):
+                Dconstant(3).unify(Dpath(4))
 
 ### This section tests unification of types (with anonymous dimensions)
 def test_unify_int_int():
@@ -139,58 +150,58 @@ def test_unify_matrix_indexed_real3():
                 Tmatrix().unify(Tindexed(Tindexed(Tindexed(Treal()))))
 
 def test_unify_variable_int():
-        TnewVariable().unify(Tindexed(Tint()))
+        Tnew().unify(Tindexed(Tint()))
 
 def test_unify_variable_indexed():
-        TnewVariable().unify(Tindexed(Tint()))
+        Tnew().unify(Tindexed(Tint()))
 
 def test_unify_named_variable_int():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(Tindexed(Tint()), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tindexed(Tint()), tenv=tenv)
 
 def test_unify_named_variable_indexed():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(Tindexed(Tint()), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tindexed(Tint()), tenv=tenv)
 
 def test_unify_named_variable_variable():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(TnewVariable(), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tnew(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_same():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(TnamedVariable(tenv, "x"), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tnamed(tenv, "x"), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(TnamedVariable(tenv, "y"), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tnamed(tenv, "y"), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different_no_conflict():
         tenv = {}
-        TnamedVariable(tenv, "x").unify(Tint(), tenv=tenv)
-        TnamedVariable(tenv, "y").unify(Treal(), tenv=tenv)
+        Tnamed(tenv, "x").unify(Tint(), tenv=tenv)
+        Tnamed(tenv, "y").unify(Treal(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_same_conflict():
         with pytest.raises(IncompatibleTypes):
                 tenv = {}
-                TnamedVariable(tenv, "x").unify(Tint(), tenv=tenv)
-                TnamedVariable(tenv, "x").unify(Treal(), tenv=tenv)
+                Tnamed(tenv, "x").unify(Tint(), tenv=tenv)
+                Tnamed(tenv, "x").unify(Treal(), tenv=tenv)
 
 def test_unify_named_variable_named_variable_different_conflict():
         with pytest.raises(IncompatibleTypes):
                 tenv = {}
-                TnamedVariable(tenv, "x").unify(Tint(), tenv=tenv)
-                TnamedVariable(tenv, "y").unify(Treal(), tenv=tenv)
-                TnamedVariable(tenv, "y").unify(TnamedVariable(tenv, "x"), tenv=tenv)
+                Tnamed(tenv, "x").unify(Tint(), tenv=tenv)
+                Tnamed(tenv, "y").unify(Treal(), tenv=tenv)
+                Tnamed(tenv, "y").unify(Tnamed(tenv, "x"), tenv=tenv)
 
 def test_unify_matrix_indexed_named_variable_real():
         tenv = {}
-        Tmatrix().unify(Tindexed(TnamedVariable(tenv, "x")), tenv=tenv)
-        Tindexed(TnamedVariable(tenv, "y")).unify(TnamedVariable(tenv, "x"), tenv=tenv)
-        Treal().unify(TnamedVariable(tenv, "y"), tenv=tenv)
+        Tmatrix().unify(Tindexed(Tnamed(tenv, "x")), tenv=tenv)
+        Tindexed(Tnamed(tenv, "y")).unify(Tnamed(tenv, "x"), tenv=tenv)
+        Treal().unify(Tnamed(tenv, "y"), tenv=tenv)
 
 def test_unify_matrix_indexed_named_variable_int():
         with pytest.raises(IncompatibleTypes):
                 tenv = {}
-                Tmatrix().unify(Tindexed(TnamedVariable(tenv, "x")), tenv=tenv)
-                Tindexed(TnamedVariable(tenv, "y")).unify(TnamedVariable(tenv, "x"), tenv=tenv)
-                Tint().unify(TnamedVariable(tenv, "y"), tenv=tenv)
+                Tmatrix().unify(Tindexed(Tnamed(tenv, "x")), tenv=tenv)
+                Tindexed(Tnamed(tenv, "y")).unify(Tnamed(tenv, "x"), tenv=tenv)
+                Tint().unify(Tnamed(tenv, "y"), tenv=tenv)
