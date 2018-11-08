@@ -74,7 +74,7 @@ class Program(IR):
         return [
             'data', 'transformeddata', 'parameters', 'networksblock',  \
                     'guideparameters', \
-                    'guide', 'prior', 'model']
+                    'guide', 'prior', 'model', 'generatedquantities' ]
 
 
 
@@ -127,6 +127,8 @@ class ProgramBlocks(IR):
     def is_parameters(self):
         return False
 
+    def is_generated_quantities(self):
+        return False
 
 
 class SamplingBlock(ProgramBlocks):
@@ -183,6 +185,10 @@ class Data(ProgramBlocks):
 
 class TransformedData(ProgramBlocks):
     def is_transformed_data(self):
+        return True
+
+class GeneratedQuantities(ProgramBlocks):
+    def is_generated_quantities(self):
         return True
 
 class Statements(IR):
@@ -341,6 +347,9 @@ class Expression(Statements):
     def is_prior_var(self):
         return (x.is_prior_var() for x in self.children)
 
+    def is_generated_quantities_var(self):
+        return all(x.is_generated_quantities_var() for x in self.children)
+
 class Constant(Expression):
     def __init__(self, value = None):
         super(Constant, self).__init__()
@@ -449,6 +458,9 @@ class Subscript(Expression):
     def is_prior_var(self):
         return self.id.is_prior_var()
 
+    def is_generated_quantities_var(self):
+        return self.id.is_generated_quantities_var()
+
 class VariableDecl(IR):
     def __init__(self, id = None, dim = None, init = None,
                     type_ = None):
@@ -458,6 +470,7 @@ class VariableDecl(IR):
         self.init = init
         self.data = False
         self.transformed_data = False
+        self.generated_quantities = False
         self.type_ = type_
 
     def is_variable_decl(self):
@@ -468,6 +481,9 @@ class VariableDecl(IR):
 
     def set_transformed_data(self):
         self.transformed_data = True
+
+    def set_generated_quatities(self):
+        self.generated_quantities = True
 
     @property
     def children(self):
@@ -539,7 +555,7 @@ class Variable(Expression):
         return self.block_name == Data.blockName()
 
     def is_transformed_data_var(self):
-        return self.block_name == Data.blockName()
+        return self.block_name == TransformedData.blockName()
 
     def is_params_var(self):
         return self.block_name == Parameters.blockName()
@@ -552,6 +568,9 @@ class Variable(Expression):
 
     def is_prior_var(self):
         return self.block_name == Prior.blockName()
+
+    def is_generated_quantities_var(self):
+        return self.block_name == GeneratedQuantities.blockName()
 
 class VariableProperty(Expression):
     def __init__(self, var = None, prop = None):

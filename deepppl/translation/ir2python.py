@@ -129,6 +129,7 @@ class VariableAnnotationsVisitor(IRVisitor):
     visitGuide = visitProgramBlock
     visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
+    visitGeneratedQuantities = visitProgramBlock
 
     def visitModel(self, model):
         model.body = self._to_model + model.body
@@ -461,6 +462,7 @@ class VariableInitializationVisitor(IRVisitor):
     visitParameters = _visitBlock
     visitGuideParameters = _visitBlock
     visitModel = _visitBlock
+    visitGeneratedQuantities = _visitBlock
 
     def visitGuide(self, guide):
         with self._inBlock(guide):
@@ -768,8 +770,10 @@ class Ir2PythonVisitor(IRVisitor):
 
     def __init__(self, anons):
         super(Ir2PythonVisitor, self).__init__()
+        self._program = None
         self.data_names = set()
         self._transformed_data_names = set()
+        self._generated_quantities_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
         self.helper = PythonASTHelper()
@@ -871,6 +875,8 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
+        if decl.generated_quantities:
+            self._generated_quantities_names.add(decl.id)
         # dims = decl.dim.accept(self) if decl.dim else None
         if (decl.dim is not None):
             dims = decl.dim.accept(self)
@@ -1172,6 +1178,18 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
+    def buildGeneratedQuantities(self):
+        generated_quantities = self._program.generatedquantities
+        if generated_quantities is None:
+            return []
+        body = []
+        body.extend(self._visitChildren(generated_quantities))
+        k = [ast.Str(gq_name) for gq_name in self._generated_quantities_names]
+        v = [self.loadName(gq_name) for gq_name in self._generated_quantities_names]
+        body.append(ast.Return(ast.Dict(k, v)))
+        body = self._ensureStmtList(body)
+        return body
+
     def liftBlackBox(self, block):
         answer = []
         for name in block._blackBoxNets:
@@ -1237,6 +1255,7 @@ class Ir2PythonVisitor(IRVisitor):
         ## TODO: only one nn is suported in here.
         name_guide = 'guide_' + name ## XXX
         pre_body = self.liftBlackBox(guide)
+        td_access = self.buildTransformedDataAccess()
 
         if is_net:
             inner_body = self.liftBody(guide, name, name_guide)
@@ -1269,8 +1288,7 @@ class Ir2PythonVisitor(IRVisitor):
                         )
         return [lifted_prior, states_dict]
 
-    def buildModel(self, inner_body):
-        name = 'model'
+    def buildTransformedDataAccess(self):
         td_access = []
         for td_name in self._transformed_data_names:
             access = ast.Subscript(value = self.loadName('transformed_data'),
@@ -1278,10 +1296,17 @@ class Ir2PythonVisitor(IRVisitor):
                                    ctx = ast.Load())
             decl = self._assign(self.loadName(td_name),access)
             td_access.append(decl)
+        return td_access
+
+
+    def buildModel(self, inner_body):
+        name = 'model'
+        td_access = self.buildTransformedDataAccess()
         pre_body = []
         for prior in self._priors:
             pre_body.extend(self.buildPrior(prior, name))
-        body = td_access + self._model_header + pre_body + inner_body
+        generated_quantities = self.buildGeneratedQuantities()
+        body = td_access + self._model_header + pre_body + inner_body + generated_quantities
         model = self._funcDef(
                             name = name,
                             args = self.modelArgs(),
@@ -1303,6 +1328,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._guide_header = self._model_header + tpgp
 
     def visitProgram(self, program):
+        self._program = program
         self.buildHeaders(program)
         python_nodes = [node.accept(self) for node in [
                                                         program.transformeddata,

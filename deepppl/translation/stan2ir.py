@@ -484,6 +484,13 @@ class StanToIR(stanListener):
         body = gatherChildrenIRList(ctx)
         ctx.ir = Model(body= body)
 
+    def exitGeneratedQuantitiesBlock(self, ctx):
+        body = gatherChildrenIRList(ctx)
+        for ir in body:
+            if ir.is_variable_decl():
+                ir.set_generated_quatities()
+        ctx.ir = GeneratedQuantities(body= body)
+
     def exitProgram(self, ctx):
         body = []
         for child in ctx.children:
