@@ -81,8 +81,7 @@ def test_vae_inference():
     for epoch in range(4):  # loop over the dataset multiple times
         for j, (imgs, _) in enumerate(train_loader, 0):
             # calculate the loss and take a gradient step
-            k = len(imgs)
-            loss = svi.step(k, nz, imgs)
+            loss = svi.step(nz, imgs)
     classifier = Classifier(encoder, train_loader)
     img, lbls = iter(test_loader).next()
     accuracy = (lbls.data.numpy() == classifier.classify(img)).mean()
