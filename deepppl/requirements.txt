@@ -8,6 +8,6 @@ observations==0.1.4
 pandas==0.23.0
 pyro-ppl==0.2.1
 pytest==3.6.1
-requests==2.19.1
+requests==2.20.0
 torch==0.4.0
 torchvision==0.2.1
