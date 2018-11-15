@@ -41,6 +41,9 @@ class Dimension(object):
     def __str__(self):
         return str(self.desc)
 
+    def __repr__(self):
+        return f"D{repr(self.desc)}"
+
     def unify(self, other:'Dimension', *, denv={}):
         """ Unifies two dimensions.  This may change the dimension descriptions that they point to.
             If the two dimensions are not unifiable, this will raise an IncompatibleDimensions exception
@@ -133,6 +136,8 @@ class DimensionVariable(DimensionDesc):
     def __str__(self):
         return "?{}".format(self.name)
 
+    __repr__ = __str__
+
 class AnonymousDimensionVariable(DimensionVariable):
     @classmethod
     def newVarName(cls):
@@ -148,6 +153,8 @@ class AnonymousDimensionVariable(DimensionVariable):
     def __str__(self):
         return "?"
 
+    __repr__ = __str__
+
 class PathDimension(DimensionDesc):
     def __init__(self, path):
         super(PathDimension, self).__init__()
@@ -156,6 +163,8 @@ class PathDimension(DimensionDesc):
     def __str__(self):
         return "${}".format(self.path)
 
+    __repr__ = __str__
+
 class ConstantDimension(DimensionDesc):
     def __init__(self, val):
         super(ConstantDimension, self).__init__()
@@ -163,6 +172,8 @@ class ConstantDimension(DimensionDesc):
     
     def __str__(self):
         return str(self.val)
+
+    __repr__ = __str__
 
 Dnew = Dimension.newVariable
 Dnamed = Dimension.namedVariable
