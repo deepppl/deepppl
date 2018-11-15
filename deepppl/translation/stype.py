@@ -14,6 +14,7 @@
  limitations under the License.
  """
 
+from typing import Union, List
 from .exceptions import IncompatibleTypes
 from .sdim import Dimension
 
@@ -42,6 +43,9 @@ class Type_(object):
     def __str__(self):
         return str(self.desc)
 
+    def __repr__(self):
+        return f"T{repr(self.desc)}"
+
     def unify(self, other, *, denv={}, tenv={}):
         """ Unifies two types.  This may change the type descriptions that they point to.
             If the two types are not unifiable, this will raise an IncompatibleTypes exception
@@ -66,6 +70,7 @@ class Type_(object):
             other.desc = self.desc
             return
 
+        ## TODO: fix this to handle Primitive types (which can be either Integer or Reals)
         def check_prim1(T, t1, t2):            
             if isinstance(t1, T):
                 if not isinstance(t2, T):
@@ -177,7 +182,7 @@ class Type_(object):
         return cls(Matrix(dimension1, dimension2))
 
     @classmethod
-    def array(cls, component:'Type_'=None, *, dimension:Dimension=None) -> 'Type_':
+    def array(cls, component:'Type_'=None, *, dimension:Union[Dimension, List[Dimension]]=None) -> 'Type_':
         """Create a new type representing a stan array"""
         if not component:
             component = cls.newVariable()
@@ -185,7 +190,13 @@ class Type_(object):
         if not dimension:
             dimension = Dimension.newVariable()
 
-        return cls(Array(dimension, component))
+        if isinstance(dimension, list):
+            c = component
+            for dim in dimension:
+                c = cls.array(dimension=dim, component=c)
+            return c
+        else:
+            return cls(Array(dimension, component))
 
     ### These test methods determine what kind of type it is    
     def isVariable(self) -> bool:
@@ -194,6 +205,65 @@ class Type_(object):
     def isPrimitive(self):
         return isinstance(self.desc, Primitive)
 
+    def isInt(self):
+        return isinstance(self.desc, Int)
+
+    def isReal(self):
+        return isinstance(self.desc, Real)
+
+    def isArray(self):
+        return isinstance(self.desc, Array)
+
+    def dimensions(self) -> List[Dimension] :
+        ## TODO: Note again the choice that only arrays have "dimensions".  This may need to be revisited.
+        if isinstance(self.desc, Array):
+            return self.desc.dimensions()
+        else:
+            return list()
+
+    ### These methods take a type and validate that it contains a certain shape.
+    ### They may also return a type with a related shape
+    def asRealArray(self):
+        """ Checks that this is an array type with a base that is either a real or an int,
+            and returns an array type with the same dimensions but over a real"""
+        # Known limitation: for anonymous types, we don't work so well :-)
+        if self.isVariable():
+            return self
+        if self.isReal():
+            return self
+        elif self.isInt():
+            return self.real()
+        elif self.isArray():
+            t = self.desc.component().asRealArray()
+            if t is self.desc.component():
+                return self
+            else:
+                return self.array(component=t, dimension=self.desc.dimension)
+        else:
+            raise IncompatibleTypes(self, [Type_.real(), Type_.int()])
+
+    def realArrayToIntArray(self):
+        """ Checks that this is an array type with a base that is either a real or an int,
+            and returns an array type with the same dimensions but over a real"""
+        # Known limitation: for anonymous types, we don't work so well :-)
+        if self.isVariable():
+            return self
+        if self.isReal():
+            return self.int()
+        elif self.isInt():
+            # does bernoulli accept an integer argument?
+            raise IncompatibleTypes(self, [Type_.real()])
+        elif self.isArray():
+            t = self.desc.component().realArrayToIntArray()
+            if t is self.desc.component():
+                return self
+            else:
+                return self.array(component=t, dimension=self.desc.dimension)
+        else:
+            raise IncompatibleTypes(self, [Type_.real(), Type_.int()])
+
+
+
 
 class Variable(TypeDesc):
     def __init__(self, name):
@@ -201,6 +271,9 @@ class Variable(TypeDesc):
         self.name = name
 
     def __str__(self):
+        return "?{}".format(self.name)
+
+    def __repr__(self):
         return "?{}".format(self.name)
 
 class AnonymousVariable(Variable):
@@ -218,6 +291,9 @@ class AnonymousVariable(Variable):
     def __str__(self):
         return "?"
 
+    __repr__ = __str__
+
+
 class Primitive(TypeDesc):
     def __init__(self):
         super(Primitive, self).__init__()
@@ -229,12 +305,17 @@ class Real(Primitive):
     def __str__(self):
         return "real"
 
+    __repr__ = __str__
+
 class Int(Primitive):
     def __init__(self):
         super(Int, self).__init__()
 
     def __str__(self):
         return "int"
+
+    __repr__ = __str__
+
 
 class Indexed(TypeDesc):
     """Base class for representing Stan types that can be indexed, such as arrays and vectors"""
@@ -245,7 +326,6 @@ class Indexed(TypeDesc):
 #    @abstractmethod
     def component(self) -> Type_:
         pass
-
     
     """ def subscript(dims:int):
         c = self
@@ -266,13 +346,15 @@ class SomeIndexed(Indexed):
         return self.c
 
     def __str__(self):
-        s = str(self.component()) + "[!"
+        s = str(self.dimension) + "]"
         c = self
         while isinstance(c.component().desc, SomeIndexed):
-            s = s + str(c.dimension) + ","
             c = c.component().desc
-        s = s + str(c.dimension) + "]"
-        return s
+            s = str(c.dimension) + "," + s
+
+        return str(c.component()) + "[!" + s
+
+    __repr__ = __str__
 
 class Vector(Indexed):
     """Represents a Stan column vector"""
@@ -285,6 +367,7 @@ class Vector(Indexed):
     def __str__(self):
         return "vector"
 
+    __repr__ = __str__
 
 class RowVector(Indexed):
     """Represents a Stan row vector"""
@@ -297,6 +380,8 @@ class RowVector(Indexed):
     def __str__(self):
         return "row_vector"
 
+    __repr__ = __str__
+
 class MatrixSlice(Indexed):
     """Represents a slice of a stan matrix (a matrix that has already been subscripted)"""
     def __init__(self, dimension:Dimension):
@@ -307,6 +392,8 @@ class MatrixSlice(Indexed):
     
     def __str__(self):
         return "matrix/slice[{}]".format(self.dimension)
+
+    __repr__ = __str__
 
 class Matrix(Indexed):
     """Represents a Stan matrix"""
@@ -320,6 +407,8 @@ class Matrix(Indexed):
     def __str__(self):
         return "matrix[{},{}]".format(self.dimension, self.sliceDim)
 
+    __repr__ = __str__
+
 class Array(Indexed):
     """Represents a Stan array"""
     def __init__(self, dimension:Dimension, component:Type_):
@@ -329,14 +418,25 @@ class Array(Indexed):
     def component(self) -> Type_:
         return self.c
 
-    def __str__(self):
-        s = str(self.component()) + "["
+    def dimensions(self) -> List[Dimension]:
+        res = list()
+        res.append(self.dimension)
         c = self
         while isinstance(c.component().desc, Array):
-            s = s + str(c.dimension) + ","
             c = c.component().desc
-        s = s + str(c.dimension) + "]"
-        return s
+            res.append(c.dimension)
+        return res
+
+    def __str__(self):
+        s = str(self.dimension) + "]"
+        c = self
+        while isinstance(c.component().desc, Array):
+            c = c.component().desc
+            s = str(c.dimension) + "," + s
+
+        return str(c.component()) + "[" + s
+
+    __repr__ = __str__
 
 Tnamed = Type_.namedVariable
 Tnew = Type_.newVariable
