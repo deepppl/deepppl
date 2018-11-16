@@ -62,7 +62,7 @@ class StanToIR(stanListener):
 
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
-        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
+        dims = ctx.arrayDims().ir if ctx.arrayDims() is not None else None
         type_ = ctx.type_().ir
         init = ctx.expression().ir if is_active(ctx.expression) else None
         ctx.ir = VariableDecl(
@@ -103,16 +103,24 @@ class StanToIR(stanListener):
         constraint = Constraint(sort = sort, value = constant)
         ctx.ir = constraint
 
+    def exitInferredArrayShape(self, ctx):
+        ctx.ir = AnonymousShapeProperty()
     def exitArrayDim(self, ctx):
-        cl = ctx.expressionCommaList()
-        if cl:
-            elements = cl.ir
-            if len(elements) == 1:
-                ctx.ir = elements[0]
-            else:
-                ctx.ir = List(elements = elements)
-        elif ctx.inferredArrayShape():
-            ctx.ir = AnonymousShapeProperty()
+        if is_active(ctx.expression):
+            ctx.ir = ctx.expression().ir
+        elif is_active(ctx.inferredArrayShape):
+            ctx.ir = ctx.inferredArrayShape().ir
+
+    def exitArrayDimCommaList(self, ctx):
+        ctx.ir = gatherChildrenIR(ctx)
+
+    def exitArrayDims(self, ctx):
+        cl = ctx.arrayDimCommaList()
+        elements = cl.ir
+        if len(elements) == 1:
+            ctx.ir = elements[0]
+        else:
+            ctx.ir = List(elements = elements)
 
     def exitParameterDecl(self, ctx):
         if is_active(ctx.variableDecl):
