@@ -26,7 +26,7 @@ data {
 }
 
 parameters {
-    real z[nz];
+    real z[_];
 }
 
 model {
@@ -38,7 +38,7 @@ model {
 
 guide {
     real encoded[2, nz] = encoder(x);
-    real mu_z[nz] = encoded[1];
-    real sigma_z[nz] = encoded[2];
+    real mu_z[_] = encoded[1];
+    real sigma_z[_] = encoded[2];
     z ~ Normal(mu_z, sigma_z);
 }
