@@ -22,6 +22,7 @@ from .parser.stanParser import stanParser
 from .translation.stan2ir import StanToIR
 from .translation.ir2python import ir2python
 
+import ast
 import astor
 import torch
 import pyro

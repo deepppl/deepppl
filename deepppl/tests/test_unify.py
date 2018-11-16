@@ -16,8 +16,8 @@
 
 from deepppl import dpplc
 from deepppl.translation.exceptions import *
-from deepppl.translation.sdim import Dimension, \
-        Dnew, Dnamed, Dpath, Dconstant
+from deepppl.translation.sdim import KnownDimension, Dimension, \
+        Dnew, Dnamed, Dshape, Druntime, Dconstant
 from deepppl.translation.stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
         Tnamed, Tnew
@@ -50,32 +50,42 @@ def test_unify_dim_named_variable_named_variable_same_wrong_envs():
 
 def test_unify_dim_named_variable_named_variable_same():
         denv={}
-        Dnamed(denv, "x").unify(Dnamed(denv, "x"), denv=denv)
+        Dnamed(denv, "x").unify(Dnamed(denv, "x"))
 
 def test_unify_dim_named_variable_named_variable_different():
         denv={}
-        Dnamed(denv, "x").unify(Dnamed(denv, "y"), denv=denv)
+        Dnamed(denv, "x").unify(Dnamed(denv, "y"))
 
 def test_unify_dim_variable_path():
-        Dnew().unify(Dpath("mlp.size"))
+        equalities = set()
+        Dnew().unify(Dshape("mlp.size"))
+        assert(len(equalities)==0)
 
 def test_unify_dim_named_variable_path():
         denv = {}
-        Dnamed(denv, "x").unify(Dpath("mlp.size"))
+        equalities = set()
+        Dnamed(denv, "x").unify(Dshape("mlp.size"))
+        assert(len(equalities)==0)
 
 def test_unify_dim_path_path_same():
-        Dpath("mlp.size").unify(Dpath("mlp.size"))
+        equalities = set()
+        Dshape("mlp.size").unify(Dshape("mlp.size"))
+        assert(len(equalities)==0)
 
 def test_unify_dim_path_path_different():
-        with pytest.raises(IncompatibleDimensions):
-                Dpath("mlp.size").unify(Dpath("mlp.other_size"))
+        equalities = set()
+        Dshape("mlp.size").unify(Dshape("mlp.other_size"), equalities=equalities)
+        assert(len(equalities)==1)
+
 
 def test_unify_dim_path_path_different_via_named():
-        with pytest.raises(IncompatibleDimensions):
-                denv = {}
-                Dnamed(denv, "x").unify(Dpath("mlp.size"),denv=denv)
-                Dpath("mlp.size_other").unify(Dnamed(denv, "y"),denv=denv)
-                Dnamed(denv, "x").unify(Dnamed(denv, "y"),denv=denv)
+        denv = {}
+        equalities = set()
+        Dnamed(denv, "x").unify(Dshape("mlp.size"),equalities=equalities)
+        Dshape("mlp.size_other").unify(Dnamed(denv, "y"),equalities=equalities)
+        Dnamed(denv, "x").unify(Dnamed(denv, "y"), equalities=equalities)
+        assert(len(equalities)==1)
+
 
 def test_unify_dim_constant_same():
         Dconstant(3).unify(Dconstant(3))
@@ -85,8 +95,9 @@ def test_unify_dim_constant_different():
                 Dconstant(3).unify(Dconstant(4))
 
 def test_unify_dim_constant_path():
-        with pytest.raises(IncompatibleDimensions):
-                Dconstant(3).unify(Dpath(4))
+        equalities = set()
+        Dconstant(3).unify(Dshape(4), equalities=equalities)
+        assert(len(equalities)==1)
 
 ### This section tests unification of types (with anonymous dimensions)
 def test_unify_int_int():
