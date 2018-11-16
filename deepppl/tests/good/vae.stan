@@ -30,7 +30,7 @@ parameters {
 }
 
 model {
-    real mu[28, 28];
+    real mu[_, _];
     z ~ Normal(zeros(nz), ones(nz));
     mu = decoder(z);
     x ~ Bernoulli(mu);
