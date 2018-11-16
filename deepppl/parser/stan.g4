@@ -332,8 +332,8 @@ typeConstraint
     ;
 
 variableDecl
-    : type_ IDENTIFIER arrayDim? ';'
-    | type_ IDENTIFIER arrayDim? '=' expression ';'
+    : type_ IDENTIFIER arrayDims? ';'
+    | type_ IDENTIFIER arrayDims? '=' expression ';'
     ;
 
 netVariableDecl
@@ -365,8 +365,16 @@ inferredArrayShape
     ;
 
 arrayDim
-    : '[' expressionCommaList ']'
-    | '[' inferredArrayShape ']'
+    : expression
+    | inferredArrayShape
+    ;
+
+arrayDimCommaList
+    : arrayDim (',' arrayDim)*
+    ;
+
+arrayDims
+    : '[' arrayDimCommaList ']'
     ;
 
 parameterDecl
