@@ -63,6 +63,7 @@ class StanToIR(stanListener):
 
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
+        dims = ctx.arrayDims().ir if ctx.arrayDims() is not None else None
         type_ = ctx.type_().ir
         dims = None
         if ctx.arrayDim() is not None and type_.dim is not None:
@@ -111,16 +112,24 @@ class StanToIR(stanListener):
         constraint = Constraint(sort = sort, value = constant)
         ctx.ir = constraint
 
+    def exitInferredArrayShape(self, ctx):
+        ctx.ir = AnonymousShapeProperty()
     def exitArrayDim(self, ctx):
-        cl = ctx.expressionCommaList()
-        if cl:
-            elements = cl.ir
-            if len(elements) == 1:
-                ctx.ir = elements[0]
-            else:
-                ctx.ir = Tuple(exprs = elements)
-        elif ctx.inferredArrayShape():
-            ctx.ir = AnonymousShapeProperty()
+        if is_active(ctx.expression):
+            ctx.ir = ctx.expression().ir
+        elif is_active(ctx.inferredArrayShape):
+            ctx.ir = ctx.inferredArrayShape().ir
+
+    def exitArrayDimCommaList(self, ctx):
+        ctx.ir = gatherChildrenIR(ctx)
+
+    def exitArrayDims(self, ctx):
+        cl = ctx.arrayDimCommaList()
+        elements = cl.ir
+        if len(elements) == 1:
+            ctx.ir = elements[0]
+        else:
+            ctx.ir = Tuple(exprs = elements)
 
     def exitParameterDecl(self, ctx):
         if is_active(ctx.variableDecl):
