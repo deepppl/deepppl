@@ -74,5 +74,8 @@ class IncompatibleTypes(TranslationException):
 class IncompatibleDimensions(IncompatibleTypes):
     _base_msg = "Trying to unify incompatible dimensions:{} and {}"
 
+class UnderspecifiedDimension(IncompatibleTypes):
+    _base_msg = "The dimension of {} could not be inferred ({}) "
+
 class NonRandomSamplingException(TranslationException):
     _base_msg = "Invalid sampling statement: '{}'. Trying to sample a non-random variable?"

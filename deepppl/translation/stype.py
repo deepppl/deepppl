@@ -14,9 +14,9 @@
  limitations under the License.
  """
 
-from typing import Union, List
+from typing import Union, List, Set, Tuple
 from .exceptions import IncompatibleTypes
-from .sdim import Dimension
+from .sdim import Dimension, KnownDimension
 
 # This defines a type system for Stan, extended with support for Type Variables
 # We do not currently model constraints.
@@ -46,7 +46,7 @@ class Type_(object):
     def __repr__(self):
         return f"T{repr(self.desc)}"
 
-    def unify(self, other, *, denv={}, tenv={}):
+    def unify(self, other, *, equalities:Set[Tuple[KnownDimension, KnownDimension]]=set(), tenv={}):
         """ Unifies two types.  This may change the type descriptions that they point to.
             If the two types are not unifiable, this will raise an IncompatibleTypes exception
             with the type descriptions that are not compatible.
@@ -93,26 +93,26 @@ class Type_(object):
         if not isinstance(self.desc, Indexed) or not isinstance(other.desc, Indexed) :
             raise IncompatibleTypes(self, other)
 
-        self.desc.dimension.unify(other.desc.dimension, denv=denv)
+        self.desc.dimension.unify(other.desc.dimension, equalities=equalities)
 
         if isinstance(self.desc, SomeIndexed):
-            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
+            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
             self.desc = other.desc
             return
         if isinstance(other.desc, SomeIndexed):
-            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
+            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
             other.desc = self.desc
             return
         
         # If neither one is a SomeIndexed, then they both need to be 
         # related
         if type(self.desc) is type(other.desc):
-            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
+            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
         elif issubclass(type(self.desc), type(other.desc)):
-            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
+            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
             other.desc = self.desc
         elif issubclass(type(other.desc), type(self.desc)):
-            self.desc.component().unify(other.desc.component(), denv=denv, tenv=tenv)
+            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
             self.desc = other.desc
         else:
             raise IncompatibleTypes(self, other)
@@ -346,13 +346,13 @@ class SomeIndexed(Indexed):
         return self.c
 
     def __str__(self):
-        s = str(self.dimension) + "]"
+        s = "[!"
         c = self
-        while isinstance(c.component().desc, SomeIndexed):
+        while isinstance(c.component().desc, Array):
+            s = s + str(c.dimension) + ","
             c = c.component().desc
-            s = str(c.dimension) + "," + s
-
-        return str(c.component()) + "[!" + s
+        s = str(c.component()) + s + str(c.dimension) + "]"
+        return s
 
     __repr__ = __str__
 
@@ -428,13 +428,13 @@ class Array(Indexed):
         return res
 
     def __str__(self):
-        s = str(self.dimension) + "]"
+        s =  "["
         c = self
         while isinstance(c.component().desc, Array):
+            s = s + str(c.dimension) + ","
             c = c.component().desc
-            s = str(c.dimension) + "," + s
-
-        return str(c.component()) + "[" + s
+        s = str(c.component()) + s + str(c.dimension) + "]"
+        return s
 
     __repr__ = __str__
 

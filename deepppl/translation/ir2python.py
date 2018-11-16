@@ -21,6 +21,8 @@ import torch
 import astpretty
 import astor
 import sys
+
+from .sdim import KnownDimension
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
@@ -767,7 +769,7 @@ class Ir2PythonVisitor(IRVisitor):
                             'UpperConstrainedImproperUniform'
     ] }
 
-    def __init__(self, anons):
+    def __init__(self, type_infer):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
         self._transformed_data_names = set()
@@ -777,7 +779,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._model_header = []
         self._guide_header = []
         self._observed = 0
-        self._anons = anons
+        self.type_infer = type_infer
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -1110,6 +1112,14 @@ class Ir2PythonVisitor(IRVisitor):
             ctx = ast.Load()
         )
 
+    def knownDimensionToAST(self, d:'KnownDimension'):
+        a = ast.parse(d.expr(), mode='eval')
+        if isinstance(a, ast.Expression):
+            return a.body
+        else:
+            return a
+
+        
     def pathAttr(self, path):
         paths = path.split('.')
         piter = iter(paths)
@@ -1120,10 +1130,22 @@ class Ir2PythonVisitor(IRVisitor):
         return p
 
     def visitAnonymousShapeProperty(self, prop):
-        anonid = prop.var.id
-        boundshape = self._anons[anonid].shape()
-        vid = boundshape.value
-        return self.pathAttr(vid)
+        dimension_id = prop.var.id
+        dim_dict = self.type_infer.denv
+        if dimension_id in dim_dict:
+            d = dim_dict[dimension_id]
+            if d.isVariable():
+                raise UnderspecifiedDimension(dimension_id, "not found")
+            elif d.isKnown():
+                return self.knownDimensionToAST(d.desc)
+            else:
+                assert f"Unknown dimension {d}"
+        else:
+            raise UnderspecifiedDimension(dimension_id, "not found")
+        # anonid = prop.var.id
+        # boundshape = self._anons[anonid].shape()
+        # vid = boundshape.value
+        # return self.pathAttr(vid)
 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
@@ -1341,8 +1363,11 @@ def ir2python(ir):
     shapes_checking = ShapeCheckingVisitor()
     ir.accept(shapes_checking)
     type_infer = TypeInferenceVisitor.run(ir)
-    visitor = Ir2PythonVisitor(shapes_checking._anons)
-    return ir.accept(visitor)
+    visitor = Ir2PythonVisitor(type_infer)
+    a = ir.accept(visitor)
+    ast.fix_missing_locations(a)
+    return a
+
 
 
 

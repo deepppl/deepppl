@@ -31,8 +31,8 @@ from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
 
 from .ir import Type_ as IrType
 
-from .sdim import Dimension, \
-        Dnew, Dnamed, Dpath, Dconstant
+from .sdim import KnownDimension, Dimension, \
+        Dnew, Dnamed, Dshape, Druntime, Dconstant
 from .stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
         Tnamed, Tnew
@@ -62,7 +62,7 @@ class DimensionInferenceVisitor(IRVisitor):
         self.outer = outer
 
     def visitVariable(self, var:Variable):
-        d = Dnamed(self.outer.denv, var.id)
+        d = Druntime(var.id)
         var.expr_dim = d
         return d
 
@@ -84,7 +84,6 @@ class DimensionInferenceVisitor(IRVisitor):
         prop.expr_dim = d
         return d
 
-
 class TypeInferenceVisitor(IRVisitor):
     """ Running 
     """
@@ -97,11 +96,12 @@ class TypeInferenceVisitor(IRVisitor):
         ir.accept(visitor)
         return visitor
 
-    def __init__(self, *, denv={}, tenv={}):
+    def __init__(self, *, denv={}, tenv={}, equalities=set()):
         super(TypeInferenceVisitor, self).__init__()
         self._ctx = {}
         self._anons = {}
         self._nets = {}
+        self.equalities = equalities
         self.denv = denv
         self.tenv = tenv
 
@@ -169,7 +169,7 @@ class TypeInferenceVisitor(IRVisitor):
     visitSamplingObserved = visitSamplingStmt
 
     def Tunify(self, t1:Type_, t2:Type_):
-        t1.unify(t2, denv=self.denv, tenv=self.tenv)
+        t1.unify(t2, equalities=self.equalities, tenv=self.tenv)
 
     def visitProgram(self, program:Program):
         for b in program.children:
@@ -205,19 +205,25 @@ class TypeInferenceVisitor(IRVisitor):
             return Dconstant(d.value)
         elif isinstance(d, Variable):
             # add support for named dimension variables here
-            return Dnamed(self.denv, d.id)
+            return Druntime(d.id)
+        elif isinstance(d, AnonymousShapeProperty):
+            # TODO: really, this should probably be an actual anonymous dimension
+            return Dnamed(self.denv, d.var.id)
+        elif isinstance(d, VariableProperty):
+            if d.prop != 'shape':
+                raise UnsupportedProperty(d.prop)
+            return Dshape(d.var.id)
         else:
-            # TODO: add support for anonymous parameters
             assert False, f"Unknown dimension type: {self.type_}"
 
     def visitVariableDecl(self, decl:VariableDecl):
         var_type:Type_ = self.toSType(decl.type_)
         if decl.dim:
-            if isinstance(decl.dim, Variable):
+            if isinstance(decl.dim, Variable) or isinstance(decl.dim, AnonymousShapeProperty):
                 dim_type = self.toSDim(decl.dim)
                 var_type = Tarray(component=var_type, dimension=dim_type)
             elif decl.dim.children:
-                for d in decl.dim.children:
+                for d in reversed(decl.dim.children):
                     dim_type = self.toSDim(d)
                     var_type = Tarray(component=var_type, dimension=dim_type)
         var = Tnamed(self.tenv, decl.id)
