@@ -922,7 +922,7 @@ class Ir2PythonVisitor(IRVisitor):
             if d.isVariable():
                 raise UnderspecifiedDimension(dimension_id, "not found")
             elif d.isKnown():
-                return self.knownDimensionToAST(d.desc)
+                return self.knownDimensionToAST(d.description())
             else:
                 assert f"Unknown dimension {d}"
         else:
@@ -1142,6 +1142,7 @@ def ir2python(ir):
     consistency = SamplingConsistencyVisitor()
     ir = ir.accept(consistency)
     type_infer = TypeInferenceVisitor.run(ir)
+    assert len(type_infer.equalities) == 0
     visitor = Ir2PythonVisitor(type_infer)
     a = ir.accept(visitor)
     ast.fix_missing_locations(a)

@@ -39,13 +39,13 @@ class Dimension(object):
             Generally, the classmethod constructors below should be used in preference
             to calling this constructor directly.
          """
-        self.desc = desc
+        self._desc = desc
     
     def __str__(self):
-        return str(self.desc)
+        return str(self.description())
 
     def __repr__(self):
-        return f"D{repr(self.desc)}"
+        return f"D{repr(self.description())}"
 
     def unify(self, other:'Dimension', *, equalities:Set[Tuple['KnownDimension', 'KnownDimension']]=set()):
         """ Unifies two dimensions.  This may change the dimension descriptions that they point to.
@@ -55,49 +55,55 @@ class Dimension(object):
         if self == other:
             return
 
-        if self.desc == other.desc:
+        me = self.target()
+        other = other.target()
+
+        if me == other:
             return
 
-        if isinstance(self.desc, AnonymousDimensionVariable):
-            self.desc = other.desc
-            return
-        if isinstance(other.desc, AnonymousDimensionVariable):
-            other.desc = self.desc
-            return
-        if isinstance(self.desc, DimensionVariable):
-            self.desc = other.desc
-            return
-        if isinstance(other.desc, DimensionVariable):
-            other.desc = self.desc
+        if me._desc == other._desc:
             return
 
-        assert isinstance(self.desc, KnownDimension)
-        assert isinstance(other.desc, KnownDimension)
-
-        if type(self.desc) == type(other.desc) and self.desc.expr() == other.desc.expr():
+        if isinstance(me._desc, AnonymousDimensionVariable):
+            me._desc = DimensionLink(other)
             return
-        if isinstance(self.desc, ConstantDimension) and isinstance(other.desc, ConstantDimension):
-            c1 = ast.literal_eval(self.desc.expr())
-            c2 = ast.literal_eval(other.desc.expr())
+        if isinstance(other._desc, AnonymousDimensionVariable):
+            other._desc = DimensionLink(me)
+            return
+        if isinstance(me._desc, DimensionVariable):
+            me._desc = DimensionLink(other)
+            return
+        if isinstance(other._desc, DimensionVariable):
+            other._desc = DimensionLink(me)
+            return
+
+        assert isinstance(me._desc, KnownDimension)
+        assert isinstance(other._desc, KnownDimension)
+
+        if type(me._desc) == type(other._desc) and me._desc.expr() == other._desc.expr():
+            return
+        if isinstance(me._desc, ConstantDimension) and isinstance(other._desc, ConstantDimension):
+            c1 = ast.literal_eval(me._desc.expr())
+            c2 = ast.literal_eval(other._desc.expr())
             if c1 != c2:
                 raise IncompatibleDimensions(self, other)
-        if not (other.desc,self.desc) in equalities:
-            equalities.add((self.desc,other.desc))
+        if not (other._desc,me._desc) in equalities:
+            equalities.add((me._desc,other._desc))
 
         # # If one of them is a constant, we will enforce that the other is as well.
         # # We could also imagine allowing it unify with a pathDimension, 
         # # along with a runtime check for equality
-        # if isinstance(self.desc, ConstantDimension):
-        #     if isinstance(other.desc, ConstantDimension):
-        #         if self.desc.val == other.desc.val:
+        # if isinstance(me._desc, ConstantDimension):
+        #     if isinstance(other._desc, ConstantDimension):
+        #         if me._desc.val == other._desc.val:
         #             return
         #         else:
         #             raise IncompatibleDimensions(self, other)
         #     else:
         #         raise IncompatibleDimensions(self, other)
-        # if isinstance(other.desc, ConstantDimension):
-        #     if isinstance(self.desc, ConstantDimension):
-        #         if self.desc.val == other.desc.val:
+        # if isinstance(other._desc, ConstantDimension):
+        #     if isinstance(me._desc, ConstantDimension):
+        #         if me._desc.val == other._desc.val:
         #             return
         #         else:
         #             raise IncompatibleDimensions(self, other)
@@ -105,12 +111,12 @@ class Dimension(object):
         #         raise IncompatibleDimensions(self, other)
 
         # # At this point, the only dimensions possible should be path dimension types
-        # if not isinstance(self.desc, PathDimension) or not isinstance(other.desc, PathDimension):
+        # if not isinstance(me._desc, PathDimension) or not isinstance(other._desc, PathDimension):
         #     raise IncompatibleDimensions(self, other)
 
-        # if self.desc.path == other.desc.path:
+        # if me._desc.path == other._desc.path:
         #     # if they are the same path, we may as well identify them
-        #     self.desc = other.desc
+        #     me._desc = other._desc
         #     return
         # else:
         #     # What do we do if we have two paths for the same shape?  For now,
@@ -150,18 +156,41 @@ class Dimension(object):
         """Create a new dimension representing a constant (e.g. 2)"""
         return cls(ConstantDimension(val))
 
+    ### This method is used to find the "actual" dimension (following links as needed)
+    def target(self) -> 'Dimension':
+        """return the concrete (non-link) dimension, following links as needed"""
+        if isinstance(self._desc, DimensionLink):
+            return self._desc.target()
+        else:
+            return self
+
+    def description(self) -> DimensionDesc:
+        """return the description for this dimension, following links as needed"""
+        return self.target()._desc
+
     ### These methods check what type of dimension this is
     def isVariable(self):
         """Does this dimension point to a (possibly anonymous) dimension variable?"""
-        return isinstance(self.desc, DimensionVariable)
+        return isinstance(self.description(), DimensionVariable)
 
     def isConstant(self):
         """Does this dimension point to a constant dimension?"""
-        return isinstance(self.desc, ConstantDimension)
+        return isinstance(self.description(), ConstantDimension)
 
     def isKnown(self):
         """Does this dimension point to a known dimension?"""
-        return isinstance(self.desc, KnownDimension)
+        return isinstance(self.description(), KnownDimension)
+
+
+class DimensionLink(DimensionDesc):
+    def __init__(self, target:Dimension):
+        super(DimensionLink, self).__init__()
+        self._target = target
+    
+    def target(self):
+        # path compression
+        self._target = self._target.target()
+        return self._target
 
 
 class DimensionVariable(DimensionDesc):

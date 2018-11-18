@@ -38,13 +38,13 @@ class Type_(object):
             Generally, the classmethod constructors below should be used in preference
             to calling this constructor directly.
          """
-        self.desc = desc
+        self._desc = desc
     
     def __str__(self):
-        return str(self.desc)
+        return str(self.description())
 
     def __repr__(self):
-        return f"T{repr(self.desc)}"
+        return f"T{repr(self.description())}"
 
     def unify(self, other, *, equalities:Set[Tuple[KnownDimension, KnownDimension]]=set(), tenv={}):
         """ Unifies two types.  This may change the type descriptions that they point to.
@@ -54,24 +54,30 @@ class Type_(object):
         if self == other:
             return
 
-        if self.desc == other.desc:
+        me = self.target()
+        other = other.target()
+
+        if me == other:
             return
 
-        if isinstance(self.desc, AnonymousVariable):
-            self.desc = other.desc
+        if me._desc == other._desc:
             return
-        if isinstance(other.desc, AnonymousVariable):
-            other.desc = self.desc
+
+        if isinstance(me._desc, AnonymousVariable):
+            me._desc = TypeLink(other)
             return
-        if isinstance(self.desc, Variable):
-            self.desc = other.desc
+        if isinstance(other._desc, AnonymousVariable):
+            other._desc = TypeLink(me)
             return
-        if isinstance(other.desc, Variable):
-            other.desc = self.desc
+        if isinstance(me._desc, Variable):
+            me._desc = TypeLink(other)
+            return
+        if isinstance(other._desc, Variable):
+            other._desc = TypeLink(me)
             return
 
         ## TODO: fix this to handle Primitive types (which can be either Integer or Reals)
-        def check_prim1(T, t1, t2):            
+        def check_prim1(T, t1, t2):          
             if isinstance(t1, T):
                 if not isinstance(t2, T):
                     raise IncompatibleTypes(t1, t2)
@@ -84,36 +90,36 @@ class Type_(object):
             return check_prim1(T, t1, t2) or check_prim1(T, t2, t1)
 
 
-        if check_prims(Int, self.desc, other.desc):
+        if check_prims(Int, me._desc, other._desc):
             return
-        if check_prims(Real, self.desc, other.desc):
+        if check_prims(Real, me._desc, other._desc):
             return
 
         # At this point, the only types possible should be indexed types
-        if not isinstance(self.desc, Indexed) or not isinstance(other.desc, Indexed) :
+        if not isinstance(me._desc, Indexed) or not isinstance(other._desc, Indexed) :
             raise IncompatibleTypes(self, other)
 
-        self.desc.dimension.unify(other.desc.dimension, equalities=equalities)
+        me._desc.dimension.unify(other._desc.dimension, equalities=equalities)
 
-        if isinstance(self.desc, SomeIndexed):
-            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
-            self.desc = other.desc
+        if isinstance(me._desc, SomeIndexed):
+            me._desc.component().unify(other._desc.component(), equalities=equalities, tenv=tenv)
+            me._desc = TypeLink(other)
             return
-        if isinstance(other.desc, SomeIndexed):
-            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
-            other.desc = self.desc
+        if isinstance(other._desc, SomeIndexed):
+            me._desc.component().unify(other._desc.component(), equalities=equalities, tenv=tenv)
+            other._desc = TypeLink(me)
             return
         
         # If neither one is a SomeIndexed, then they both need to be 
         # related
-        if type(self.desc) is type(other.desc):
-            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
-        elif issubclass(type(self.desc), type(other.desc)):
-            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
-            other.desc = self.desc
-        elif issubclass(type(other.desc), type(self.desc)):
-            self.desc.component().unify(other.desc.component(), equalities=equalities, tenv=tenv)
-            self.desc = other.desc
+        if type(me._desc) is type(other._desc):
+            me._desc.component().unify(other._desc.component(), equalities=equalities, tenv=tenv)
+        elif issubclass(type(me._desc), type(other._desc)):
+            me._desc.component().unify(other._desc.component(), equalities=equalities, tenv=tenv)
+            other._desc = TypeLink(me)
+        elif issubclass(type(other._desc), type(me._desc)):
+            me._desc.component().unify(other._desc.component(), equalities=equalities, tenv=tenv)
+            me._desc = TypeLink(other)
         else:
             raise IncompatibleTypes(self, other)
 
@@ -127,7 +133,7 @@ class Type_(object):
             return tenv[name]
         else:
             v = cls(Variable(name))
-            tenv[name] = v    
+            tenv[name] = v
             return v
 
     @classmethod
@@ -198,26 +204,38 @@ class Type_(object):
         else:
             return cls(Array(dimension, component))
 
+    ### This method is used to find the "actual" type (following links as needed)
+    def target(self) -> 'Type_':
+        """return the concrete (non-link) type, following links as needed"""
+        if isinstance(self._desc, TypeLink):
+            return self._desc.target()
+        else:
+            return self
+
+    def description(self) -> TypeDesc:
+        """return the description for this type, following links as needed"""
+        return self.target()._desc
+
     ### These test methods determine what kind of type it is    
     def isVariable(self) -> bool:
-        return isinstance(self.desc, Variable)
+        return isinstance(self.description(), Variable)
 
     def isPrimitive(self):
-        return isinstance(self.desc, Primitive)
+        return isinstance(self.description(), Primitive)
 
     def isInt(self):
-        return isinstance(self.desc, Int)
+        return isinstance(self.description(), Int)
 
     def isReal(self):
-        return isinstance(self.desc, Real)
+        return isinstance(self.description(), Real)
 
     def isArray(self):
-        return isinstance(self.desc, Array)
+        return isinstance(self.description(), Array)
 
     def dimensions(self) -> List[Dimension] :
         ## TODO: Note again the choice that only arrays have "dimensions".  This may need to be revisited.
-        if isinstance(self.desc, Array):
-            return self.desc.dimensions()
+        if isinstance(self.description(), Array):
+            return self.description().dimensions()
         else:
             return list()
 
@@ -234,11 +252,11 @@ class Type_(object):
         elif self.isInt():
             return self.real()
         elif self.isArray():
-            t = self.desc.component().asRealArray()
-            if t is self.desc.component():
+            t = self.description().component().asRealArray()
+            if t is self.description().component():
                 return self
             else:
-                return self.array(component=t, dimension=self.desc.dimension)
+                return self.array(component=t, dimension=self.description().dimension)
         else:
             raise IncompatibleTypes(self, [Type_.real(), Type_.int()])
 
@@ -254,15 +272,24 @@ class Type_(object):
             # does bernoulli accept an integer argument?
             raise IncompatibleTypes(self, [Type_.real()])
         elif self.isArray():
-            t = self.desc.component().realArrayToIntArray()
-            if t is self.desc.component():
+            t = self.description().component().realArrayToIntArray()
+            if t is self.description().component():
                 return self
             else:
-                return self.array(component=t, dimension=self.desc.dimension)
+                return self.array(component=t, dimension=self.description().dimension)
         else:
             raise IncompatibleTypes(self, [Type_.real(), Type_.int()])
 
 
+class TypeLink(TypeDesc):
+    def __init__(self, target:Type_):
+        super(TypeLink, self).__init__()
+        self._target = target
+    
+    def target(self):
+        # path compression
+        self._target = self._target.target()
+        return self._target
 
 
 class Variable(TypeDesc):
@@ -348,9 +375,9 @@ class SomeIndexed(Indexed):
     def __str__(self):
         s = "[!"
         c = self
-        while isinstance(c.component().desc, Array):
+        while isinstance(c.component().description(), Array):
             s = s + str(c.dimension) + ","
-            c = c.component().desc
+            c = c.component().description()
         s = str(c.component()) + s + str(c.dimension) + "]"
         return s
 
@@ -422,17 +449,17 @@ class Array(Indexed):
         res = list()
         res.append(self.dimension)
         c = self
-        while isinstance(c.component().desc, Array):
-            c = c.component().desc
+        while isinstance(c.component().description(), Array):
+            c = c.component().description()
             res.append(c.dimension)
         return res
 
     def __str__(self):
         s =  "["
         c = self
-        while isinstance(c.component().desc, Array):
+        while isinstance(c.component().description(), Array):
             s = s + str(c.dimension) + ","
-            c = c.component().desc
+            c = c.component().description()
         s = str(c.component()) + s + str(c.dimension) + "]"
         return s
 
