@@ -67,6 +67,12 @@ class DimensionInferenceVisitor(IRVisitor):
         return d
 
 
+    def visitAnonymousShapeProperty(self, prop:AnonymousShapeProperty):
+        d = Dnamed(self.outer.denv, prop.var.id)
+
+        prop.expr_dim = d
+        return d
+
     def visitVariableProperty(self, prop:VariableProperty) -> Dimension:
         if prop.prop != 'shape':
             raise UnsupportedProperty(prop)
@@ -119,14 +125,12 @@ class TypeInferenceVisitor(IRVisitor):
         elif stmt.id in set(["zeros", "ones"]):
             args = stmt.args.children
             if len(args) == 0:
-                assert False, "TODO: add code for adding in an anonymous dimension here"
-
-            else:
+                stmt.args.children = [AnonymousShapeProperty()]
             ## TODO: handle multiple explicit dimensions here
-                res = Treal()
-                for arg in stmt.args.children:
-                    dim = self.inferDims(arg)
-                    res = Tarray(component = res, dimension=dim)
+            res = Treal()
+            for arg in stmt.args.children:
+                dim = self.inferDims(arg)
+                res = Tarray(component = res, dimension=dim)
         else:
             res = Tnew()
 
