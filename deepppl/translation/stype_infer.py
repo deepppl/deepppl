@@ -66,6 +66,7 @@ class DimensionInferenceVisitor(IRVisitor):
         var.expr_dim = d
         return d
 
+    visitNetVariable = visitVariable
 
     def visitAnonymousShapeProperty(self, prop:AnonymousShapeProperty):
         d = Dnamed(self.outer.denv, prop.var.id)
@@ -90,6 +91,8 @@ class DimensionInferenceVisitor(IRVisitor):
         prop.expr_dim = d
         return d
 
+    visitNetVariableProperty = visitVariableProperty
+
 class TypeInferenceVisitor(IRVisitor):
     """ Running 
     """
@@ -111,18 +114,14 @@ class TypeInferenceVisitor(IRVisitor):
         self.denv = denv
         self.tenv = tenv
 
-    known_functions = set([
-        "randn", "exp", "log", "zeros", "ones", "softplus"
-    ])
-
     def inferDims(self, ir:IR):
         return ir.accept(DimensionInferenceVisitor(self))
 
     def visitCallStmt(self, stmt:CallStmt):
-        if stmt.id in set(["exp"]):
+        if stmt.id in set(["exp", "softplus", "log"]):
             arg0_type = stmt.args.children[0].accept(self)
             res = arg0_type.asRealArray()
-        elif stmt.id in set(["zeros", "ones"]):
+        elif stmt.id in set(["zeros", "ones", "randn"]):
             args = stmt.args.children
             if len(args) == 0:
                 stmt.args.children = [AnonymousShapeProperty()]
@@ -134,10 +133,10 @@ class TypeInferenceVisitor(IRVisitor):
         else:
             res = Tnew()
 
-            if stmt.id in self.known_functions:
-                if len(stmt.args.children) != 0:
-                    for a in stmt.args.children:
-                        self.Tunify(res, a.accept(self))
+            # if stmt.id in self.known_functions:
+            #     if len(stmt.args.children) != 0:
+            #         for a in stmt.args.children:
+            #             self.Tunify(res, a.accept(self))
 
         stmt.expr_type = res
         return res
@@ -149,6 +148,9 @@ class TypeInferenceVisitor(IRVisitor):
             assert len(stmt.args) >= 2, f"Normal distribution underspecified; only {len(stmt.args)} arguments given"
             assert len(stmt.args) <= 3, f"Normal distribution overspecified; {len(stmt.args)} arguments given"
             # TODO: this accepts int arrays.  Is that actually valid?
+
+            # TODO: if given an int array, then add an IR node to change
+            # the int array into a real array to make pyro happy
             t0 = stmt.args[0].accept(self).asRealArray()
             t1 = stmt.args[1].accept(self).asRealArray()
             self.Tunify(t0, t1)
@@ -163,14 +165,23 @@ class TypeInferenceVisitor(IRVisitor):
             assert len(stmt.args) == 1, f"Bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
             t0 = stmt.args[0].accept(self).realArrayToIntArray()
             self.Tunify(target_type, t0)
+        elif stmt.id == 'ImproperUniform':
+            assert len(stmt.args) < 2, f"ImproperUniform distribution expected to have at most 1 argument; {len(stmt.args)} arguments given"
+            if len(stmt.args) == 0:
+                stmt.args = [AnonymousShapeProperty()]
+            dim0 = self.inferDims(stmt.args[0])
+            t0 = Tarray(component = Treal(), dimension=dim0)
+            self.Tunify(target_type, t0)
         else:
-            for a in stmt.args:
-                self.Tunify(target_type, a.accept(self))
+            assert f"The {stmt.id} distribution is not yet supported."
+            # for a in stmt.args:
+            #     self.Tunify(target_type, a.accept(self))
         stmt.expr_type = target_type
         return target_type
 
     visitSamplingParameters = visitSamplingStmt
     visitSamplingObserved = visitSamplingStmt
+    visitSamplingDeclaration = visitSamplingStmt
 
     def Tunify(self, t1:Type_, t2:Type_):
         t1.unify(t2, equalities=self.equalities, tenv=self.tenv)
@@ -242,6 +253,7 @@ class TypeInferenceVisitor(IRVisitor):
         var.expr_type = t
         return t
 
+    visitNetVariable = visitVariable
 
     def visitVariableProperty(self, prop:VariableProperty) -> Dimension:
         assert False, "coding error"
@@ -252,6 +264,7 @@ class TypeInferenceVisitor(IRVisitor):
         prop.expr_type = t
         return t
 
+    visitNetVariableProperty = visitVariableProperty
 
     def visitAssignStmt(self, stmt:AssignStmt):
         target = stmt.target.accept(self)
