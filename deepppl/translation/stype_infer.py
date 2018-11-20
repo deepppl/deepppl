@@ -283,6 +283,11 @@ class TypeInferenceVisitor(IRVisitor):
         expr.expr_type = base
         return base
 
+    def visitConstant(self, c:Constant):
+        t = Tnew("const")
+        c.expr_type = t
+        return t
+
 """ 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
