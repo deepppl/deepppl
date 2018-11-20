@@ -137,9 +137,9 @@ class Type_(object):
             return v
 
     @classmethod
-    def newVariable(cls) -> 'Type_':
+    def newVariable(cls, *hint) -> 'Type_':
         """Create a new type representing a Type Variable (unknown type), in a given environment"""
-        return cls(AnonymousVariable())
+        return cls(AnonymousVariable(*hint))
     
     @classmethod
     def real(cls) -> 'Type_':
@@ -305,15 +305,18 @@ class Variable(TypeDesc):
 
 class AnonymousVariable(Variable):
     @classmethod
-    def newVarName(cls):
+    def newVarName(cls, *hint):
         if hasattr(cls, 'counter'):
             cls.counter = cls.counter+1
         else:
             cls.counter = 0
-        return "anon"+str(cls.counter)
+        base = "anon"+str(cls.counter)
+        if hint:
+            base = base + "@" + str(*hint)
+        return base
     
-    def __init__(self):
-        super(AnonymousVariable, self).__init__(AnonymousVariable.newVarName())
+    def __init__(self, *hint):
+        super(AnonymousVariable, self).__init__(AnonymousVariable.newVarName(*hint))
 
     def __str__(self):
         return "?"
