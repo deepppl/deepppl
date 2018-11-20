@@ -686,6 +686,19 @@ class Ir2PythonVisitor(IRVisitor):
             return ast.BinOp(left = base, right = observed_str, op = ast.Add())
 
     def visitConstant(self, const):
+        if hasattr(const, 'expr_type'):
+            dims = const.expr_type.dimensions()
+            args = [self.dimensionToAST(d) for d in dims]
+            if const.value == 0:
+                return self.call(self.loadName("zeros"), args=args)
+            else:
+                ones = self.call(self.loadName("ones"), args=args)
+                if const.value == 1:
+                    return ones
+                else:
+                    return ast.BinOp(left = ast.Num(const.value),
+                            right = ones,
+                            op = ast.Mult())
         return ast.Num(const.value)
 
     def visitVariableDecl(self, decl):
@@ -942,13 +955,18 @@ class Ir2PythonVisitor(IRVisitor):
             ctx = ast.Load()
         )
 
+    def dimensionToAST(self, d:'Dimension'):
+        if d.isKnown():
+            return self.knownDimensionToAST(d.description())
+        else:
+            raise UnderspecifiedDimension(d, "not concrete")
+
     def knownDimensionToAST(self, d:'KnownDimension'):
         a = ast.parse(d.expr(), mode='eval')
         if isinstance(a, ast.Expression):
             return a.body
         else:
             return a
-
         
     def pathAttr(self, path):
         paths = path.split('.')
