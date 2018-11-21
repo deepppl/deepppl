@@ -76,6 +76,37 @@ class Type_(object):
             other._desc = TypeLink(me)
             return
 
+        if isinstance(me._desc, NetworkTensorType):
+            if isinstance(other._desc, NetworkTensorType):
+                if me._desc.path == other._desc.path and me._desc.index == other._desc.index:
+                    me._desc = TypeLink(other)
+                    return
+                else:
+                    # We don't currently support unifying two NetworkTensorTypes unless they are the same
+                    raise IncompatibleTypes(self, other)
+            if isinstance(other._desc, Primitive):
+                me._desc = TypeLink(other)
+                return
+            if isinstance(other._desc, NonArrayIndexed):
+                # NetworkTensorTypes must have a primitive as the base type
+                raise IncompatibleTypes(self, other)
+
+            if isinstance(other._desc, Indexed):
+                # If it is any other indexed type (an Array or SomeIndexed)
+                my_dim = me._desc.dim()
+                my_rest = me._desc.next()
+                my_dim.unify(other._desc.dimension, equalities=equalities)
+                my_rest.unify(other._desc.component(), equalities=equalities, tenv=tenv)
+                return                
+
+            assert False, f"Unknown type: {other}"
+        
+        # Rather than copy/paste the above code, just unify with the argument re-ordered
+        # TODO: This is not ideal for error messages, once/if we get better about the expected/actual
+        # arguments to unify
+        if isinstance(other._desc, NetworkTensorType):
+            return other.unify(me, equalities=equalities, tenv=tenv)
+
         ## TODO: fix this to handle Primitive types (which can be either Integer or Reals)
         def check_prim1(T, t1, t2):          
             if isinstance(t1, T):
@@ -203,6 +234,11 @@ class Type_(object):
             return c
         else:
             return cls(Array(dimension, component))
+
+    @classmethod
+    def network(cls, path, index:int=0) -> 'Type_':
+        """Create a new type representing a network tensor type"""
+        return cls(NetworkTensorType(path, index))
 
     ### This method is used to find the "actual" type (following links as needed)
     def target(self) -> 'Type_':
@@ -386,7 +422,11 @@ class SomeIndexed(Indexed):
 
     __repr__ = __str__
 
-class Vector(Indexed):
+class NonArrayIndexed(Indexed):
+    def __init__(self, dimension:Dimension):
+        super(NonArrayIndexed, self).__init__(dimension)
+
+class Vector(NonArrayIndexed):
     """Represents a Stan column vector"""
     def __init__(self, dimension:Dimension):
         super(Vector, self).__init__(dimension)
@@ -399,7 +439,7 @@ class Vector(Indexed):
 
     __repr__ = __str__
 
-class RowVector(Indexed):
+class RowVector(NonArrayIndexed):
     """Represents a Stan row vector"""
     def __init__(self, dimension:Dimension):
         super(RowVector, self).__init__(dimension)
@@ -412,7 +452,7 @@ class RowVector(Indexed):
 
     __repr__ = __str__
 
-class MatrixSlice(Indexed):
+class MatrixSlice(NonArrayIndexed):
     """Represents a slice of a stan matrix (a matrix that has already been subscripted)"""
     def __init__(self, dimension:Dimension):
         super(MatrixSlice, self).__init__(dimension)
@@ -425,7 +465,7 @@ class MatrixSlice(Indexed):
 
     __repr__ = __str__
 
-class Matrix(Indexed):
+class Matrix(NonArrayIndexed):
     """Represents a Stan matrix"""
     def __init__(self, dimension1:Dimension, dimension2:Dimension):
         super(Matrix, self).__init__(dimension1)
@@ -468,6 +508,24 @@ class Array(Indexed):
 
     __repr__ = __str__
 
+class NetworkTensorType(TypeDesc):
+    """Represents the result of calling or using a path from a network variable"""
+    def __init__(self, path, index:int):
+        super(NetworkTensorType, self).__init__()
+        self.path = path
+        self.index = index
+
+    def next(self)->Type_:
+        return Type_.network(self.path, index=self.index+1)
+
+    def dim(self)->Dimension:
+        return Dimension.shapeDimension(self.path, self.index)
+
+    def __str__(self):
+        return f"??{self.path}@{self.index}"
+
+    __repr__ = __str__
+
 Tnamed = Type_.namedVariable
 Tnew = Type_.newVariable
 Treal = Type_.real
@@ -477,3 +535,4 @@ Tvector = Type_.vector
 Trow_vector = Type_.row_vector
 Tmatrix = Type_.matrix
 Tarray = Type_.array
+Tnetwork = Type_.network

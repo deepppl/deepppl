@@ -1160,7 +1160,8 @@ def ir2python(ir):
     consistency = SamplingConsistencyVisitor()
     ir = ir.accept(consistency)
     type_infer = TypeInferenceVisitor.run(ir)
-    assert len(type_infer.equalities) == 0
+    if len(type_infer.equalities) != 0:
+        print(f"WARNING: There are unproven equality constraints: {type_infer.equalities}")
     visitor = Ir2PythonVisitor(type_infer)
     a = ir.accept(visitor)
     ast.fix_missing_locations(a)

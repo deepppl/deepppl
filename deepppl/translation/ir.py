@@ -315,6 +315,17 @@ class CallStmt(Statements):
     def children(self, children):
         [self.args,] = children
 
+    def __str__(self):
+        s = str(self.id) + "("
+        first = True
+        for a in self.args.children:
+            if first:
+                first = False
+            else:
+                s = s + ","
+            s = s + str(a)
+        s = s + ")"
+        return s
 
 class BreakStmt(Statements):
     pass
@@ -527,6 +538,9 @@ class Variable(Expression):
         super(Variable, self).__init__()
         self.id = id
         self.block_name = None
+
+    def __str__(self):
+        return str(self.id)
 
     def __eq__(self, other):
         return isinstance(other, Variable) and \
