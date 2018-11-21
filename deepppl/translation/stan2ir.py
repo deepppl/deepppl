@@ -99,7 +99,6 @@ class StanToIR(stanListener):
         else:
             assert False, f'unknown constraint: {id_.getText()}'
         constant = ctx.atom().ir
-        assert isinstance(constant, Constant)
         constraint = Constraint(sort = sort, value = constant)
         ctx.ir = constraint
 
@@ -468,6 +467,13 @@ class StanToIR(stanListener):
 
     def exitParametersBlock(self, ctx):
         self.code_block(ctx, Parameters)
+
+    def exitTransformedParametersBlock(self, ctx):
+        body = gatherChildrenIRList(ctx)
+        for ir in body:
+            if ir.is_variable_decl():
+                ir.set_transformed_parameters()
+        ctx.ir = TransformedParameters(body = body)
 
     def exitGuideBlock(self, ctx):
         self.code_block(ctx, Guide)
