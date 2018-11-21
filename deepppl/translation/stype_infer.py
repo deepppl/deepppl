@@ -22,7 +22,7 @@ import ast
 import astor
 #import sys
 from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
-                NetVariable, Program, ForStmt, ConditionalStmt, \
+                NetVariable, NetDeclaration, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingStmt, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
@@ -35,7 +35,7 @@ from .sdim import KnownDimension, Dimension, \
         Dnew, Dnamed, Dshape, Druntime, Dconstant
 from .stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
-        Tnamed, Tnew
+        Tnamed, Tnew, Tnetwork
 
 from .exceptions import *
 
@@ -130,6 +130,12 @@ class TypeInferenceVisitor(IRVisitor):
             for arg in stmt.args.children:
                 dim = self.inferDims(arg)
                 res = Tarray(component = res, dimension=dim)
+        elif stmt.id in self._nets:
+            # right now we do not impose any constraints on the input
+            # but we still iterate through them (so that constants get generalized, for example)
+            for a in stmt.args.children:
+                a.accept(self)
+            res = Tnetwork(stmt)
         else:
             res = Tnew()
 
@@ -139,6 +145,7 @@ class TypeInferenceVisitor(IRVisitor):
             #             self.Tunify(res, a.accept(self))
 
         stmt.expr_type = res
+        str(res)
         return res
 
     def visitSamplingStmt(self, stmt:SamplingStmt):
@@ -183,6 +190,20 @@ class TypeInferenceVisitor(IRVisitor):
     visitSamplingObserved = visitSamplingStmt
     visitSamplingDeclaration = visitSamplingStmt
 
+    # class NetworkVariableType(object):
+    #     def __init__(self, net_cls:str, input:Type_, output:Type_):
+    #         self.net_cls = net_cls
+    #         self.input = input
+    #         self.output = output
+
+
+    def visitNetDeclaration(self, decl:NetDeclaration):
+        # TODO: Question: do all instantiations of a net (decl.name(x))
+        # Share the same input/output type?  If so, then
+        # We should stash the types here
+        self._nets[decl.name] = decl.net_cls
+
+
     def Tunify(self, t1:Type_, t2:Type_):
         t1.unify(t2, equalities=self.equalities, tenv=self.tenv)
 
@@ -202,8 +223,7 @@ class TypeInferenceVisitor(IRVisitor):
     visitGuide = visitSamplingBlocks
     visitPrior = visitSamplingBlocks
     
-    def visitNetworksBlock(self, blocks):
-        pass
+    visitNetworksBlock = visitProgramBlocks
 
     visitGuide = visitProgramBlocks
 
@@ -252,8 +272,6 @@ class TypeInferenceVisitor(IRVisitor):
         t = Tnamed(self.tenv, var.id)
         var.expr_type = t
         return t
-
-    visitNetVariable = visitVariable
 
     def visitVariableProperty(self, prop:VariableProperty) -> Dimension:
         assert False, "coding error"

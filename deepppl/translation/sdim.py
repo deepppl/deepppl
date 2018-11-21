@@ -141,9 +141,13 @@ class Dimension(object):
         return cls(AnonymousDimensionVariable())
     
     @classmethod
-    def shapeDimension(cls, path) -> 'Dimension':
+    def shapeDimension(cls, path, index=None) -> 'Dimension':
         """Create a new dimension representing the shape of another runtime expression (e.g. encoder[1]$shape)"""
-        return cls(ShapeDimension(path))
+        if index is not None:
+            return cls(SubscriptedShapeDimension(path, index))
+        else:
+            return cls(ShapeDimension(path))
+
 
     @classmethod
     def runtimeDimension(cls, e) -> 'Dimension':
@@ -242,6 +246,20 @@ class ShapeDimension(KnownDimension):
 
     def expr(self)->str:
         return f"{self.path}.shape"
+
+    __repr__ = __str__
+
+class SubscriptedShapeDimension(ShapeDimension):
+    """Represents a dimension that should be the same as a component of the shape of a runtime expression"""
+    def __init__(self, path, index):
+        super(SubscriptedShapeDimension, self).__init__(path)
+        self.index = index
+    
+    def __str__(self):
+        return f"{self.path}$shape[{self.index}]"
+
+    def expr(self)->str:
+        return f"{self.path}.shape[{self.index}]"
 
     __repr__ = __str__
 
