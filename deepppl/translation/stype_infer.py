@@ -14,6 +14,7 @@
 #  * limitations under the License.
 # */
 
+from typing import Union, Sequence
 from collections import defaultdict, OrderedDict
 #from contextlib import contextmanager
 import ast
@@ -91,7 +92,38 @@ class DimensionInferenceVisitor(IRVisitor):
         prop.expr_dim = d
         return d
 
-    visitNetVariableProperty = visitVariableProperty
+    def visitNetVariableProperty(self, prop:NetVariableProperty) -> Union[Sequence[Dimension], Dimension]:
+        if prop.prop != 'shape':
+            raise UnsupportedProperty(prop)
+        t = self.outer._nets[prop.var.name][prop.var.ids]
+        ## TODO: this does not handle anonymous type variables properly
+        ## But this is probably not a problem in practice, since types need to be declared with a type
+
+        ## TODO: this does not allow vector/matrix shapes.  This is by design, however it might be the wrong design.
+        ## If they are to be handled, we need to decide what the shape of int[3] x[4] should be.
+        # TODO: this does not work for network types
+        # which happens, e.g. with the shape1 example
+        if not t.isArray():
+            raise IncompatibleTypes(t, Tindexed(Tnew()))
+        else:
+            d = t.dimensions()
+
+        prop.expr_dim = d
+        return d
+class NetworkVariableType(object):
+    def __init__(self, net_cls:str):
+        self.net_cls = net_cls
+        # self.input = input
+        # self.output = output
+        self._paths = {}            
+
+    def __getitem__(self, paramPath:Union[str,Sequence[str]])->Type_:
+        k = tuple(paramPath)
+        return self._paths[k]
+
+    def __setitem__(self, paramPath:Union[str,Sequence[str]], v:Type_)->Type_:
+        k = tuple(paramPath)
+        self._paths[k] = v
 
 class TypeInferenceVisitor(IRVisitor):
     """ Running 
@@ -190,19 +222,14 @@ class TypeInferenceVisitor(IRVisitor):
     visitSamplingObserved = visitSamplingStmt
     visitSamplingDeclaration = visitSamplingStmt
 
-    # class NetworkVariableType(object):
-    #     def __init__(self, net_cls:str, input:Type_, output:Type_):
-    #         self.net_cls = net_cls
-    #         self.input = input
-    #         self.output = output
-
-
     def visitNetDeclaration(self, decl:NetDeclaration):
         # TODO: Question: do all instantiations of a net (decl.name(x))
         # Share the same input/output type?  If so, then
         # We should stash the types here
-        self._nets[decl.name] = decl.net_cls
-
+        types = NetworkVariableType(decl.net_cls)
+        for p in decl.params:
+            types[p] = Tnetwork(".".join([decl.name] + p))
+        self._nets[decl.name] = types
 
     def Tunify(self, t1:Type_, t2:Type_):
         t1.unify(t2, equalities=self.equalities, tenv=self.tenv)
@@ -272,6 +299,10 @@ class TypeInferenceVisitor(IRVisitor):
         t = Tnamed(self.tenv, var.id)
         var.expr_type = t
         return t
+
+    def visitNetVariable(self, var:Variable):
+        netTypes = self._nets[var.name]
+        return netTypes[var.ids]
 
     def visitVariableProperty(self, prop:VariableProperty) -> Dimension:
         assert False, "coding error"
