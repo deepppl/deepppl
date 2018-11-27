@@ -33,7 +33,7 @@ from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
 from .ir import Type_ as IrType
 
 from .sdim import KnownDimension, Dimension, \
-        Dnew, Dnamed, Dshape, Druntime, Dconstant
+        Dnew, Dnamed, Dshape, Druntime, Dconstant, Groups
 from .stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
         Tnamed, Tnew, Tnetwork
@@ -137,7 +137,7 @@ class TypeInferenceVisitor(IRVisitor):
         ir.accept(visitor)
         return visitor
 
-    def __init__(self, *, denv={}, tenv={}, equalities=set()):
+    def __init__(self, *, denv={}, tenv={}, equalities=Groups()):
         super(TypeInferenceVisitor, self).__init__()
         self._ctx = {}
         self._anons = {}
