@@ -14,13 +14,61 @@
  limitations under the License.
  """
 
-from typing import Set, Tuple
+from typing import Set, Tuple, TypeVar, Generic, Optional
 import ast
 
 from .exceptions import IncompatibleDimensions
 
 # This defines a dimension system for Stan, extended with support for Dimension Variables
 # This will be used by the Type System
+
+T = TypeVar('T')
+class Groups(Generic[T]):
+    """This collects equivalence classes of equality constraints over dimensions.
+    It also supports some operations, such as picking the "best" representative.
+    Using a union-find style algorithm might make sense, but is probably not needed here
+    given the small size anticipated."""
+
+    def __init__(self):
+       self.eqclasses = {}
+
+    def add(self, d1:T, d2:T):
+        g1 = self.eqclasses.get(d1, None)
+        if g1 is None:
+            g1 = set([d1])
+        g2 = self.eqclasses.get(d2, None)
+        if g2 is None:
+            g2 = set([d2])
+        g1.update(g2)
+        for k in g1:
+            self.eqclasses[k] = g1
+    
+    def group(self, d:T)->Optional[Set[T]]:
+        return self.eqclasses.get(d, None)
+
+    def groups(self)->Set[Set[T]]:
+        return set([frozenset(i) for i in self.eqclasses.values()])
+
+    def __str__(self):
+        return "; ".join(["<"+",".join([str(k) for k in i])+">" for i in self.groups()])
+
+# TODO Avi: expand this.  In particular, 
+# we should allow runtime expressions that don't have
+# function calls in them (e.g. path expressions).
+# Doing this will require differentiating these in the types
+def pickCanonDim(group:Set['KnownDimension']):
+    for i in group:
+        if isinstance(i, ConstantDimension):
+            return i
+    return None
+
+def makeGroupCanonLookup(groups:Set[Set[T]]):
+    m = {}
+    for g in groups:
+        c = pickCanonDim(g)
+        for i in g:
+            m[i] = c
+    return m
 
 class DimensionDesc(object):
     """ This is the (abstract) base class for dimension descriptions.
@@ -47,7 +95,7 @@ class Dimension(object):
     def __repr__(self):
         return f"D{repr(self.description())}"
 
-    def unify(self, other:'Dimension', *, equalities:Set[Tuple['KnownDimension', 'KnownDimension']]=set()):
+    def unify(self, other:'Dimension', *, equalities:Groups['KnownDimension']=Groups()):
         """ Unifies two dimensions.  This may change the dimension descriptions that they point to.
             If the two dimensions are not unifiable, this will raise an IncompatibleDimensions exception
             with the dimensions descriptions that are not compatible.
@@ -87,8 +135,7 @@ class Dimension(object):
             c2 = ast.literal_eval(other._desc.expr())
             if c1 != c2:
                 raise IncompatibleDimensions(self, other)
-        if not (other._desc,me._desc) in equalities:
-            equalities.add((me._desc,other._desc))
+        equalities.add(me._desc,other._desc)
 
         # # If one of them is a constant, we will enforce that the other is as well.
         # # We could also imagine allowing it unify with a pathDimension, 
@@ -227,6 +274,7 @@ class AnonymousDimensionVariable(DimensionVariable):
 class KnownDimension(DimensionDesc):
     """ Represents a dimension whose value is `known`, meaning
         that we have an expression for it that can be determined at runtime
+        KnownDimension and all subclasses are assumed to be immutable
     """
     def __init__(self):
         super(KnownDimension, self).__init__()
@@ -234,6 +282,15 @@ class KnownDimension(DimensionDesc):
     def expr(self):
         """An expression that (at runtime) evaluates to the required dimension (integer)"""
         pass
+
+    def __eq__(self, other):
+        if isinstance(other, KnownDimension):
+            return self.expr() == other.expr()
+        return False
+
+    def __hash__(self):
+        return hash(self.expr())
+
 
 class ShapeDimension(KnownDimension):
     """Represents a dimension that should be the same as the shape of runtime expression"""
