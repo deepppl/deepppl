@@ -22,7 +22,7 @@ import astpretty
 import astor
 import sys
 
-from .sdim import KnownDimension
+from .sdim import KnownDimension, makeGroupCanonLookup
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
@@ -985,7 +985,11 @@ class Ir2PythonVisitor(IRVisitor):
             if d.isVariable():
                 raise UnderspecifiedDimension(dimension_id, "not found")
             elif d.isKnown():
-                return self.knownDimensionToAST(d.description())
+                dd = d.description()
+                # TODO Avi: If this lookup fails
+                # We probably want to verify that the original is a reasonable canonical element
+                dcanon = self.type_infer.dims_canon_map.get(dd, dd)
+                return self.knownDimensionToAST(dcanon)
             else:
                 assert f"Unknown dimension {d}"
         else:
@@ -1266,8 +1270,11 @@ def ir2python(ir):
     consistency = SamplingConsistencyVisitor()
     ir = ir.accept(consistency)
     type_infer = TypeInferenceVisitor.run(ir)
-    if len(type_infer.equalities) != 0:
-        print(f"WARNING: There are unproven equality constraints: {type_infer.equalities}")
+    equality_grouper = type_infer.equalities
+    equality_groups = equality_grouper.groups()
+    type_infer.dims_canon_map = makeGroupCanonLookup(equality_groups)
+    if len(equality_groups) != 0:
+        print(f"WARNING: There are unproven equality constraints: {equality_grouper}.  The lookup map is {type_infer.dims_canon_map}")
     visitor = Ir2PythonVisitor(type_infer)
     a = ir.accept(visitor)
     ast.fix_missing_locations(a)
