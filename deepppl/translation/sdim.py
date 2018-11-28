@@ -14,7 +14,7 @@
  limitations under the License.
  """
 
-from typing import Set, Tuple, TypeVar, Generic, Optional
+from typing import Set, Tuple, TypeVar, Generic, Optional, Mapping
 import ast
 
 from .exceptions import IncompatibleDimensions
@@ -56,13 +56,25 @@ class Groups(Generic[T]):
 # we should allow runtime expressions that don't have
 # function calls in them (e.g. path expressions).
 # Doing this will require differentiating these in the types
-def pickCanonDim(group:Set['KnownDimension']):
+def pickCanonDim(group:Set['KnownDimension'])->Optional['KnownDimension']:
+    best = None
+    goodness = 0
+    def tryPick(elem, cl, g):
+        nonlocal best, goodness
+        if g > goodness and isinstance(elem, cl):
+            best = elem
+            goodness = g
+            return True
+        else:
+            return False
     for i in group:
         if isinstance(i, ConstantDimension):
+            # goodness = 1000
             return i
-    return None
+        tryPick(i, RuntimeDimension, 10)
+    return best
 
-def makeGroupCanonLookup(groups:Set[Set[T]]):
+def makeGroupCanonLookup(groups:Set[Set[T]])->Mapping['KnownDimension', 'KnownDimension']:
     m = {}
     for g in groups:
         c = pickCanonDim(g)
@@ -219,6 +231,18 @@ class Dimension(object):
         """return the description for this dimension, following links as needed"""
         return self.target()._desc
 
+    def canon(self, mapping:Mapping['KnownDimension', 'KnownDimension'])->'Dimension':
+        """Return a version with dimensions canonalized."""
+        if self.isKnown():
+            d = self.description()
+            c = mapping.get(d, None)
+            if c is None:
+                return self
+            else:
+                return Dimension(c)
+        else:
+            return self
+
     ### These methods check what type of dimension this is
     def isVariable(self):
         """Does this dimension point to a (possibly anonymous) dimension variable?"""
@@ -290,6 +314,9 @@ class KnownDimension(DimensionDesc):
 
     def __hash__(self):
         return hash(self.expr())
+
+    def canon(self, mapping:Mapping['KnownDimension', 'KnownDimension'])->'KnownDimension':
+        return mapping.get(self, self)
 
 
 class ShapeDimension(KnownDimension):
