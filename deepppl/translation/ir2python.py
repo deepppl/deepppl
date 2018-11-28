@@ -672,16 +672,14 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
-        # dims = decl.dim.accept(self) if decl.dim else None
-        if (decl.dim is not None):
-            dims = decl.dim.accept(self)
-        else:
-            dims = ast.Tuple(elts=[], ctx=ast.Load())
+        # TODO Avi: update this to use the dimension mappings
+        ctype = decl.expr_type.canon(self.type_infer.dims_canon_map)
+        dim_string = ast.Str(str(ctype.description()))
         shapes = ast.Subscript(
-                                value = self.loadName('___shape'),
-                                slice = ast.Index(value = ast.Str(decl.id)),
-                                ctx = ast.Store())
-        return self._assign(shapes, dims)
+                               value = self.loadName('___shape'),
+                               slice = ast.Index(value = ast.Str(decl.id)),
+                               ctx = ast.Store())
+        return self._assign(shapes, dim_string)
 
 
     def visitList(self, list):
@@ -899,16 +897,29 @@ class Ir2PythonVisitor(IRVisitor):
                 ctx = ast.Load()
         )
 
+    def dimToAST(self, dim):
+        if dim.isVariable():
+            raise UnderspecifiedDimension(dim, "unknown")
+        elif dim.isKnown():
+            dd = dim.description()
+            # TODO Avi: If this lookup fails
+            # We probably want to verify that the original is a reasonable canonical element
+            dcanon = self.type_infer.dims_canon_map.get(dd, dd)
+            return self.knownDimensionToAST(dcanon)
+        else:
+            assert f"Unknown dimension {dim}"
     def visitVariableProperty(self, prop):
-        var = ast.Str(prop.var.id)
         if prop.prop != 'shape':
             raise UnsupportedProperty(prop)
-        dict_ = self.loadName('___' + prop.prop)
-        return ast.Subscript(
-            value = dict_,
-            slice = ast.Index(value = var),
-            ctx = ast.Load()
-        )
+
+        dims = prop.expr_dim
+        if isinstance(dims, list):
+            elts = [self.dimToAST(d) for d in dims]
+            ast_dims = ast.List(elts = elts,
+                                ctx = ast.Load())
+        else:
+            ast_dims = self.dimToAST(dims)
+        return ast_dims
 
     def dimensionToAST(self, d:'Dimension'):
         if d.isKnown():
@@ -933,22 +944,14 @@ class Ir2PythonVisitor(IRVisitor):
         return p
 
     def visitAnonymousShapeProperty(self, prop):
-        dimension_id = prop.var.id
-        dim_dict = self.type_infer.denv
-        if dimension_id in dim_dict:
-            d = dim_dict[dimension_id]
-            if d.isVariable():
-                raise UnderspecifiedDimension(dimension_id, "not found")
-            elif d.isKnown():
-                dd = d.description()
-                # TODO Avi: If this lookup fails
-                # We probably want to verify that the original is a reasonable canonical element
-                dcanon = self.type_infer.dims_canon_map.get(dd, dd)
-                return self.knownDimensionToAST(dcanon)
-            else:
-                assert f"Unknown dimension {d}"
-        else:
-            raise UnderspecifiedDimension(dimension_id, "not found")
+        return self.visitVariableProperty(prop)
+        # dimension_id = prop.var.id
+        # dim_dict = self.type_infer.denv
+        # if dimension_id in dim_dict:
+        #     d = dim_dict[dimension_id]
+        #     return self.dimToAST(d)
+        # else:
+        #     raise UnderspecifiedDimension(dimension_id, "not found")
 
     def visitNetVariableProperty(self, netprop):
         net = netprop.var
