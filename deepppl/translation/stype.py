@@ -14,7 +14,7 @@
  limitations under the License.
  """
 
-from typing import Union, List, Set, Tuple
+from typing import Union, List, Set, Tuple, Mapping
 from .exceptions import IncompatibleTypes
 from .sdim import Dimension, KnownDimension
 
@@ -25,7 +25,9 @@ class TypeDesc(object):
     """ This is the (abstract) base class for type descriptions.
         These are wrapped by Type_ objects, which are generally what you want to use.
     """
-    pass
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        return self
 
 class Type_(object):
     """ Creates a new type object, which represents the type of something.
@@ -248,6 +250,15 @@ class Type_(object):
         else:
             return self
 
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        d = self.description()
+        c = d.canon(mapping)
+        if c is d:
+            return self
+        else:
+            return Type_(c)
+           
     def description(self) -> TypeDesc:
         """return the description for this type, following links as needed"""
         return self.target()._desc
@@ -389,6 +400,14 @@ class Indexed(TypeDesc):
         super(Indexed, self).__init__()
         self.dimension = dimension
 
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        c = self.dimension.canon(mapping)
+        if c is self.dimension:
+            return self
+        else:
+            return self.__class__(c)
+
 #    @abstractmethod
     def component(self) -> Type_:
         pass
@@ -410,6 +429,14 @@ class SomeIndexed(Indexed):
 
     def component(self) -> Type_:
         return self.c
+
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        c = self.dimension.canon(mapping)
+        if c is self.dimension:
+            return self
+        else:
+            return self.__class__(c, self.component())
 
     def __str__(self):
         s = "[!"
@@ -474,6 +501,15 @@ class Matrix(NonArrayIndexed):
     def component(self) -> Type_:
         return Type_(MatrixSlice(self.sliceDim))
 
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        c1 = self.dimension.canon(mapping)
+        c2 = self.sliceDim.canon(mapping)
+        if c1 is self.dimension and c2 is self.sliceDim:
+            return self
+        else:
+            return self.__class__(c1, c2)
+
     def __str__(self):
         return "matrix[{},{}]".format(self.dimension, self.sliceDim)
 
@@ -487,6 +523,14 @@ class Array(Indexed):
 
     def component(self) -> Type_:
         return self.c
+
+    def canon(self, mapping:Mapping[KnownDimension, KnownDimension]):
+        """Return a version with dimensions canonalized."""
+        c = self.dimension.canon(mapping)
+        if c is self.dimension:
+            return self
+        else:
+            return self.__class__(c, self.component())
 
     def dimensions(self) -> List[Dimension]:
         res = list()
