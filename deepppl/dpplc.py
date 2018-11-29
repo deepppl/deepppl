@@ -48,35 +48,35 @@ def parsetreeToIR(tree):
     walker.walk(toIr, tree)
     return tree.ir
 
-def stan2astpy(stream):
+def stan2astpy(stream, verbose=False):
     tree = streamToParsetree(stream)
     ir = parsetreeToIR(tree)
-    return ir2python(ir)
+    return ir2python(ir, verbose=verbose)
 
-def stan2astpyFile(filename):
+def stan2astpyFile(filename, verbose=False):
     stream = FileStream(filename)
-    return stan2astpy(stream)
+    return stan2astpy(stream, verbose=verbose)
 
-def stan2astpyStr(str):
+def stan2astpyStr(str, verbose=False):
     stream = InputStream(str)
-    return stan2astpy(stream)
+    return stan2astpy(stream, verbose=verbose)
 
-def stan2pystr(str):
+def stan2pystr(str, verbose=False):
     """Return the program's python source code""" 
-    py = stan2astpyStr(str)
+    py = stan2astpyStr(str, verbose=verbose)
     return astor.to_source(py)
 
-def do_compile(model_code = None, model_file = None):
+def do_compile(model_code = None, model_file = None, verbose=False):
     if not (model_code or model_file) or (model_code and model_file):
         assert False, "Either code or file but not both must be provided."
     if model_code:
-        ast_ = stan2astpyStr(model_code)
+        ast_ = stan2astpyStr(model_code, verbose=verbose)
     else:
-        ast_ = stan2astpyFile(model_file)
+        ast_ = stan2astpyFile(model_file, verbose=verbose)
     return compile(ast_, "<deepppl_ast>", 'exec')
 
-def main(file):
-    return stan2astpyFile(file)
+def main(file, verbose=False):
+    return stan2astpyFile(file, verbose=verbose)
 
 
 if __name__ == '__main__':
@@ -89,8 +89,11 @@ if __name__ == '__main__':
                         help='Print the generated Pyro code')
     parser.add_argument('--noinfer', action='store_true',
                     help='Do not launch inference')
+    parser.add_argument('--verbose', action='store_true',
+                    help='Output verbose code with shape information')
     args = parser.parse_args()
-    ast_ = main(args.file)
+    verbose = False if args.verbose is None else args.verbose
+    ast_ = main(args.file, verbose=verbose)
     if args.print:
         print(astor.to_source(ast_))
     co = compile(ast_, "<ast>", 'exec')
