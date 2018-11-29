@@ -436,7 +436,7 @@ class SomeIndexed(Indexed):
         if c is self.dimension:
             return self
         else:
-            return self.__class__(c, self.component())
+            return self.__class__(c, self.component().canon(mapping))
 
     def __str__(self):
         s = "[!"
@@ -530,7 +530,7 @@ class Array(Indexed):
         if c is self.dimension:
             return self
         else:
-            return self.__class__(c, self.component())
+            return self.__class__(c, self.component().canon(mapping))
 
     def dimensions(self) -> List[Dimension]:
         res = list()
