@@ -554,7 +554,7 @@ class Ir2PythonVisitor(IRVisitor):
                             'UpperConstrainedImproperUniform'
     ] }
 
-    def __init__(self, type_infer):
+    def __init__(self, type_infer, verbose=False):
         super(Ir2PythonVisitor, self).__init__()
         self.data_names = set()
         self._transformed_data_names = set()
@@ -565,6 +565,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._guide_header = []
         self._observed = 0
         self.type_infer = type_infer
+        self.verbose = verbose
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -672,14 +673,14 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
-        # TODO Avi: update this to use the dimension mappings
-        ctype = decl.expr_type.canon(self.type_infer.dims_canon_map)
-        dim_string = ast.Str(str(ctype.description()))
-        shapes = ast.Subscript(
-                               value = self.loadName('___shape'),
-                               slice = ast.Index(value = ast.Str(decl.id)),
-                               ctx = ast.Store())
-        return self._assign(shapes, dim_string)
+        if self.verbose:
+            ctype = decl.expr_type.canon(self.type_infer.dims_canon_map)
+            dim_string = ast.Str(str(ctype.description()))
+            shapes = ast.Subscript(
+                                value = self.loadName('___shape'),
+                                slice = ast.Index(value = ast.Str(decl.id)),
+                                ctx = ast.Store())
+            return self._assign(shapes, dim_string)
 
 
     def visitList(self, list):
@@ -1118,9 +1119,12 @@ class Ir2PythonVisitor(IRVisitor):
         return model
 
     def buildBasicHeaders(self):
-        name = self.storeName('___shape')
-        sizes = self._assign(name, ast.Dict(keys=[], values=[]))
-        return [sizes,]
+        if self.verbose:
+            name = self.storeName('___shape')
+            sizes = self._assign(name, ast.Dict(keys=[], values=[]))
+            return [sizes,]
+        else:
+            return []
 
     def buildHeaders(self, program):
         transform = lambda block: block.accept(self) if block else []
@@ -1157,7 +1161,7 @@ class Ir2PythonVisitor(IRVisitor):
 
 
 
-def ir2python(ir):
+def ir2python(ir, verbose=False):
     initialization = VariableInitializationVisitor()
     ir.accept(initialization)
     annotator = VariableAnnotationsVisitor()
@@ -1170,9 +1174,9 @@ def ir2python(ir):
     equality_grouper = type_infer.equalities
     equality_groups = equality_grouper.groups()
     type_infer.dims_canon_map = makeGroupCanonLookup(equality_groups)
-    if len(equality_groups) != 0:
+    if verbose and len(equality_groups) != 0:
         print(f"WARNING: There are unproven equality constraints: {equality_grouper}.  The lookup map is {type_infer.dims_canon_map}")
-    visitor = Ir2PythonVisitor(type_infer)
+    visitor = Ir2PythonVisitor(type_infer, verbose=verbose)
     a = ir.accept(visitor)
     ast.fix_missing_locations(a)
     return a
