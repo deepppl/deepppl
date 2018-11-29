@@ -281,7 +281,7 @@ class TypeInferenceVisitor(IRVisitor):
     def visitVariableDecl(self, decl:VariableDecl):
         var_type:Type_ = self.toSType(decl.type_)
         if decl.dim:
-            if isinstance(decl.dim, Variable) or isinstance(decl.dim, AnonymousShapeProperty):
+            if isinstance(decl.dim, Variable) or isinstance(decl.dim, AnonymousShapeProperty) or isinstance(decl.dim, Constant) or isinstance(decl.dim, VariableProperty):
                 dim_type = self.toSDim(decl.dim)
                 var_type = Tarray(component=var_type, dimension=dim_type)
             elif decl.dim.children:
