@@ -622,7 +622,7 @@ class Ir2PythonVisitor(IRVisitor):
     def call(self, id,  args = [], keywords = []):
         return self.helper.call(id, args = args, keywords = keywords)
 
-    def _assign(self, target_node, value):
+    def _assign(self, target_node, value, var_type=None):
         if isinstance(target_node, ast.Name):
             ## XXX instead of loadName, storeName should be used
             target = ast.Name(id = target_node.id, ctx = ast.Store())
@@ -632,9 +632,16 @@ class Ir2PythonVisitor(IRVisitor):
                                   ctx = ast.Store())
         else:
             assert False, "Don't know how to assign to {}".format(target_node)
-        return ast.Assign(
-                targets=[target],
-                value = value)
+        if var_type is None:
+            return ast.Assign(
+                    targets=[target],
+                    value = value)
+        else:
+            return ast.AnnAssign(
+                    target=target,
+                    annotation=var_type,
+                    simple=1,
+                    value = value)
 
     def _call(self, id_, args_):
         ## TODO id is a string!
@@ -713,14 +720,6 @@ class Ir2PythonVisitor(IRVisitor):
             self._transformed_parameters_names.add(decl.id)
         if decl.generated_quantities:
             self._generated_quantities_names.add(decl.id)
-        if self.verbose:
-            ctype = decl.expr_type.canon(self.type_infer.dims_canon_map)
-            dim_string = ast.Str(str(ctype.description()))
-            shapes = ast.Subscript(
-                                value = self.loadName('___shape'),
-                                slice = ast.Index(value = ast.Str(decl.id)),
-                                ctx = ast.Store())
-            return self._assign(shapes, dim_string)
 
 
     def visitList(self, list):
@@ -780,9 +779,23 @@ class Ir2PythonVisitor(IRVisitor):
                         value = self.uniformBounds(value,
                             ast.UnaryOp(op=ast.USub(), operand=ast.Num(n=2)),
                             ast.Num(n=2))
-                value = self.call(self._pyroattr('param'), args = [target_name, value])
-        return self._assign(target, value)
-
+                    keywords = [ast.keyword(
+                                arg='constraint',
+                                value=cstr)]
+                else:
+                    keywords = []
+                value = self.call(self._pyroattr('param'),
+                            args = [
+                                    target_name,
+                                    value,
+                                    ## XXX possible constraints
+                            ],
+                            keywords=keywords)
+        if self.verbose and ir.target.expr_type is not None:
+            ctype = ir.target.expr_type.canon((self.type_infer.dims_canon_map))
+            return self._assign(target, value, var_type=ast.Str(str(ctype)))
+        else:
+            return self._assign(target, value)
 
     def _pyroattr(self, attr):
         return self.loadAttr(self.loadName('pyro'), attr)
@@ -1170,8 +1183,22 @@ class Ir2PythonVisitor(IRVisitor):
                             body = body)
         return f
 
+    def typeOfVariable(self, var:str):
+        t = self.type_infer.tenv.get(var, None)
+        if t is None:
+            return None
+        else:
+            return t.canon(self.type_infer.dims_canon_map)
+
+    def typeToAnnotation(self, t):
+        if t is None:
+            return None
+        else:
+            return ast.Str(str(t))
+
     def modelArgs(self, no_transformed_data=False, with_parameters_sample=False):
-        args = [ast.arg(name, None) for name in sorted(self.data_names)]
+        args = [ast.arg(name, self.typeToAnnotation(self.typeOfVariable(name)) if self.verbose else None)
+            for name in sorted(self.data_names)]
         defaults = [ ast.NameConstant(None) for name in self.data_names ]
         if not no_transformed_data and self._transformed_data_names:
             args.append(ast.arg('transformed_data', None))
@@ -1221,12 +1248,7 @@ class Ir2PythonVisitor(IRVisitor):
         return model
 
     def buildBasicHeaders(self):
-        if self.verbose:
-            name = self.storeName('___shape')
-            sizes = self._assign(name, ast.Dict(keys=[], values=[]))
-            return [sizes,]
-        else:
-            return []
+        return []
 
     def buildHeaders(self, program):
         transform = lambda block: block.accept(self) if block else []
