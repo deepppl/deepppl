@@ -793,7 +793,7 @@ class Ir2PythonVisitor(IRVisitor):
                             keywords=keywords)
         if self.verbose and ir.target.expr_type is not None:
             ctype = ir.target.expr_type.canon((self.type_infer.dims_canon_map))
-            return self._assign(target, value, var_type=ast.Str(str(ctype)))
+            return self._assign(target, value, var_type=self.typeToAnnotation(ctype))
         else:
             return self._assign(target, value)
 
@@ -920,7 +920,11 @@ class Ir2PythonVisitor(IRVisitor):
         """This node represents when a variable is declared to have a given distribution"""
         target = sampling.target.accept(self)
         dist = self.samplingDist(sampling)
-        return self._assign(target, dist)
+        if self.verbose and sampling.expr_type is not None:
+            ctype = sampling.expr_type.canon((self.type_infer.dims_canon_map))
+            return self._assign(target, dist, var_type=self.typeToAnnotation(ctype))
+        else:
+            return self._assign(target, dist)
 
     def samplingCall(self, sampling, target, keywords = [], observed = None):
         dist = self.samplingDist(sampling)
@@ -945,7 +949,11 @@ class Ir2PythonVisitor(IRVisitor):
         """Sample a parameter."""
         target = sampling.target.accept(self)
         call = self.samplingCall(sampling, target)
-        return self._assign(target, call)
+        if self.verbose and sampling.expr_type is not None:
+            ctype = sampling.expr_type.canon((self.type_infer.dims_canon_map))
+            return self._assign(target, call, var_type=self.typeToAnnotation(ctype))
+        else:
+            return self._assign(target, call)
 
     def visitNetVariable(self, var):
         name = self.loadName('{}_{}'.format(var.block_name, var.name))
