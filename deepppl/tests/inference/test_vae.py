@@ -6,7 +6,7 @@ import pyro
 from pyro import distributions as dist
 import numpy as np
 
-from util import loadData
+from .util import loadData
 import deepppl
 import os
 

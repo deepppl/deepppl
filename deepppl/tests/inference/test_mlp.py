@@ -11,7 +11,7 @@ from torch.autograd import Variable
 import deepppl
 import os
 
-from util import loadData
+from .util import loadData
 
 
 batch_size, nx, nh, ny = 128, 28 * 28, 1024, 10
