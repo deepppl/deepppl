@@ -329,7 +329,7 @@ class ShapeDimension(KnownDimension):
         return f"{self.path}$shape"
 
     def expr(self)->str:
-        return f"{self.path}.shape"
+        return f"{self.path}.size()"
 
     __repr__ = __str__
 
@@ -343,7 +343,7 @@ class SubscriptedShapeDimension(ShapeDimension):
         return f"{self.path}$shape[{self.index}]"
 
     def expr(self)->str:
-        return f"{self.path}.shape[{self.index}]"
+        return f"{self.path}[{self.index}].size()"
 
     __repr__ = __str__
 
