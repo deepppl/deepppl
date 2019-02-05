@@ -239,3 +239,8 @@ def test_vae():
     filename = r'deepppl/tests/good/vae.stan'
     target_file = r'deepppl/tests/target_py/vae.py'
     normalize_and_compare(filename, target_file)
+
+def test_linear_regression():
+    filename = r'deepppl/tests/good/linear_regression.stan'
+    target_file = r'deepppl/tests/target_py/linear_regression.py'
+    normalize_and_compare(filename, target_file)
