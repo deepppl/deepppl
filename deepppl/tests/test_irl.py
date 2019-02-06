@@ -240,22 +240,62 @@ def test_vae():
     target_file = r'deepppl/tests/target_py/vae.py'
     normalize_and_compare(filename, target_file)
 
-# def test_linear_regression():
-#     filename = r'deepppl/tests/good/linear_regression.stan'
-#     target_file = r'deepppl/tests/target_py/linear_regression.py'
-#     normalize_and_compare(filename, target_file)
+def test_linear_regression():
+    filename = r'deepppl/tests/good/linear_regression.stan'
+    target_file = r'deepppl/tests/target_py/linear_regression.py'
+    normalize_and_compare(filename, target_file)
 
 # def test_kmeans():
 #     filename = r'deepppl/tests/good/kmeans.stan'
 #     target_file = r'deepppl/tests/target_py/kmeans.py'
 #     normalize_and_compare(filename, target_file)
 
-# def test_schools():
-#     filename = r'deepppl/tests/good/schools.stan'
-#     target_file = r'deepppl/tests/target_py/schools.py'
-#     normalize_and_compare(filename, target_file)
+def test_schools():
+    filename = r'deepppl/tests/good/schools.stan'
+    target_file = r'deepppl/tests/target_py/schools.py'
+    normalize_and_compare(filename, target_file)
 
 # def test_gaussian_process():
 #     filename = r'deepppl/tests/good/gaussian_process.stan'
 #     target_file = r'deepppl/tests/target_py/gaussian_process.py'
 #     normalize_and_compare(filename, target_file)
+
+def test_missing_data():
+    filename = r'deepppl/tests/good/missing_data.stan'
+    target_file = r'deepppl/tests/target_py/missing_data.py'
+    normalize_and_compare(filename, target_file)
+
+def test_regression_matrix():
+    filename = r'deepppl/tests/good/regression_matrix.stan'
+    target_file = r'deepppl/tests/target_py/regression_matrix.py'
+    normalize_and_compare(filename, target_file)
+
+def test_logistic():
+    filename = r'deepppl/tests/good/logistic.stan'
+    target_file = r'deepppl/tests/target_py/logistic.py'
+    normalize_and_compare(filename, target_file)
+
+# def test_row_vector_expr_terms():
+#     filename = r'deepppl/tests/good/row_vector_expr_terms.stan'
+#     target_file = r'deepppl/tests/target_py/row_vector_expr_terms.py'
+#     normalize_and_compare(filename, target_file)
+
+# def test_gradient_warn():
+#     filename = r'deepppl/tests/good/gradient_warn.stan'
+#     target_file = r'deepppl/tests/target_py/gradient_warn.py'
+#     normalize_and_compare(filename, target_file)
+
+def test_squared_error():
+    filename = r'deepppl/tests/good/squared_error.stan'
+    target_file = r'deepppl/tests/target_py/squared_error.py'
+    normalize_and_compare(filename, target_file)
+
+# def test_validate_arr_expr_primitives():
+#     filename = r'deepppl/tests/good/validate_arr_expr_primitives.stan'
+#     target_file = r'deepppl/tests/target_py/validate_arr_expr_primitives.py'
+#     normalize_and_compare(filename, target_file)
+
+def test_vectorized_probability():
+    filename = r'deepppl/tests/good/vectorized_probability.stan'
+    target_file = r'deepppl/tests/target_py/vectorized_probability.py'
+    normalize_and_compare(filename, target_file)
