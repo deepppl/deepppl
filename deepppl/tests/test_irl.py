@@ -240,7 +240,22 @@ def test_vae():
     target_file = r'deepppl/tests/target_py/vae.py'
     normalize_and_compare(filename, target_file)
 
-def test_linear_regression():
-    filename = r'deepppl/tests/good/linear_regression.stan'
-    target_file = r'deepppl/tests/target_py/linear_regression.py'
-    normalize_and_compare(filename, target_file)
+# def test_linear_regression():
+#     filename = r'deepppl/tests/good/linear_regression.stan'
+#     target_file = r'deepppl/tests/target_py/linear_regression.py'
+#     normalize_and_compare(filename, target_file)
+
+# def test_kmeans():
+#     filename = r'deepppl/tests/good/kmeans.stan'
+#     target_file = r'deepppl/tests/target_py/kmeans.py'
+#     normalize_and_compare(filename, target_file)
+
+# def test_schools():
+#     filename = r'deepppl/tests/good/schools.stan'
+#     target_file = r'deepppl/tests/target_py/schools.py'
+#     normalize_and_compare(filename, target_file)
+
+# def test_gaussian_process():
+#     filename = r'deepppl/tests/good/gaussian_process.stan'
+#     target_file = r'deepppl/tests/target_py/gaussian_process.py'
+#     normalize_and_compare(filename, target_file)
