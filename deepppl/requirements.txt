@@ -1,5 +1,5 @@
 antlr4-python3-runtime==4.7.1
-astor==0.6.2
+astor>=0.6.2
 astpretty==1.2.1
 ipdb==0.11
 matplotlib==2.2.2
@@ -9,5 +9,5 @@ pandas==0.23.0
 pyro-ppl==0.2.1
 pytest==3.6.1
 requests==2.20.0
-torch==0.4.0
+torch>=0.4.0
 torchvision==0.2.1

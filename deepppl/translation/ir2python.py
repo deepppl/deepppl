@@ -895,7 +895,11 @@ class Ir2PythonVisitor(IRVisitor):
     def visitList(self, list):
         elts = self._visitAll(list.elements)
         return ast.List(elts= elts,
-                        ctx = ast.Load())
+                        ctx=ast.Load())
+
+    def visitTuple(self, tuple):
+        elts = self._visitAll(tuple.exprs)
+        return ast.Tuple(elts=elts, ctx=ast.Load())
 
     def visitAnonymousShapeProperty(self, prop):
         pass
@@ -1045,9 +1049,16 @@ class Ir2PythonVisitor(IRVisitor):
     def visitEQ(self, dummy):
         return ast.Eq()
 
+    def shiftIdx(self, idx):
+        if isinstance(idx, ast.Tuple):
+            elts = [ast.BinOp(left = x, right = ast.Num(1), op = ast.Sub()) for x in idx.elts]
+            return ast.Tuple(elts=elts, ctx=ast.Load())
+        else:
+            return ast.BinOp(left = idx, right = ast.Num(1), op = ast.Sub())
+
     def visitSubscript(self, subscript):
         id, idx = self._visitChildren(subscript)
-        idx_z = ast.BinOp(left = idx, right = ast.Num(1), op = ast.Sub())
+        idx_z = self.shiftIdx(idx)
         return ast.Subscript(
                 value = id,
                 slice=ast.Index(value=idx_z),
