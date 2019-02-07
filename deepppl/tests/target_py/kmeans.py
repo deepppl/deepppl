@@ -29,7 +29,7 @@ def model(D, K, N, y, transformed_data):
     mu = pyro.sample('mu', ImproperUniform())
     for k in range(1, K + 1):
         pyro.sample('mu' + '{}'.format(k - 1) + '1',
-                    dist.normal(0, 1), obs=mu[k - 1])
+                    dist.Normal(0, 1), obs=mu[k - 1])
     for n in range(1, N + 1):
         pyro.sample('expr' + '2', dist.Exponential(1.0), obs=-log_sum_exp(
             soft_z[n - 1]))

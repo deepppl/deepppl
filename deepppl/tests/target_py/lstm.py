@@ -98,4 +98,4 @@ def model(category, input, n_characters):
         Normal(zeros(rnn.decoder.bias.shape), ones(rnn.decoder.bias.shape)),
         obs=model_rnn['decoder.bias'])
     logits = rnn(input)
-    pyro.sample('category' + '8', CategoricalLogits(logits), obs=category)
+    pyro.sample('category' + '8', categorical_logits(logits), obs=category)

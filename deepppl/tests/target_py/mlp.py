@@ -71,4 +71,4 @@ def model(batch_size, imgs, labels):
         zeros(mlp.l2.bias.shape), ones(mlp.l2.bias.shape)), obs=model_mlp[
         'l2.bias'])
     logits = mlp(imgs)
-    pyro.sample('labels' + '5', CategoricalLogits(logits), obs=labels)
+    pyro.sample('labels' + '5', categorical_logits(logits), obs=labels)

@@ -20,5 +20,5 @@ def model(J, sigma, y):
     mu = pyro.sample('mu', ImproperUniform())
     tau = pyro.sample('tau', LowerConstrainedImproperUniform(0.0))
     eta = pyro.sample('eta', ImproperUniform())
-    pyro.sample('eta' + '1', dist.normal(0, 1), obs=eta)
-    pyro.sample('y' + '2', dist.normal(theta, sigma), obs=y)
+    pyro.sample('eta' + '1', dist.Normal(0, 1), obs=eta)
+    pyro.sample('y' + '2', dist.Normal(theta, sigma), obs=y)
