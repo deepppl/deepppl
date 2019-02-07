@@ -770,7 +770,8 @@ class Ir2PythonVisitor(IRVisitor):
                             'UpperConstrainedImproperUniform',
     ]}
     renamed_distributions = {
-        'multi_normal': 'MultivariateNormal'
+        'multi_normal': 'MultivariateNormal',
+        'logistic': 'LogisticNormal'
     }
 
 

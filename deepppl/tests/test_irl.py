@@ -315,10 +315,11 @@ def test_logistic():
 #     target_file = r'deepppl/tests/target_py/row_vector_expr_terms.py'
 #     normalize_and_compare(filename, target_file)
 
-# def test_gradient_warn():
-#     filename = r'deepppl/tests/good/gradient_warn.stan'
-#     target_file = r'deepppl/tests/target_py/gradient_warn.py'
-#     normalize_and_compare(filename, target_file)
+
+def test_gradient_warn():
+    filename = r'deepppl/tests/good/gradient_warn.stan'
+    target_file = r'deepppl/tests/target_py/gradient_warn.py'
+    normalize_and_compare(filename, target_file)
 
 
 def test_squared_error():
