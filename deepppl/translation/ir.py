@@ -76,7 +76,7 @@ class Program(IR):
 
     def blockNames(self):
         return [
-            'data', 'transformeddata', 'parameters', 'transformedparameters', \
+            'data', 'transformeddata', 'parameters', \
                     'networksblock',  \
                     'guideparameters', \
                     'guide', 'prior', 'model', 'generatedquantities' ]
@@ -112,9 +112,6 @@ class ProgramBlocks(IR):
         return False
 
     def is_transformed_data(self):
-        return False
-
-    def is_transformed_parameters(self):
         return False
 
     def is_model(self):
@@ -193,10 +190,6 @@ class Data(ProgramBlocks):
 
 class TransformedData(ProgramBlocks):
     def is_transformed_data(self):
-        return True
-
-class TransformedParameters(ProgramBlocks):
-    def is_transformed_parameters(self):
         return True
 
 class GeneratedQuantities(ProgramBlocks):
@@ -347,9 +340,6 @@ class Expression(Statements):
     def is_transformed_data_var(self):
         return all(x.is_transformed_data_var() for x in self.children)
 
-    def is_transformed_parameters_var(self):
-        return all(x.is_transformed_parameters_var() for x in self.children)
-
     def is_params_var(self):
         return (x.is_params_var() for x in self.children)
 
@@ -461,9 +451,6 @@ class Subscript(Expression):
     def is_transformed_data_var(self):
         return self.id.is_transformed_data_var()
 
-    def is_transformed_parameters_var(self):
-        return self.id.is_transformed_parameters_var()
-
     def is_params_var(self):
         return self.id.is_params_var()
 
@@ -488,7 +475,6 @@ class VariableDecl(IR):
         self.init = init
         self.data = False
         self.transformed_data = False
-        self.transformed_parameters = False
         self.generated_quantities = False
         self.type_ = type_
 
@@ -500,9 +486,6 @@ class VariableDecl(IR):
 
     def set_transformed_data(self):
         self.transformed_data = True
-
-    def set_transformed_parameters(self):
-        self.transformed_parameters = True
 
     def set_generated_quatities(self):
         self.generated_quantities = True
@@ -580,9 +563,6 @@ class Variable(Expression):
 
     def is_transformed_data_var(self):
         return self.block_name == TransformedData.blockName()
-
-    def is_transformed_parameters_var(self):
-        return self.block_name == TransformedParameters.blockName()
 
     def is_params_var(self):
         return self.block_name == Parameters.blockName()
