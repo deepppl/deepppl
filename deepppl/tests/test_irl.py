@@ -286,10 +286,11 @@ def test_schools():
     target_file = r'deepppl/tests/target_py/schools.py'
     normalize_and_compare(filename, target_file)
 
-# def test_gaussian_process():
-#     filename = r'deepppl/tests/good/gaussian_process.stan'
-#     target_file = r'deepppl/tests/target_py/gaussian_process.py'
-#     normalize_and_compare(filename, target_file)
+
+def test_gaussian_process():
+    filename = r'deepppl/tests/good/gaussian_process.stan'
+    target_file = r'deepppl/tests/target_py/gaussian_process.py'
+    normalize_and_compare(filename, target_file)
 
 
 def test_missing_data():

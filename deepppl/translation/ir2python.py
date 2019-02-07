@@ -767,8 +767,13 @@ class Ir2PythonVisitor(IRVisitor):
                             'bernoulli_logit',
                             'ImproperUniform',
                             'LowerConstrainedImproperUniform',
-                            'UpperConstrainedImproperUniform'
-    ] }
+                            'UpperConstrainedImproperUniform',
+    ]}
+    renamed_distributions = {
+        'multi_normal': 'MultivariateNormal'
+    }
+
+
 
     def __init__(self, anons):
         super(Ir2PythonVisitor, self).__init__()
@@ -1071,6 +1076,8 @@ class Ir2PythonVisitor(IRVisitor):
             # Check if the distribution exists in torch.distributions
             dist = self.loadAttr(self.loadName('dist'), id)
         ## XXX We need keyword parameters
+        elif id.lower() in self.renamed_distributions:
+            dist = self.loadAttr(self.loadName('dist'), self.renamed_distributions[id.lower()])
         elif id.lower() in self.new_distributions:
             dist = self.loadName(self.new_distributions[id.lower()])
         else:
