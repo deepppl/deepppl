@@ -20,6 +20,6 @@ parameters {
   real theta;
 }
 model {
-  theta ~ Normal(1000.0, 1.0);
-  theta ~ Normal(1000.0, 1.0);
+  theta ~ normal(1000.0, 1.0);
+  theta ~ normal(1000.0, 1.0);
 }

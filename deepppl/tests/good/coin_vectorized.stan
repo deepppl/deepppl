@@ -21,6 +21,6 @@ parameters {
   real<lower=0,upper=1> theta;
 }
 model {
-  theta ~ Uniform(0.0,1.0);
-  x ~ Bernoulli(theta);
+  theta ~ uniform(0.0,1.0);
+  x ~ bernoulli(theta);
 }

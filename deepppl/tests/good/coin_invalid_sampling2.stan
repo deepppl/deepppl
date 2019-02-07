@@ -22,9 +22,9 @@ parameters {
 }
 model {
     real psi;
-  theta ~ Uniform(0,1);
-  psi ~ Uniform(0,1);       // <- sampling a non random variable
+  theta ~ uniform(0,1);
+  psi ~ uniform(0,1);       // <- sampling a non random variable
 
   for (i in 1:10)
-    x[i] ~ Bernoulli(theta);
+    x[i] ~ bernoulli(theta);
 }

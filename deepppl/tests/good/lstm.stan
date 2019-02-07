@@ -37,15 +37,15 @@ parameters {
 
 model {
     int logits[n_characters];
-    rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
-    rnn.gru.weight_ih_l0 ~ Normal(zeros(rnn.gru.weight_ih_l0$shape), ones(rnn.gru.weight_ih_l0$shape));
-    rnn.gru.weight_hh_l0 ~ Normal(zeros(rnn.gru.weight_hh_l0$shape), ones(rnn.gru.weight_hh_l0$shape));
-    rnn.gru.bias_ih_l0 ~  Normal(zeros(rnn.gru.bias_ih_l0$shape), ones(rnn.gru.bias_ih_l0$shape));
-    rnn.gru.bias_hh_l0 ~  Normal(zeros(rnn.gru.bias_hh_l0$shape), ones(rnn.gru.bias_hh_l0$shape));
-    rnn.decoder.weight ~  Normal(zeros(rnn.decoder.weight$shape), ones(rnn.decoder.weight$shape));
-    rnn.decoder.bias ~  Normal(zeros(rnn.decoder.bias$shape), ones(rnn.decoder.bias$shape));
+    rnn.encoder.weight ~  normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
+    rnn.gru.weight_ih_l0 ~ normal(zeros(rnn.gru.weight_ih_l0$shape), ones(rnn.gru.weight_ih_l0$shape));
+    rnn.gru.weight_hh_l0 ~ normal(zeros(rnn.gru.weight_hh_l0$shape), ones(rnn.gru.weight_hh_l0$shape));
+    rnn.gru.bias_ih_l0 ~  normal(zeros(rnn.gru.bias_ih_l0$shape), ones(rnn.gru.bias_ih_l0$shape));
+    rnn.gru.bias_hh_l0 ~  normal(zeros(rnn.gru.bias_hh_l0$shape), ones(rnn.gru.bias_hh_l0$shape));
+    rnn.decoder.weight ~  normal(zeros(rnn.decoder.weight$shape), ones(rnn.decoder.weight$shape));
+    rnn.decoder.bias ~  normal(zeros(rnn.decoder.bias$shape), ones(rnn.decoder.bias$shape));
     logits = rnn(input);
-    category ~ CategoricalLogits(logits);
+    category ~ categorical_logits(logits);
 }
 
 guide parameters {
@@ -69,23 +69,23 @@ guide parameters {
 guide {
     ewl = .001*randn(ewl$shape);
     ews = randn(ews$shape) -10.0;
-    rnn.encoder.weight ~  Normal(ewl, exp(ews));
+    rnn.encoder.weight ~  normal(ewl, exp(ews));
     gw1l = .001*randn(gw1l$shape);
     gw1s = randn(gw1s$shape) -10.0;
-    rnn.gru.weight_ih_l0 ~ Normal(gw1l, exp(gw1s));
+    rnn.gru.weight_ih_l0 ~ normal(gw1l, exp(gw1s));
     gw2l = .001*randn(gw2l$shape);
     gw2s = randn(gw2s$shape) -10.0;
-    rnn.gru.weight_hh_l0 ~ Normal(gw2l, exp(gw2s));
+    rnn.gru.weight_hh_l0 ~ normal(gw2l, exp(gw2s));
     gb1l = .001*randn(gb1l$shape);
     gb1s = randn(gb1s$shape) -10.0;
-    rnn.gru.bias_ih_l0 ~  Normal(gb1l, exp(gb1s));
+    rnn.gru.bias_ih_l0 ~  normal(gb1l, exp(gb1s));
     gb2l = .001*randn(gb2l$shape);
     gb2s = randn(gb2s$shape) -10.0;
-    rnn.gru.bias_hh_l0 ~  Normal(gb2l, exp(gb2s));
+    rnn.gru.bias_hh_l0 ~  normal(gb2l, exp(gb2s));
     dwl = .001*randn(dwl$shape);
     dws = randn(dws$shape) -10.0;
-    rnn.decoder.weight ~  Normal(dwl, exp(dws));
+    rnn.decoder.weight ~  normal(dwl, exp(dws));
     dbl = .001*randn(dbl$shape);
     dbs = randn(dbs$shape) -10.0;
-    rnn.decoder.bias ~  Normal(dbl, exp(dbs));
+    rnn.decoder.bias ~  normal(dbl, exp(dbs));
 }

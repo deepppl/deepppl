@@ -25,5 +25,5 @@ parameters {
     real<lower=0> sigma;
 }
 model {
-    y ~ Normal(alpha + beta * x, sigma);
+    y ~ normal(alpha + beta * x, sigma);
     }

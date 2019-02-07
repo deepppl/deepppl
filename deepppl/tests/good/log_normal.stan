@@ -20,6 +20,6 @@ parameters {
   real<lower=0> theta;
 }
 model {
-  log(theta) ~ Normal(log(10.0), 1.0);
+  log(theta) ~ normal(log(10.0), 1.0);
   target += -log(fabs(theta));
 }

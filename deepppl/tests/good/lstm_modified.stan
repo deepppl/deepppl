@@ -31,9 +31,9 @@ parameters {
 
 model {
     int logits[n_characters];
-    rnn.encoder.weight ~  Normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
+    rnn.encoder.weight ~  normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
     logits = rnn(input);
-    category ~ CategoricalLogits(logits);
+    category ~ categorical_logits(logits);
 }
 
 guide parameters {
@@ -44,5 +44,5 @@ guide parameters {
 guide {
      ewl = randn(ewl$shape);
      ews = randn(ews$shape) -10.0;
-     rnn.encoder.weight ~  Normal(ewl, exp(ews));
+     rnn.encoder.weight ~  normal(ewl, exp(ews));
 }

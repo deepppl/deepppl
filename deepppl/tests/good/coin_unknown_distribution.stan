@@ -21,8 +21,8 @@ parameters {
   real<lower=0,upper=1> theta;
 }
 model {
-  theta ~ UniformWeird(0,1);   //<- unknown distribution
+  theta ~ uniformWeird(0,1);   //<- unknown distribution
 
   for (i in 1:10)
-    x[i] ~ Bernoulli(theta);
+    x[i] ~ bernoulli(theta);
 }

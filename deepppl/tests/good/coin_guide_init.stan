@@ -23,9 +23,9 @@ parameters {
 
 
 model {
-  theta ~ Beta(10.0, 10.0);
+  theta ~ beta(10.0, 10.0);
   for (i in 1:10)
-    x[i] ~ Bernoulli(theta);
+    x[i] ~ bernoulli(theta);
 }
 
 
@@ -36,5 +36,5 @@ guide parameters
 }
 
 guide {
-  theta ~ Beta(alpha_q, beta_q);
+  theta ~ beta(alpha_q, beta_q);
 }

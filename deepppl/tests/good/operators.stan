@@ -21,12 +21,12 @@ parameters {
   real<lower=0,upper=1> theta;
 }
 model {
-  theta ~ Uniform(0*3/5,1+5-5);
+  theta ~ uniform(0*3/5,1+5-5);
   for (i in 1:10)
   {
       if ((1 <= 10) && (1 > 5 || 2 < 1))
       {
-        x[i] ~ Bernoulli(theta);
+        x[i] ~ bernoulli(theta);
       }
   }
 }

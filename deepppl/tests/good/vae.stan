@@ -31,14 +31,14 @@ parameters {
 
 model {
     real mu[28, 28];
-    z ~ Normal(zeros(nz), ones(nz));
+    z ~ normal(zeros(nz), ones(nz));
     mu = decoder(z);
-    x ~ Bernoulli(mu);
+    x ~ bernoulli(mu);
 }
 
 guide {
     real encoded[2, nz] = encoder(x);
     real mu_z[nz] = encoded[1];
     real sigma_z[nz] = encoded[2];
-    z ~ Normal(mu_z, sigma_z);
+    z ~ normal(mu_z, sigma_z);
 }
