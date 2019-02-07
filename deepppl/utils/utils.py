@@ -33,22 +33,37 @@ class ImproperUniform(dist.Normal):
     def __init__(self, shape=None):
         zeros = torch.zeros(shape) if shape else 0
         ones = torch.ones(shape) if shape else 1
-        super(ImproperUniform, self).__init__(zeros, ones)
+        super(ImproperUniform, self).__init__(zeros, 1000 * ones)
 
     def log_prob(self, x):
         return x.new_zeros(x.shape)
 
 
-class LowerConstrainedImproperUniform(ImproperUniform):
+class LowerConstrainedImproperUniform(dist.Exponential):
     def __init__(self, lower_bound=0, shape=None):
-        super(LowerConstrainedImproperUniform, self).__init__(shape)
+        ones = torch.ones(shape) if shape else 1
+        super(LowerConstrainedImproperUniform, self).__init__(ones)
         self.support = constraints.greater_than(lower_bound)
 
+    def log_prob(self, x):
+        return x.new_zeros(x.shape)
 
-class UpperConstrainedImproperUniform(ImproperUniform):
+    def sample(self):
+        s = super(LowerConstrainedImproperUniform, self).sample()
+        return s + self.lower_bound
+
+
+class UpperConstrainedImproperUniform(dist.Exponential):
     def __init__(self, upper_bound=0, shape=None):
         super(UpperConstrainedImproperUniform, self).__init__(shape)
         self.support = constraints.less_than(upper_bound)
+
+    def log_prob(self, x):
+        return x.new_zeros(x.shape)
+
+    def sample(self):
+        s = super(UpperConstrainedImproperUniform, self).sample()
+        return self.upper_bound - s
 
 
 hooks = {x.__name__: x for x in [
