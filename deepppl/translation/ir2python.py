@@ -1073,9 +1073,9 @@ class Ir2PythonVisitor(IRVisitor):
     def samplingDist(self, sampling):
         args = [arg.accept(self) for arg in sampling.args]
         id = sampling.id
-        if hasattr(torch.distributions, id):
+        if hasattr(torch.distributions, id.capitalize()):
             # Check if the distribution exists in torch.distributions
-            dist = self.loadAttr(self.loadName('dist'), id)
+            dist = self.loadAttr(self.loadName('dist'), id.capitalize())
         ## XXX We need keyword parameters
         elif id.lower() in self.renamed_distributions:
             dist = self.loadAttr(self.loadName('dist'), self.renamed_distributions[id.lower()])
