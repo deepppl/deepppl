@@ -763,7 +763,7 @@ class ShapeCheckingVisitor(IRVisitor):
 
 class Ir2PythonVisitor(IRVisitor):
     new_distributions = {name.lower():name for name in [
-                            'CategoricalLogits',
+                            'categorical_logits',
                             'bernoulli_logit',
                             'ImproperUniform',
                             'LowerConstrainedImproperUniform',
