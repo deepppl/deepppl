@@ -50,11 +50,18 @@ class UpperConstrainedImproperUniform(ImproperUniform):
         super(UpperConstrainedImproperUniform, self).__init__(shape)
         self.support = constraints.less_than(upper_bound)
 
+def log(x):
+    return torch.log(x)
+
+def dot_self(x):
+    return x * x
 
 hooks = {x.__name__: x for x in [
     categorical_logits,
     ImproperUniform,
     LowerConstrainedImproperUniform,
-    UpperConstrainedImproperUniform]
+    UpperConstrainedImproperUniform,
+    log,
+    dot_self ]
 
 }
