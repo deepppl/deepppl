@@ -26,4 +26,4 @@ parameters {
 }
 model {
     y ~ normal(alpha + beta * x, sigma);
-    }
+}
