@@ -29,8 +29,10 @@ def test_linear_regression():
     y = torch.Tensor(y)
     marginal = pyro.infer.EmpiricalMarginal(posterior.run(
         num_samples, X, y), sites=['alpha', 'beta', 'sigma'])
-    samples_fstan = [marginal() for _ in range(3000)]
-    print(samples_fstan)
+    samples_fstan = [marginal() for _ in range(30)]
+    stack_samples = torch.stack(samples_fstan)
+    params = torch.mean(stack_samples, 0) 
+    print(params)
 
 
 test_linear_regression()
