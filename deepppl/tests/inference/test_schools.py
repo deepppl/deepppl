@@ -20,17 +20,17 @@ def test_schools():
     model = deepppl.DppplModel(model_file = 'deepppl/tests/good/schools.stan')
 
     J = 8
-    y = [28,  8, -3,  7, -1,  1, 18, 12]
-    sigma = [15, 10, 16, 11, 9, 11, 10, 18]
+    y = torch.from_numpy(np.array([28,  8, -3,  7, -1,  1, 18, 12], dtype=np.float))
+    sigma = torch.from_numpy(np.array([15, 10, 16, 11, 9, 11, 10, 18], dtype=np.float))
 
     posterior = model.posterior(
                 method=nuts, 
                 num_samples=3000, 
                 warmup_steps=300)
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(J, y, sigma), sites='theta')
+    marginal = pyro.infer.EmpiricalMarginal(posterior.run(J, y, sigma), sites=['mu','tau','eta'])
 
-    series = pd.Series([marginal().item() for _ in range(3000)], name = r'$\theta$')
+    series = pd.Series([marginal().item() for _ in range(3000)], name = r'$mu$')
     print(series)
     # assert np.abs(series.mean() - 1000) < 1
     # assert np.abs(series.std() - 1.0) < 0.1 
