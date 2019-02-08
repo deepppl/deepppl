@@ -1,5 +1,5 @@
 import torch
-from torch import tensor, randn
+from torch import tensor, rand
 import pyro
 import torch.distributions.constraints as constraints
 import pyro.distributions as dist
@@ -77,25 +77,26 @@ def model(category, input, n_characters):
     ___shape['logits'] = n_characters
     logits = zeros(___shape['logits'])
     pyro.sample('model_rnn' + '{}'.format('encoder.weight') + '1', dist.
-        Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.
-        shape)), obs=model_rnn['encoder.weight'])
+                Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.
+                                                             shape)), obs=model_rnn['encoder.weight'])
     pyro.sample('model_rnn' + '{}'.format('gru.weight_ih_l0') + '2', dist.
-        Normal(zeros(rnn.gru.weight_ih_l0.shape), ones(rnn.gru.weight_ih_l0
-        .shape)), obs=model_rnn['gru.weight_ih_l0'])
+                Normal(zeros(rnn.gru.weight_ih_l0.shape), ones(rnn.gru.weight_ih_l0
+                                                               .shape)), obs=model_rnn['gru.weight_ih_l0'])
     pyro.sample('model_rnn' + '{}'.format('gru.weight_hh_l0') + '3', dist.
-        Normal(zeros(rnn.gru.weight_hh_l0.shape), ones(rnn.gru.weight_hh_l0
-        .shape)), obs=model_rnn['gru.weight_hh_l0'])
+                Normal(zeros(rnn.gru.weight_hh_l0.shape), ones(rnn.gru.weight_hh_l0
+                                                               .shape)), obs=model_rnn['gru.weight_hh_l0'])
     pyro.sample('model_rnn' + '{}'.format('gru.bias_ih_l0') + '4', dist.
-        Normal(zeros(rnn.gru.bias_ih_l0.shape), ones(rnn.gru.bias_ih_l0.
-        shape)), obs=model_rnn['gru.bias_ih_l0'])
+                Normal(zeros(rnn.gru.bias_ih_l0.shape), ones(rnn.gru.bias_ih_l0.
+                                                             shape)), obs=model_rnn['gru.bias_ih_l0'])
     pyro.sample('model_rnn' + '{}'.format('gru.bias_hh_l0') + '5', dist.
-        Normal(zeros(rnn.gru.bias_hh_l0.shape), ones(rnn.gru.bias_hh_l0.
-        shape)), obs=model_rnn['gru.bias_hh_l0'])
+                Normal(zeros(rnn.gru.bias_hh_l0.shape), ones(rnn.gru.bias_hh_l0.
+                                                             shape)), obs=model_rnn['gru.bias_hh_l0'])
     pyro.sample('model_rnn' + '{}'.format('decoder.weight') + '6', dist.
-        Normal(zeros(rnn.decoder.weight.shape), ones(rnn.decoder.weight.
-        shape)), obs=model_rnn['decoder.weight'])
+                Normal(zeros(rnn.decoder.weight.shape), ones(rnn.decoder.weight.
+                                                             shape)), obs=model_rnn['decoder.weight'])
     pyro.sample('model_rnn' + '{}'.format('decoder.bias') + '7', dist.
-        Normal(zeros(rnn.decoder.bias.shape), ones(rnn.decoder.bias.shape)),
-        obs=model_rnn['decoder.bias'])
+                Normal(zeros(rnn.decoder.bias.shape),
+                       ones(rnn.decoder.bias.shape)),
+                obs=model_rnn['decoder.bias'])
     logits = rnn(input)
     pyro.sample('category' + '8', categorical_logits(logits), obs=category)

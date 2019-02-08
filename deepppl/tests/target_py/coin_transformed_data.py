@@ -1,5 +1,5 @@
 import torch
-from torch import tensor, randn
+from torch import tensor, rand
 import pyro
 import torch.distributions.constraints as constraints
 import pyro.distributions as dist
@@ -23,4 +23,4 @@ def model(x, transformed_data):
     pyro.sample('theta' + '1', dist.Uniform(0, 1), obs=theta)
     for i in range(1, 10 + 1):
         pyro.sample('y' + '{}'.format(i - 1) + '2', dist.Bernoulli(theta),
-            obs=y[i - 1])
+                    obs=y[i - 1])
