@@ -477,11 +477,11 @@ class VariableInitializationVisitor(IRVisitor):
     def _buildDefaultInits(self):
         answer = []
         for name in list(self._variationalParameters):
-            target = Variable(id = name)
-            shape = VariableProperty(var = target, prop = 'shape')
-            args = List(elements = [shape,])
-            value = CallStmt(id = 'randn', args = args)
-            constraints = self._variationalParameters[name].type_.constraints
+            target = Variable(id=name)
+            shape = VariableProperty(var=target, prop='shape')
+            args = List(elements=[shape, ])
+            value = CallStmt(id='rand', args=args)
+            constraints = self._variationalParameters[name].type_.constraints or []
             assign = AssignStmt(target = target, value = value, constraints = constraints).accept(self)
             answer.append(assign)
         return answer
@@ -917,55 +917,45 @@ class Ir2PythonVisitor(IRVisitor):
     def visitCallStmt(self, call):
         return self._call(call.id, call.args)
 
+    def uniformBounds(self, value, lower, upper):
+        x = ast.BinOp(
+            left=upper,
+            op=ast.Sub(),
+            right=lower)
+        return ast.BinOp(
+            left=ast.BinOp(
+                left=x,
+                op=ast.Mult(),
+                right=value),
+            op=ast.Add(),
+            right=lower)
+
     def visitAssignStmt(self, ir):
         target, value = self._visitChildren(ir)
         if ir.target.is_variable():
             if ir.target.is_guide_parameters_var():
                 target_name = self.targetToName(target)
-                if ir.constraints:
+                if ir.constraints is not None:
                     seen = {}
                     for const in ir.constraints:
                         seen[const.sort] = self.visitConstant(const.value)
                     if 'lower' in seen and 'upper' in seen:
-                        cstr = self.call(
-                            ast.Attribute(
-                                value=ast.Name(id='constraints', ctx=ast.Load()),
-                                attr='integer_interval', ctx=ast.Load()
-                                ),
-                            args=[seen['lower'], seen['upper']])
+                        value = self.uniformBounds(value,
+                            seen['lower'],
+                            seen['upper'])
                     elif 'lower' in seen:
-                        if seen['lower'].n == 0.0:
-                            cstr = ast.Attribute(
-                                value=ast.Name(id='constraints', ctx=ast.Load()),
-                                attr='positive', ctx=ast.Load())
-                        else:
-                            cstr = self.call(
-                                ast.Attribute(
-                                    value=ast.Name(id='constraints', ctx=ast.Load()),
-                                    attr='greater_than', ctx=ast.Load()
-                                    ),
-                                args=[seen['lower'],])
+                        value = self.uniformBounds(value,
+                            seen['lower'],
+                            ast.BinOp(left=seen['lower'], op=ast.Add(), right=ast.Num(n=10)))
                     elif 'upper' in seen:
-                        cstr = self.call(
-                            ast.Attribute(
-                                value=ast.Name(id='constraints', ctx=ast.Load()),
-                                attr='interval', ctx=ast.Load()
-                                ),
-                            args = [ast.Num(- float("inf")), seen['upper'],])
+                        value = self.uniformBounds(value,
+                            ast.BinOp(left=seen['upper'], op=ast.Sub(), right=ast.Num(n=10)),
+                            seen['upper'])
                     else:
-                        assert False, 'unknown constraints: {}.'.format(seen)
-                    keywords = [ast.keyword(
-                                arg='constraint',
-                                value=cstr)]
-                else:
-                    keywords = []
-                value = self.call(self._pyroattr('param'),
-                            args = [
-                                    target_name,
-                                    value,
-                                    ## XXX possible constraints
-                            ],
-                            keywords=keywords)
+                        value = self.uniformBounds(value,
+                            ast.UnaryOp(op=ast.USub(), operand=ast.Num(n=2)),
+                            ast.Num(n=2))
+                value = self.call(self._pyroattr('param'), args = [target_name, value])
         return self._assign(target, value)
 
 
@@ -1368,7 +1358,7 @@ class Ir2PythonVisitor(IRVisitor):
         module = ast.Module()
         module.body = [
             self.import_('torch'),
-            self.importFrom_('torch', ['tensor', 'randn']),
+            self.importFrom_('torch', ['tensor', 'rand']),
             self.import_('pyro'),
             self.import_('torch.distributions.constraints', 'constraints'),
             self.import_('pyro.distributions', 'dist')]
