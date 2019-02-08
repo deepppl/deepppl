@@ -59,6 +59,7 @@ def idxFromExprList(exprList):
 class StanToIR(stanListener):
     def __init__(self):
         self.networks = None
+        self._to_model = []
 
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
@@ -470,10 +471,7 @@ class StanToIR(stanListener):
 
     def exitTransformedParametersBlock(self, ctx):
         body = gatherChildrenIRList(ctx)
-        for ir in body:
-            if ir.is_variable_decl():
-                ir.set_transformed_parameters()
-        ctx.ir = TransformedParameters(body = body)
+        self._to_model = body
 
     def exitGuideBlock(self, ctx):
         self.code_block(ctx, Guide)
@@ -488,7 +486,7 @@ class StanToIR(stanListener):
 
     def exitModelBlock(self, ctx):
         body = gatherChildrenIRList(ctx)
-        ctx.ir = Model(body= body)
+        ctx.ir = Model(body= self._to_model + body)
 
     def exitGeneratedQuantitiesBlock(self, ctx):
         body = gatherChildrenIRList(ctx)

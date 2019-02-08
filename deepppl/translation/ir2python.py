@@ -126,7 +126,6 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     visitData = visitProgramBlock
     visitTransformedData = visitProgramBlock
-    visitTransformedParameters = visitProgramBlock
     visitGuide = visitProgramBlock
     visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
@@ -460,7 +459,6 @@ class VariableInitializationVisitor(IRVisitor):
 
     visitData = _visitBlock
     visitTransformedData = _visitBlock
-    visitTransformedParameters = _visitBlock
     visitParameters = _visitBlock
     visitGuideParameters = _visitBlock
     visitModel = _visitBlock
@@ -781,7 +779,6 @@ class Ir2PythonVisitor(IRVisitor):
         self._program = None
         self.data_names = set()
         self._transformed_data_names = set()
-        self._transformed_parameters = []
         self._generated_quantities_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
@@ -1179,15 +1176,10 @@ class Ir2PythonVisitor(IRVisitor):
         return f
 
     visitParameters = visitData
+
     visitGuideParameters = visitParameters
 
     def visitNetworksBlock(self, netBlock):
-        return None
-
-    def visitTransformedParameters(self, transformed_parameters):
-        body = self._visitChildren(transformed_parameters)
-        body = self._ensureStmtList(body)
-        self._transformed_parameters = body
         return None
 
     def visitModel(self, model):
@@ -1323,7 +1315,7 @@ class Ir2PythonVisitor(IRVisitor):
         for prior in self._priors:
             pre_body.extend(self.buildPrior(prior, name))
         generated_quantities = self.buildGeneratedQuantities()
-        body = td_access + self._model_header + pre_body + self._transformed_parameters + inner_body + generated_quantities
+        body = td_access + self._model_header + pre_body + inner_body + generated_quantities
         model = self._funcDef(
                             name = name,
                             args = self.modelArgs(),
@@ -1349,7 +1341,6 @@ class Ir2PythonVisitor(IRVisitor):
         self.buildHeaders(program)
         python_nodes = [node.accept(self) for node in [
                                                         program.transformeddata,
-                                                        program.transformedparameters,
                                                         program.guide,
                                                         program.prior,
                                                         program.model]
