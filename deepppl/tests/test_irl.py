@@ -259,7 +259,7 @@ def test_mlp():
 
 def test_mlp_default_init():
     filename = r'deepppl/tests/good/mlp_default_init.stan'
-    target_file = r'deepppl/tests/target_py/mlp.py'
+    target_file = r'deepppl/tests/target_py/mlp_init.py'
     normalize_and_compare(filename, target_file)
 
 
