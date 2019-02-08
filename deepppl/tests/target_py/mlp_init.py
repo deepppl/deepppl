@@ -19,8 +19,9 @@ def guide_mlp(batch_size, imgs, labels):
     ___shape['l2bloc'] = mlp.l2.bias.shape
     ___shape['l2bscale'] = mlp.l2.bias.shape
     guide_mlp = {}
-    l1wloc = pyro.param('l1wloc', randn(___shape['l1wloc']))
-    l1wscale = pyro.param('l1wscale', randn(___shape['l1wscale']))
+    l1wloc = pyro.param('l1wloc', (2 - -2) * rand(___shape['l1wloc']) + -2)
+    l1wscale = pyro.param('l1wscale', (2 - -2) * rand(___shape['l1wscale']) +
+                          -2)
     guide_mlp['l1.weight'] = dist.Normal(l1wloc, softplus(l1wscale))
     l1bloc = pyro.param('l1bloc', randn(___shape['l1bloc']))
     l1bscale = pyro.param('l1bscale', randn(___shape['l1bscale']))
