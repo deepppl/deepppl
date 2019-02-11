@@ -30,6 +30,6 @@ transformed parameters {
         theta[j] = mu + tau * eta[j];
 }
 model {
-    eta ~ normal(0, 1);
+    eta ~ normal(zeros(J), ones(J));
     y ~ normal(theta, sigma);
 }
