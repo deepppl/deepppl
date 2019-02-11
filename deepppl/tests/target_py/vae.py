@@ -26,7 +26,7 @@ def model(nz, x):
     ___shape['x'] = [28, 28]
     ___shape['z'] = nz
     pyro.module('decoder', decoder)
-    z = pyro.sample('z', ImproperUniform())
+    z = pyro.sample('z', ImproperUniform(nz))
     ___shape['mu'] = [28, 28]
     mu = zeros(___shape['mu'])
     pyro.sample('z' + '1', dist.Normal(zeros(nz), ones(nz)), obs=z)

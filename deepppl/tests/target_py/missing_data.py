@@ -15,6 +15,6 @@ def model(N_mis, N_obs, y_obs):
     ___shape['y_mis'] = N_mis
     mu = pyro.sample('mu', ImproperUniform())
     sigma = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
-    y_mis = pyro.sample('y_mis', ImproperUniform())
+    y_mis = pyro.sample('y_mis', ImproperUniform(N_mis))
     pyro.sample('y_obs' + '1', dist.Normal(mu, sigma), obs=y_obs)
     pyro.sample('y_mis' + '2', dist.Normal(mu, sigma), obs=y_mis)
