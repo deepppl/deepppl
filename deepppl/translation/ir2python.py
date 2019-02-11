@@ -182,6 +182,9 @@ class VariableAnnotationsVisitor(IRVisitor):
             dist = 'ImproperUniform'
             args = []
 
+        if decl.dim:
+            args.append(decl.dim)
+
         #XXX check dimensions
         sampling = SamplingParameters(
                         target = target,
