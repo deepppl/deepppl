@@ -10,11 +10,11 @@ def model(J, sigma, y):
     ___shape['J'] = ()
     ___shape['y'] = J
     ___shape['sigma'] = J
-    ___shape['mu'] = ()
-    ___shape['tau'] = ()
+    ___shape['mu'] = 1
+    ___shape['tau'] = 1
     ___shape['eta'] = J
-    mu = pyro.sample('mu', ImproperUniform())
-    tau = pyro.sample('tau', LowerConstrainedImproperUniform(0.0))
+    mu = pyro.sample('mu', ImproperUniform(1))
+    tau = pyro.sample('tau', LowerConstrainedImproperUniform(0.0, 1))
     eta = pyro.sample('eta', ImproperUniform(J))
     ___shape['theta'] = J
     theta = zeros(___shape['theta'])
