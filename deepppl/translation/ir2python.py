@@ -1367,7 +1367,8 @@ class Ir2PythonVisitor(IRVisitor):
                                                         program.prior,
                                                         program.model,]
                                                 if node]
-        python_nodes += [self.buildGeneratedQuantities()]
+        if program.generatedquantities is not None:
+            python_nodes += [self.buildGeneratedQuantities()]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [

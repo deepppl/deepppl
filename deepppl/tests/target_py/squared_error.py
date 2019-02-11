@@ -16,6 +16,11 @@ def model(K, N, x, y):
     ___shape['squared_error'] = ()
     squared_error = dot_self(y - x * beta)
     pyro.sample('expr' + '1', dist.Exponential(1.0), obs=--squared_error)
+
+
+def generated_quantities(K, N, x, y):
+    pyro.param('beta').item()
+    pyro.param('squared_error').item()
     ___shape['sigma_squared'] = ()
     sigma_squared = squared_error / N
     return {'sigma_squared': sigma_squared}
