@@ -468,9 +468,15 @@ class StanToIR(stanListener):
 
     def exitParametersBlock(self, ctx):
         self.code_block(ctx, Parameters)
+        for ir in ctx.ir.body:
+            if ir.is_variable_decl():
+                ir.set_parameters()
 
     def exitTransformedParametersBlock(self, ctx):
         body = gatherChildrenIRList(ctx)
+        for ir in body:
+            if ir.is_variable_decl():
+                ir.set_transformed_parameters()
         self._to_model = body
 
     def exitGuideBlock(self, ctx):

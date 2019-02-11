@@ -782,6 +782,8 @@ class Ir2PythonVisitor(IRVisitor):
         self._program = None
         self.data_names = set()
         self._transformed_data_names = set()
+        self._parameters_names = set()
+        self._transformed_parameters_names = set()
         self._generated_quantities_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
@@ -884,6 +886,10 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
+        if decl.parameters:
+            self._parameters_names.add(decl.id)
+        if decl.transformed_parameters:
+            self._transformed_parameters_names.add(decl.id)
         if decl.generated_quantities:
             self._generated_quantities_names.add(decl.id)
         # dims = decl.dim.accept(self) if decl.dim else None
@@ -1191,17 +1197,31 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
+    def samplePosterior(self, l):
+        samples = []
+        for name in l:
+            param = self.call(self._pyroattr('param'), args = [ast.Str(name)])
+            samples.append(ast.Expr(self.call(self.loadAttr(param, 'item'))))
+        return samples
+
     def buildGeneratedQuantities(self):
         generated_quantities = self._program.generatedquantities
         if generated_quantities is None:
             return []
+        name = 'generated_quantities'
+        args = self.modelArgs()
         body = []
+        body.extend(self.samplePosterior(self._parameters_names))
+        body.extend(self.samplePosterior(self._transformed_parameters_names))
         body.extend(self._visitChildren(generated_quantities))
         k = [ast.Str(gq_name) for gq_name in self._generated_quantities_names]
         v = [self.loadName(gq_name) for gq_name in self._generated_quantities_names]
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
-        return body
+        f = self._funcDef(name = name,
+                          args = args,
+                          body = body)
+        return f
 
     def liftBlackBox(self, block):
         answer = []
@@ -1317,8 +1337,7 @@ class Ir2PythonVisitor(IRVisitor):
         pre_body = []
         for prior in self._priors:
             pre_body.extend(self.buildPrior(prior, name))
-        generated_quantities = self.buildGeneratedQuantities()
-        body = td_access + self._model_header + pre_body + inner_body + generated_quantities
+        body = td_access + self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = name,
                             args = self.modelArgs(),
@@ -1346,8 +1365,9 @@ class Ir2PythonVisitor(IRVisitor):
                                                         program.transformeddata,
                                                         program.guide,
                                                         program.prior,
-                                                        program.model]
+                                                        program.model,]
                                                 if node]
+        python_nodes += [self.buildGeneratedQuantities()]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [
