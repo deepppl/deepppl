@@ -7,6 +7,11 @@ import pyro
 from pyro import distributions as dist
 import numpy as np
 from pyro.infer import mcmc
+from pyro.infer.mcmc import MCMC, NUTS
+import logging
+
+from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
+
 
 import deepppl
 import os
@@ -16,6 +21,17 @@ import pandas as pd
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
     return mcmc.MCMC(nuts_kernel, **kwargs)
+
+
+def model2(J, sigma, y):
+    eta = pyro.sample('eta', ImproperUniform(J))
+    mu = pyro.sample('mu', ImproperUniform())
+    # mu = pyro.sample('mu', dist.Normal(torch.zeros(1), 10 * torch.ones(1)))
+    tau = pyro.sample('tau', dist.HalfCauchy(scale=25 * torch.ones(1)))
+
+    theta = mu + tau * eta
+
+    return pyro.sample("obs", dist.Normal(theta, sigma), obs=y)
 
 
 def test_schools():
@@ -30,15 +46,16 @@ def test_schools():
         num_samples=30,
         warmup_steps=3).run(J, sigma, y)
 
-    marginal_mu_tau = pyro.infer.EmpiricalMarginal(
-        posterior.run(J, sigma, y), sites=['mu', 'tau'])
-    marginal_eta = pyro.infer.EmpiricalMarginal(
-        posterior.run(J, sigma, y), sites=["eta"])
-
-    series = pd.Series([marginal_mu_tau() for _ in range(30)], name=r'$mu$')
-    print(series)
-    # assert np.abs(series.mean() - 1000) < 1
-    # assert np.abs(series.std() - 1.0) < 0.1
+    marginal = posterior.marginal(sites=["mu", "tau", "eta"])
+    print(marginal)
+    marginal = torch.cat(list(marginal.support(
+        flatten=True).values()), dim=-1).cpu().numpy()
+    params = ['mu', 'tau', 'eta[0]', 'eta[1]', 'eta[2]',
+              'eta[3]', 'eta[4]', 'eta[5]', 'eta[6]', 'eta[7]']
+    df = pd.DataFrame(marginal, columns=params).transpose()
+    df_summary = df.apply(pd.Series.describe, axis=1)[
+        ["mean", "std", "25%", "50%", "75%"]]
+    print(df_summary)
 
 
 if __name__ == "__main__":
