@@ -792,6 +792,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._guide_header = []
         self._observed = 0
         self._anons = anons
+        self.forIndexes = []
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -870,6 +871,13 @@ class Ir2PythonVisitor(IRVisitor):
         elif observed is not None:
             # arbitrary expressions
             base = ast.Str('expr')
+            for idx in self.forIndexes:
+                arg = self.loadName(idx)
+                format = self.loadAttr(ast.Str('{}'), 'format')
+                formatted = self.call(format, args = [arg,])
+                base = ast.BinOp(left = base,
+                                 right = formatted,
+                                 op = ast.Add())
         else:
             assert False, "Don't know how to stringfy: {}".format(target)
         if observed is None:
@@ -971,7 +979,9 @@ class Ir2PythonVisitor(IRVisitor):
     def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
+        self.forIndexes.append(id)
         from_, to_, body = self._visitChildren(forstmt)
+        self.forIndexes.pop()
         incl_to = ast.BinOp(left = to_,
                             right = ast.Num(1),
                             op = ast.Add())
