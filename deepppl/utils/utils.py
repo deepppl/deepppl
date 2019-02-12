@@ -67,11 +67,18 @@ class UpperConstrainedImproperUniform(dist.Exponential):
 
 
 def log(x):
-    return torch.log(x)
+    if isinstance(x, torch.Tensor):
+        return torch.log(x)
+    else:
+        return torch.log(torch.tensor(x).float())
 
 
 def dot_self(x):
-    return x * x
+    return torch.dot(x, x)
+
+
+def log_sum_exp(x):
+    return torch.logsumexp(x, 0)
 
 
 hooks = {x.__name__: x for x in [
@@ -80,6 +87,7 @@ hooks = {x.__name__: x for x in [
     LowerConstrainedImproperUniform,
     UpperConstrainedImproperUniform,
     log,
-    dot_self]
+    dot_self,
+    log_sum_exp]
 
 }

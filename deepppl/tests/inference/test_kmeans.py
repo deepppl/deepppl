@@ -18,36 +18,26 @@ def nuts(model, **kwargs):
     return mcmc.MCMC(nuts_kernel, **kwargs)
 
 
-def transformed_data(D, K, N, y):
-    ___shape = {}
-    ___shape['neg_log_K'] = ()
-    neg_log_K = -np.log(K)
-    return {'neg_log_K': neg_log_K}
-
-
 def test_kmeans():
     model = deepppl.DppplModel(model_file='deepppl/tests/good/kmeans.stan')
 
     num_samples = 6
     num_features = 2
-    X = torch.tensor([[1, 2], [1, 4], [1, 0], [4, 2], [4, 4], [4, 0]])
+    X = torch.tensor([[1., 1., 1., 4., 4., 4.], [2., 4., 0., 2., 4., 0.]])
     num_clusters = 2
-
-    data = {'N': num_samples,
-            'D': num_features,
-            'K': num_clusters,
-            'y': X}
 
     posterior = model.posterior(
         method=nuts,
-        num_samples=3000,
-        warmup_steps=300)
+        num_samples=30,
+        warmup_steps=3)
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(num_samples, num_features, num_clusters, X,
-                                                          transformed_data(num_samples, num_features, num_clusters, X)), sites='theta')
+    marginal = pyro.infer.EmpiricalMarginal(
+        posterior.run(num_samples, num_features, num_clusters, X,
+                      model._transformed_data(num_samples, num_features, num_clusters, X)),
+        sites="mu")
 
-    series = pd.Series([marginal().item()
-                        for _ in range(3000)], name=r'$\theta$')
+    series = pd.Series([marginal()
+                        for _ in range(3000)], name=r'$\mu$')
     print(series)
     # assert np.abs(series.mean() - 1000) < 1
     # assert np.abs(series.std() - 1.0) < 0.1
