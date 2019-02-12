@@ -8,7 +8,7 @@ import pyro.distributions as dist
 def guide_mlp(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     ___shape['l1wloc'] = mlp.l1.weight.shape
     ___shape['l1wscale'] = mlp.l1.weight.shape
@@ -38,7 +38,7 @@ def guide_mlp(batch_size=None, imgs=None, labels=None):
 def prior_mlp(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     prior_mlp = {}
     prior_mlp['l1.weight'] = ImproperUniform(mlp.l1.weight.shape)
@@ -52,21 +52,19 @@ def prior_mlp(batch_size=None, imgs=None, labels=None):
 def model(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     mlp = prior_mlp(batch_size, imgs, labels)
     model_mlp = mlp.state_dict()
     ___shape['logits'] = batch_size
     logits = zeros(___shape['logits'])
     pyro.sample('model_mlp' + '{}'.format('l1.weight') + '1', dist.Normal(
-        zeros(mlp.l1.weight.shape), ones(mlp.l1.weight.shape)), obs=
-        model_mlp['l1.weight'])
+        zeros(mlp.l1.weight.shape), ones(mlp.l1.weight.shape)), obs=model_mlp['l1.weight'])
     pyro.sample('model_mlp' + '{}'.format('l1.bias') + '2', dist.Normal(
         zeros(mlp.l1.bias.shape), ones(mlp.l1.bias.shape)), obs=model_mlp[
         'l1.bias'])
     pyro.sample('model_mlp' + '{}'.format('l2.weight') + '3', dist.Normal(
-        zeros(mlp.l2.weight.shape), ones(mlp.l2.weight.shape)), obs=
-        model_mlp['l2.weight'])
+        zeros(mlp.l2.weight.shape), ones(mlp.l2.weight.shape)), obs=model_mlp['l2.weight'])
     pyro.sample('model_mlp' + '{}'.format('l2.bias') + '4', dist.Normal(
         zeros(mlp.l2.bias.shape), ones(mlp.l2.bias.shape)), obs=model_mlp[
         'l2.bias'])
