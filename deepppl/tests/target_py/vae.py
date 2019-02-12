@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def guide_(nz, x):
+def guide_(nz=None, x=None):
     ___shape = {}
     ___shape['nz'] = ()
     ___shape['x'] = [28, 28]
@@ -20,7 +20,7 @@ def guide_(nz, x):
     z = pyro.sample('z', dist.Normal(mu_z, sigma_z))
 
 
-def model(nz, x):
+def model(nz=None, x=None):
     ___shape = {}
     ___shape['nz'] = ()
     ___shape['x'] = [28, 28]

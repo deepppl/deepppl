@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def model(N_mis, N_obs, y_obs):
+def model(N_mis=None, N_obs=None, y_obs=None):
     ___shape = {}
     ___shape['N_obs'] = ()
     ___shape['N_mis'] = ()

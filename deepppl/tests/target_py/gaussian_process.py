@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def transformed_data(N, x):
+def transformed_data(N=None, x=None):
     ___shape = {}
     ___shape['K'] = ()
     K = zeros(___shape['K'])
@@ -17,12 +17,12 @@ def transformed_data(N, x):
             K[i - 1, j - 1] = exp(-0.5 * square(x[i - 1] - x[j - 1]))
             K[j - 1, i - 1] = K[[i, j] - 1]
     K[N - 1, N - 1] = 1 + 0.1
-    return {'mu': mu, 'K': K}
+    return {'K': K, 'mu': mu}
 
 
-def model(N, x, transformed_data):
-    mu = transformed_data['mu']
+def model(N=None, x=None, transformed_data=None):
     K = transformed_data['K']
+    mu = transformed_data['mu']
     ___shape = {}
     ___shape['N'] = ()
     ___shape['x'] = N

@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def model(K, N, x, y):
+def model(K=None, N=None, x=None, y=None):
     ___shape = {}
     ___shape['N'] = ()
     ___shape['K'] = ()
@@ -18,7 +18,7 @@ def model(K, N, x, y):
     pyro.sample('expr' + '1', dist.Exponential(1.0), obs=--squared_error)
 
 
-def generated_quantities(K, N, x, y):
+def generated_quantities(K=None, N=None, x=None, y=None):
     pyro.param('beta').item()
     pyro.param('squared_error').item()
     ___shape['sigma_squared'] = ()

@@ -842,7 +842,7 @@ class Ir2PythonVisitor(IRVisitor):
         args = args.elts if args else []
         return self.call(id, args=args)
 
-    def _funcDef(self, name = None, args = [], body = []):
+    def _funcDef(self, name = None, args = [], defaults=[], body = []):
         return ast.FunctionDef(
                 name = name,
                 args = ast.arguments(args = args,
@@ -850,7 +850,7 @@ class Ir2PythonVisitor(IRVisitor):
                                     kwonlyargs = [],
                                     kw_defaults=[],
                                     kwarg=None,
-                                    defaults=[]),
+                                    defaults=defaults),
                 body = body,
                 decorator_list = [],
                 returns = None
@@ -1180,7 +1180,8 @@ class Ir2PythonVisitor(IRVisitor):
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,
-                          args = args,
+                          args = args['args'],
+                          defaults = args['defaults'],
                           body = body)
         return f
 
@@ -1214,12 +1215,13 @@ class Ir2PythonVisitor(IRVisitor):
         body.extend(self.samplePosterior(self._parameters_names))
         body.extend(self.samplePosterior(self._transformed_parameters_names))
         body.extend(self._visitChildren(generated_quantities))
-        k = [ast.Str(gq_name) for gq_name in self._generated_quantities_names]
-        v = [self.loadName(gq_name) for gq_name in self._generated_quantities_names]
+        k = [ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)]
+        v = [self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)]
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,
-                          args = args,
+                          args = args['args'],
+                          defaults = args['defaults'],
                           body = body)
         return f
 
@@ -1261,11 +1263,12 @@ class Ir2PythonVisitor(IRVisitor):
         assert is_net and len(prior._nets) == 1
         name = prior._nets[0] if is_net else  ''
         name_prior = 'prior_' + name ## XXX
+        args = self.modelArgs()
         ## TODO: only one nn is suported in here.
         pre_body = self.liftBlackBox(prior)
         inner_body = self.liftBody(prior, name, name_prior)
         body = self._model_header + pre_body + inner_body
-        f = self._funcDef(name = name_prior, args = self.modelArgs(), body = body)
+        f = self._funcDef(name = name_prior, args = args['args'], defaults = args['defaults'], body = body)
         self._priors = {name : name_prior}
         return f
 
@@ -1285,6 +1288,7 @@ class Ir2PythonVisitor(IRVisitor):
         is_net = len(guide._nets) > 0
         assert (is_net and len(guide._nets) == 1) or not is_net
         name = guide._nets[0] if is_net else  ''
+        args = self.modelArgs()
         ## TODO: only one nn is suported in here.
         name_guide = 'guide_' + name ## XXX
         pre_body = self.liftBlackBox(guide)
@@ -1297,15 +1301,18 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._guide_header + pre_body + inner_body
 
         f = self._funcDef(name = name_guide,
-                            args = self.modelArgs(),
+                            args = args['args'],
+                            defaults = args['defaults'],
                             body = body)
         return f
 
     def modelArgs(self, no_transformed_data=False):
         args = [ast.arg(name, None) for name in sorted(self.data_names)]
+        defaults = [ ast.NameConstant(None) for name in self.data_names ]
         if not no_transformed_data and self._transformed_data_names:
             args.append(ast.arg('transformed_data', None))
-        return args
+            defaults.append(ast.NameConstant(None))
+        return { 'args': args, 'defaults': defaults }
 
     def buildPrior(self, prior, basename):
         lifted_prior = self._assign(self.loadName(prior),
@@ -1333,6 +1340,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def buildModel(self, inner_body):
         name = 'model'
+        args = self.modelArgs()
         td_access = self.buildTransformedDataAccess()
         pre_body = []
         for prior in self._priors:
@@ -1340,7 +1348,8 @@ class Ir2PythonVisitor(IRVisitor):
         body = td_access + self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = name,
-                            args = self.modelArgs(),
+                            args = args['args'],
+                            defaults = args['defaults'],
                             body = body)
         return model
 
