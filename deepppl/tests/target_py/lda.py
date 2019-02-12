@@ -6,7 +6,7 @@ import pyro.distributions as dist
 
 
 def model(K=None, M=None, N=None, V=None, alpha=None, beta=None, doc=None,
-          w=None):
+    w=None):
     ___shape = {}
     ___shape['K'] = ()
     ___shape['V'] = ()
@@ -25,12 +25,12 @@ def model(K=None, M=None, N=None, V=None, alpha=None, beta=None, doc=None,
             alpha), obs=theta[m - 1])
     for k in range(1, K + 1):
         pyro.sample('phi' + '{}'.format(k - 1) + '2', dist.Dirichlet(beta),
-                    obs=phi[k - 1])
+            obs=phi[k - 1])
     for n in range(1, N + 1):
         ___shape['gamma'] = K
         gamma = zeros(___shape['gamma'])
         for k in range(1, K + 1):
             gamma[k - 1] = log(theta[[doc[n - 1], k] - 1]) + log(phi[[k, w[
                 n - 1]] - 1])
-        pyro.sample('expr' + '3', dist.Exponential(1.0), obs=-log_sum_exp(
-            gamma))
+        pyro.sample('expr' + '{}'.format(n) + '3', dist.Exponential(1.0),
+            obs=-log_sum_exp(gamma))
