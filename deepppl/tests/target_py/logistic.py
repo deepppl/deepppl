@@ -10,7 +10,7 @@ def model(M=None, N=None, x=None, y=None):
     ___shape['N'] = ()
     ___shape['M'] = ()
     ___shape['y'] = N
-    ___shape['x'] = N
+    ___shape['x'] = N, M
     ___shape['beta'] = ()
     beta = pyro.sample('beta', ImproperUniform())
     for m in range(1, M + 1):

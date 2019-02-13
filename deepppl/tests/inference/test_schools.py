@@ -44,7 +44,7 @@ def test_schools():
     posterior = model.posterior(
         method=nuts,
         num_samples=30,
-        warmup_steps=3).run(J, sigma, y)
+        warmup_steps=3).run(J=J, sigma=sigma, y=y)
 
     marginal = posterior.marginal(sites=["mu", "tau", "eta"])
     print(marginal)
