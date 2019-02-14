@@ -11,8 +11,8 @@ def model(M=None, N=None, x=None, y=None):
     ___shape['M'] = ()
     ___shape['y'] = N
     ___shape['x'] = N, M
-    ___shape['beta'] = ()
-    beta = pyro.sample('beta', ImproperUniform())
+    ___shape['beta'] = M
+    beta = pyro.sample('beta', ImproperUniform(M))
     for m in range(1, M + 1):
         pyro.sample('beta' + '{}'.format(m - 1) + '1', dist.Cauchy(0.0, 2.5
             ), obs=beta[m - 1])
