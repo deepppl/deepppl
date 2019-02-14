@@ -23,7 +23,7 @@ def test_kmeans():
 
     num_samples = 6
     num_features = 2
-    X = torch.tensor([[1., 1., 1., 4., 4., 4.], [2., 4., 0., 2., 4., 0.]])
+    X = torch.tensor([[1., 2.], [1., 4.], [1., 0.], [4., 2.], [4., 4.], [4., 0.]])
     num_clusters = 2
 
     posterior = model.posterior(
@@ -32,8 +32,8 @@ def test_kmeans():
         warmup_steps=3)
 
     marginal = pyro.infer.EmpiricalMarginal(
-        posterior.run(num_samples, num_features, num_clusters, X,
-                      model._transformed_data(num_samples, num_features, num_clusters, X)),
+        posterior.run(N=num_samples, D=num_features, K=num_clusters, y=X,
+                      transformed_data=model._transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X)),
         sites="mu")
 
     series = pd.Series([marginal()
