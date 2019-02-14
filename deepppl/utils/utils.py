@@ -81,6 +81,9 @@ def log_sum_exp(x):
     return torch.logsumexp(x, 0)
 
 
+def inv_logit(p):
+    return torch.log( p / (1. - p))
+
 hooks = {x.__name__: x for x in [
     categorical_logits,
     ImproperUniform,
@@ -88,6 +91,7 @@ hooks = {x.__name__: x for x in [
     UpperConstrainedImproperUniform,
     log,
     dot_self,
-    log_sum_exp]
+    log_sum_exp,
+    inv_logit]
 
 }
