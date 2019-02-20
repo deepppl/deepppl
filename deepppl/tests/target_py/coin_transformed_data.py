@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def transformed_data(x):
+def transformed_data(x=None):
     ___shape = {}
     ___shape['y'] = 10
     y = zeros(___shape['y'])
@@ -14,7 +14,7 @@ def transformed_data(x):
     return {'y': y}
 
 
-def model(x, transformed_data):
+def model(x=None, transformed_data=None):
     y = transformed_data['y']
     ___shape = {}
     ___shape['x'] = 10
@@ -23,4 +23,4 @@ def model(x, transformed_data):
     pyro.sample('theta' + '1', dist.Uniform(0, 1), obs=theta)
     for i in range(1, 10 + 1):
         pyro.sample('y' + '{}'.format(i - 1) + '2', dist.Bernoulli(theta),
-                    obs=y[i - 1])
+            obs=y[i - 1])

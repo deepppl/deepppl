@@ -474,6 +474,8 @@ class VariableDecl(IR):
         self.dim = dim
         self.init = init
         self.data = False
+        self.parameters = False
+        self.transformed_parameters = False
         self.transformed_data = False
         self.generated_quantities = False
         self.type_ = type_
@@ -483,6 +485,12 @@ class VariableDecl(IR):
 
     def set_data(self):
         self.data = True
+
+    def set_parameters(self):
+        self.parameters = True
+
+    def set_transformed_parameters(self):
+        self.transformed_parameters = True
 
     def set_transformed_data(self):
         self.transformed_data = True

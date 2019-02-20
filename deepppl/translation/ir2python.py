@@ -182,6 +182,9 @@ class VariableAnnotationsVisitor(IRVisitor):
             dist = 'ImproperUniform'
             args = []
 
+        if decl.dim:
+            args.append(decl.dim)
+
         #XXX check dimensions
         sampling = SamplingParameters(
                         target = target,
@@ -779,6 +782,8 @@ class Ir2PythonVisitor(IRVisitor):
         self._program = None
         self.data_names = set()
         self._transformed_data_names = set()
+        self._parameters_names = set()
+        self._transformed_parameters_names = set()
         self._generated_quantities_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
@@ -787,6 +792,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._guide_header = []
         self._observed = 0
         self._anons = anons
+        self.forIndexes = []
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -837,7 +843,7 @@ class Ir2PythonVisitor(IRVisitor):
         args = args.elts if args else []
         return self.call(id, args=args)
 
-    def _funcDef(self, name = None, args = [], body = []):
+    def _funcDef(self, name = None, args = [], defaults=[], body = []):
         return ast.FunctionDef(
                 name = name,
                 args = ast.arguments(args = args,
@@ -845,7 +851,7 @@ class Ir2PythonVisitor(IRVisitor):
                                     kwonlyargs = [],
                                     kw_defaults=[],
                                     kwarg=None,
-                                    defaults=[]),
+                                    defaults=defaults),
                 body = body,
                 decorator_list = [],
                 returns = None
@@ -865,6 +871,13 @@ class Ir2PythonVisitor(IRVisitor):
         elif observed is not None:
             # arbitrary expressions
             base = ast.Str('expr')
+            for idx in self.forIndexes:
+                arg = self.loadName(idx)
+                format = self.loadAttr(ast.Str('{}'), 'format')
+                formatted = self.call(format, args = [arg,])
+                base = ast.BinOp(left = base,
+                                 right = formatted,
+                                 op = ast.Add())
         else:
             assert False, "Don't know how to stringfy: {}".format(target)
         if observed is None:
@@ -881,6 +894,10 @@ class Ir2PythonVisitor(IRVisitor):
             self.data_names.add(decl.id)
         if decl.transformed_data:
             self._transformed_data_names.add(decl.id)
+        if decl.parameters:
+            self._parameters_names.add(decl.id)
+        if decl.transformed_parameters:
+            self._transformed_parameters_names.add(decl.id)
         if decl.generated_quantities:
             self._generated_quantities_names.add(decl.id)
         # dims = decl.dim.accept(self) if decl.dim else None
@@ -962,7 +979,9 @@ class Ir2PythonVisitor(IRVisitor):
     def visitForStmt(self, forstmt):
         ## TODO: id is not an object of ir!
         id = forstmt.id
+        self.forIndexes.append(id)
         from_, to_, body = self._visitChildren(forstmt)
+        self.forIndexes.pop()
         incl_to = ast.BinOp(left = to_,
                             right = ast.Num(1),
                             op = ast.Add())
@@ -1171,7 +1190,8 @@ class Ir2PythonVisitor(IRVisitor):
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,
-                          args = args,
+                          args = args['args'],
+                          defaults = args['defaults'],
                           body = body)
         return f
 
@@ -1188,17 +1208,32 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
+    def samplePosterior(self, l):
+        samples = []
+        for name in l:
+            param = self.call(self._pyroattr('param'), args = [ast.Str(name)])
+            samples.append(ast.Expr(self.call(self.loadAttr(param, 'item'))))
+        return samples
+
     def buildGeneratedQuantities(self):
         generated_quantities = self._program.generatedquantities
         if generated_quantities is None:
             return []
+        name = 'generated_quantities'
+        args = self.modelArgs()
         body = []
+        body.extend(self.samplePosterior(self._parameters_names))
+        body.extend(self.samplePosterior(self._transformed_parameters_names))
         body.extend(self._visitChildren(generated_quantities))
-        k = [ast.Str(gq_name) for gq_name in self._generated_quantities_names]
-        v = [self.loadName(gq_name) for gq_name in self._generated_quantities_names]
+        k = [ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)]
+        v = [self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)]
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
-        return body
+        f = self._funcDef(name = name,
+                          args = args['args'],
+                          defaults = args['defaults'],
+                          body = body)
+        return f
 
     def liftBlackBox(self, block):
         answer = []
@@ -1238,11 +1273,12 @@ class Ir2PythonVisitor(IRVisitor):
         assert is_net and len(prior._nets) == 1
         name = prior._nets[0] if is_net else  ''
         name_prior = 'prior_' + name ## XXX
+        args = self.modelArgs()
         ## TODO: only one nn is suported in here.
         pre_body = self.liftBlackBox(prior)
         inner_body = self.liftBody(prior, name, name_prior)
         body = self._model_header + pre_body + inner_body
-        f = self._funcDef(name = name_prior, args = self.modelArgs(), body = body)
+        f = self._funcDef(name = name_prior, args = args['args'], defaults = args['defaults'], body = body)
         self._priors = {name : name_prior}
         return f
 
@@ -1262,6 +1298,7 @@ class Ir2PythonVisitor(IRVisitor):
         is_net = len(guide._nets) > 0
         assert (is_net and len(guide._nets) == 1) or not is_net
         name = guide._nets[0] if is_net else  ''
+        args = self.modelArgs()
         ## TODO: only one nn is suported in here.
         name_guide = 'guide_' + name ## XXX
         pre_body = self.liftBlackBox(guide)
@@ -1274,15 +1311,18 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._guide_header + pre_body + inner_body
 
         f = self._funcDef(name = name_guide,
-                            args = self.modelArgs(),
+                            args = args['args'],
+                            defaults = args['defaults'],
                             body = body)
         return f
 
     def modelArgs(self, no_transformed_data=False):
         args = [ast.arg(name, None) for name in sorted(self.data_names)]
+        defaults = [ ast.NameConstant(None) for name in self.data_names ]
         if not no_transformed_data and self._transformed_data_names:
             args.append(ast.arg('transformed_data', None))
-        return args
+            defaults.append(ast.NameConstant(None))
+        return { 'args': args, 'defaults': defaults }
 
     def buildPrior(self, prior, basename):
         lifted_prior = self._assign(self.loadName(prior),
@@ -1310,15 +1350,16 @@ class Ir2PythonVisitor(IRVisitor):
 
     def buildModel(self, inner_body):
         name = 'model'
+        args = self.modelArgs()
         td_access = self.buildTransformedDataAccess()
         pre_body = []
         for prior in self._priors:
             pre_body.extend(self.buildPrior(prior, name))
-        generated_quantities = self.buildGeneratedQuantities()
-        body = td_access + self._model_header + pre_body + inner_body + generated_quantities
+        body = td_access + self._model_header + pre_body + inner_body
         model = self._funcDef(
                             name = name,
-                            args = self.modelArgs(),
+                            args = args['args'],
+                            defaults = args['defaults'],
                             body = body)
         return model
 
@@ -1343,8 +1384,10 @@ class Ir2PythonVisitor(IRVisitor):
                                                         program.transformeddata,
                                                         program.guide,
                                                         program.prior,
-                                                        program.model]
+                                                        program.model,]
                                                 if node]
+        if program.generatedquantities is not None:
+            python_nodes += [self.buildGeneratedQuantities()]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
         module.body = [

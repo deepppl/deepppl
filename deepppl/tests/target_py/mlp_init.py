@@ -5,10 +5,10 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def guide_mlp(batch_size, imgs, labels):
+def guide_mlp(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     ___shape['l1wloc'] = mlp.l1.weight.shape
     ___shape['l1wscale'] = mlp.l1.weight.shape
@@ -36,10 +36,10 @@ def guide_mlp(batch_size, imgs, labels):
     return lifted_mlp()
 
 
-def prior_mlp(batch_size, imgs, labels):
+def prior_mlp(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     prior_mlp = {}
     prior_mlp['l1.weight'] = ImproperUniform(mlp.l1.weight.shape)
@@ -50,10 +50,10 @@ def prior_mlp(batch_size, imgs, labels):
     return lifted_mlp()
 
 
-def model(batch_size, imgs, labels):
+def model(batch_size=None, imgs=None, labels=None):
     ___shape = {}
     ___shape['batch_size'] = ()
-    ___shape['imgs'] = [28, 28, batch_size]
+    ___shape['imgs'] = 28, 28, batch_size
     ___shape['labels'] = batch_size
     mlp = prior_mlp(batch_size, imgs, labels)
     model_mlp = mlp.state_dict()

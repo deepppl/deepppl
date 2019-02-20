@@ -18,10 +18,12 @@ data {
 int<lower=0> N;               // number of items
 int<lower=0> M;               // number of predictors
 int<lower=0,upper=1> y[N];           // outcomes
-row_vector[M] x[N];      // predictors
+// row_vector[M] x[N];      // predictors
+row_vector x[N, M];
 }
 parameters {
-vector[M] beta;          // coefficients
+//vector[M] beta;          // coefficients
+real beta[M];          // coefficients
 }
 model {
 for (m in 1:M)

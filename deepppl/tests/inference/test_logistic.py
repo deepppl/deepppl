@@ -34,7 +34,7 @@ def test_logistic():
                 num_samples=3000, 
                 warmup_steps=300)
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(num_samples, num_features, y, X), sites='beta')
+    marginal = pyro.infer.EmpiricalMarginal(posterior.run(N=num_samples, M=num_features, y=y, x=X), sites='beta')
 
     series = pd.Series([marginal() for _ in range(3000)], name = r'$beta$')
     print(series)

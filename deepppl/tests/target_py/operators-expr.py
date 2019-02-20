@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def model(x):
+def model(x=None):
     ___shape = {}
     ___shape['x'] = 10
     ___shape['theta'] = ()

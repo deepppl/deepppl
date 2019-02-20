@@ -20,8 +20,8 @@ data {
     real<lower=0> sigma[J]; // s.e. of effect estimates
 }
 parameters {
-    real mu;
-    real<lower=0> tau;
+    real mu[1];
+    real<lower=0> tau[1];
     real eta[J];
 }
 transformed parameters {
@@ -30,6 +30,6 @@ transformed parameters {
         theta[j] = mu + tau * eta[j];
 }
 model {
-    eta ~ normal(0, 1);
+    eta ~ normal(zeros(J), ones(J));
     y ~ normal(theta, sigma);
 }

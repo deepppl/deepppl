@@ -5,7 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def guide_(x):
+def guide_(x=None):
     ___shape = {}
     ___shape['x'] = 10
     ___shape['theta'] = ()
@@ -16,14 +16,12 @@ def guide_(x):
     theta = pyro.sample('theta', dist.Beta(alpha_q, beta_q))
 
 
-def model(x):
+def model(x=None):
     ___shape = {}
     ___shape['x'] = 10
     ___shape['theta'] = ()
-
     theta = pyro.sample('theta', dist.Uniform(0.0, 1.0))
-    pyro.sample('theta' + '1', dist.Beta(10.0, 10.0), obs=theta
-                )
+    pyro.sample('theta' + '1', dist.Beta(10.0, 10.0), obs=theta)
     for i in range(1, 10 + 1):
         pyro.sample('x' + '{}'.format(i - 1) + '2', dist.Bernoulli(theta),
-                    obs=x[i - 1])
+            obs=x[i - 1])

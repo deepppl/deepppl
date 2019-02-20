@@ -1,4 +1,4 @@
-""" 
+"""
  Copyright 2018 IBM Corporation
 
  Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,8 +67,8 @@ class StanToIR(stanListener):
         type_ = ctx.type_().ir
         init = ctx.expression().ir if is_active(ctx.expression) else None
         ctx.ir = VariableDecl(
-                    id = vid, 
-                    dim = dims, 
+                    id = vid,
+                    dim = dims,
                     type_ = type_,
                     init = init)
 
@@ -110,7 +110,7 @@ class StanToIR(stanListener):
             if len(elements) == 1:
                 ctx.ir = elements[0]
             else:
-                ctx.ir = List(elements = elements)
+                ctx.ir = Tuple(exprs = elements)
         elif ctx.inferredArrayShape():
             ctx.ir = AnonymousShapeProperty()
 
@@ -179,14 +179,14 @@ class StanToIR(stanListener):
         elif ctx.e1 is not None:
             if is_active(ctx.PLUS_OP):
                 op = UPlus()
-            elif is_active(ctx.MINUS_OP): 
+            elif is_active(ctx.MINUS_OP):
                 op = UMinus()
             elif is_active(ctx.NOT_OP):
                 op = UNot()
             else:
                 assert False, f'Unknown operator: {ctx.getText()}'
             ctx.ir = UnaryOperator(
-                        value = ctx.e1.ir, 
+                        value = ctx.e1.ir,
                         op = op)
         else:
             text = ctx.getText()
@@ -218,12 +218,12 @@ class StanToIR(stanListener):
                 op = mapping[src]()
                 break
         if op is not None:
-            ctx.ir = BinaryOperator(left = left, 
-                                    right = right, 
+            ctx.ir = BinaryOperator(left = left,
+                                    right = right,
                                     op = op)
         elif ctx.e3 is not None:
             false = ctx.e3.ir
-            ctx.ir = ConditionalStmt(test = left, 
+            ctx.ir = ConditionalStmt(test = left,
                                     true = right,
                                     false = false)
         else:
@@ -363,9 +363,9 @@ class StanToIR(stanListener):
         atom = ctx.atom()
         from_ = atom[0].ir
         to_ = atom[1].ir if len(atom) > 1 else None
-        ctx.ir = ForStmt(id = id, 
-                        from_ = from_, 
-                        to_ = to_, 
+        ctx.ir = ForStmt(id = id,
+                        from_ = from_,
+                        to_ = to_,
                         body = body)
 
     # Conditional statements (section 5.5)
@@ -468,9 +468,15 @@ class StanToIR(stanListener):
 
     def exitParametersBlock(self, ctx):
         self.code_block(ctx, Parameters)
+        for ir in ctx.ir.body:
+            if ir.is_variable_decl():
+                ir.set_parameters()
 
     def exitTransformedParametersBlock(self, ctx):
         body = gatherChildrenIRList(ctx)
+        for ir in body:
+            if ir.is_variable_decl():
+                ir.set_transformed_parameters()
         self._to_model = body
 
     def exitGuideBlock(self, ctx):

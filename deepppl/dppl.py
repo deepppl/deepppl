@@ -27,11 +27,11 @@ import inspect
 
 
 class DppplModel(object):
-    def __init__(self, model_code = None, model_file = None, **kwargs):
-        self._py = dpplc.do_compile(model_code = model_code, model_file = model_file)
+    def __init__(self, model_code=None, model_file=None, **kwargs):
+        self._py = dpplc.do_compile(
+            model_code=model_code, model_file=model_file)
         self._load_py()
         self._updateHooksAll(kwargs)
-
 
     def _updateHooksAll(self, hooks):
         [self._updateHooks(f, hooks) for f in (self._model,
@@ -60,21 +60,21 @@ class DppplModel(object):
         self._loadBasicHooks()
 
     def _loadBasicHooks(self):
-        hooks = { x.__name__ : x for x in [
-                        torch.randn,
-                        torch.exp,
-                        torch.log,
-                        torch.zeros,
-                        torch.ones,
-                        F.softplus]}
+        hooks = {x.__name__: x for x in [
+            torch.randn,
+            torch.exp,
+            torch.log,
+            torch.zeros,
+            torch.ones,
+            F.softplus]}
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
         self._updateHooksAll(utils.hooks)
 
     def posterior(self, num_samples=3000, method=infer.Importance, **kwargs):
-        return method(self._model, num_samples=3000, **kwargs)
+        return method(self._model, num_samples=num_samples, **kwargs)
 
-    def svi(self, optimizer = None, loss = None, params = {'lr' : 0.0005, "betas": (0.90, 0.999)}):
+    def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
         loss = loss if loss is not None else infer.Trace_ELBO()
         svi = infer.SVI(self._model, self._guide, optimizer, loss)
@@ -82,6 +82,7 @@ class DppplModel(object):
 
     def transformed_data(self, *args, **kwargs):
         return self._transformed_data(*args, **kwargs)
+
 
 class SVIProxy(object):
     def __init__(self, svi):
