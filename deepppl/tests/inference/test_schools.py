@@ -9,7 +9,8 @@ import numpy as np
 from pyro.infer import mcmc
 from pyro.infer.mcmc import MCMC, NUTS
 import logging
-
+import time
+import pystan
 from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
 
 
@@ -17,6 +18,9 @@ import deepppl
 import os
 import pandas as pd
 
+stan_model_file = 'deepppl/tests/good/schools.stan'
+global_num_iterations=1000
+global_num_chains=1
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
@@ -35,19 +39,22 @@ def model2(J, sigma, y):
 
 
 def test_schools():
-    model = deepppl.DppplModel(model_file='deepppl/tests/good/schools.stan')
+    model = deepppl.DppplModel(model_file=stan_model_file)
 
     J = 8
     y = torch.tensor([28., 8., -3., 7., -1., 1., 18., 12.])
     sigma = torch.tensor([15., 10., 16., 11., 9., 11., 10., 18.])
 
+    schools_dat = {'J': 8,
+                'y': [28,  8, -3,  7, -1,  1, 18, 12],
+                'sigma': [15, 10, 16, 11, 9, 11, 10, 18]}
+
     posterior = model.posterior(
         method=nuts,
-        num_samples=30,
-        warmup_steps=3).run(J=J, sigma=sigma, y=y)
+        num_samples=1000,
+        warmup_steps=300).run(J=J, sigma=sigma, y=y)
 
     marginal = posterior.marginal(sites=["mu", "tau", "eta"])
-    print(marginal)
     marginal = torch.cat(list(marginal.support(
         flatten=True).values()), dim=-1).cpu().numpy()
     params = ['mu', 'tau', 'eta[0]', 'eta[1]', 'eta[2]',
@@ -56,7 +63,41 @@ def test_schools():
     df_summary = df.apply(pd.Series.describe, axis=1)[
         ["mean", "std", "25%", "50%", "75%"]]
     print(df_summary)
+    compare_with_stan_output(schools_dat)
 
+def compare_with_stan_output(data):
+    #stan_code = open(stan_model_file).read()
+    stan_code = """
+    data {
+        int<lower=0> J; // number of schools
+        real y[J]; // estimated treatment effects
+        real<lower=0> sigma[J]; // s.e. of effect estimates
+    }
+    parameters {
+        real mu;
+        real<lower=0> tau;
+        real eta[J];
+    }
+    transformed parameters {
+        real theta[J];
+        for (j in 1:J)
+            theta[j] = mu + tau * eta[j];
+    }
+    model {
+        eta ~ normal(0, 1);
+        y ~ normal(theta, sigma);
+    }
+    """
+    t1 = time.time()
+
+    # Compile and fit
+    sm1 = pystan.StanModel(model_code=str(stan_code))
+    fit_stan = sm1.sampling(data=data, iter=global_num_iterations, chains=global_num_chains, warmup = 300)
+
+    mu = fit_stan.extract(permuted=True)['mu'].mean()
+    t2 = time.time()
+
+    print(mu)
 
 if __name__ == "__main__":
     test_schools()
