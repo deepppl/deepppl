@@ -30,7 +30,7 @@ def test_linear_regression():
         warmup_steps=300)
 
     # Add Data
-    num_samples = 1000
+    num_samples = 10
     X = np.arange(num_samples)
     y = np.arange(num_samples)
     data = {'N': num_samples,
@@ -53,7 +53,7 @@ def test_linear_regression():
     alpha = float(params[0])
     beta = float(params[1])
 
-    num_test_samples = 100
+    num_test_samples = 10
     X_test = np.arange(10, 10+num_test_samples)
     y_test = np.arange(10, 10+num_test_samples)
     y_predicted = alpha + beta * X_test

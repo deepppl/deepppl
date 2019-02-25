@@ -25,7 +25,8 @@ def model(D=None, K=None, N=None, y=None, transformed_data=None):
     soft_z = zeros(___shape['soft_z'])
     for n in range(1, N + 1):
         for k in range(1, K + 1):
-            soft_z[n - 1, k - 1] = dot_self(mu[k - 1] - y[n - 1])
+            soft_z[n - 1, k - 1] = neg_log_K - 0.5 * dot_self(mu[k - 1] - y
+                                                              [n - 1])
     for k in range(1, K + 1):
         pyro.sample('mu' + '{}'.format(k - 1) + '1', dist.Normal(zeros(D),
                                                                  ones(D)), obs=mu[k - 1])
