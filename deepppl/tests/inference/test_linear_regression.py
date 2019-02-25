@@ -11,8 +11,9 @@ from sklearn.metrics import mean_squared_error
 import time
 
 stan_model_file = 'deepppl/tests/good/linear_regression.stan'
-global_num_iterations=3000
-global_num_chains=1
+global_num_iterations = 3000
+global_num_chains = 1
+
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model, adapt_step_size=True)
@@ -22,18 +23,19 @@ def nuts(model, **kwargs):
 def test_linear_regression():
     model = deepppl.DppplModel(
         model_file=stan_model_file)
+
     posterior = model.posterior(
         method=nuts,
         num_samples=2700,
-        warmup_steps = 300)
+        warmup_steps=300)
 
     # Add Data
-    num_samples = 10
+    num_samples = 1000
     X = np.arange(num_samples)
     y = np.arange(num_samples)
     data = {'N': num_samples,
             'x': X,
-            'y':y}
+            'y': y}
 
     X = torch.Tensor(X)
     y = torch.Tensor(y)
@@ -43,7 +45,7 @@ def test_linear_regression():
         N=num_samples, x=X, y=y), sites=['alpha', 'beta', 'sigma'])
     samples_fstan = [marginal() for _ in range(1000)]
     stack_samples = torch.stack(samples_fstan)
-    params = torch.mean(stack_samples, 0) 
+    params = torch.mean(stack_samples, 0)
     t2 = time.time()
 
     time_taken = t2-t1
@@ -58,9 +60,11 @@ def test_linear_regression():
 
     y_pred, time_taken_pystan = compare_with_stan_output(data, X_test)
 
-    print("mean_squared_error using deepstan:{} with time taken by inference:{}".format(mean_squared_error(y_test, y_predicted), time_taken))
+    print("mean_squared_error using deepstan:{} with time taken by inference:{}".format(
+        mean_squared_error(y_test, y_predicted), time_taken))
 
-    print("mean_squared_error using pystan:{} with time taken by inference:{}".format(mean_squared_error(y_test, y_pred), time_taken_pystan))
+    print("mean_squared_error using pystan:{} with time taken by inference:{}".format(
+        mean_squared_error(y_test, y_pred), time_taken_pystan))
 
 
 def compare_with_stan_output(data, X_test):
@@ -69,7 +73,8 @@ def compare_with_stan_output(data, X_test):
 
     # Compile and fit
     sm1 = pystan.StanModel(model_code=str(stan_code))
-    fit_stan = sm1.sampling(data=data, iter=global_num_iterations, chains=global_num_chains, warmup = 300)
+    fit_stan = sm1.sampling(
+        data=data, iter=global_num_iterations, chains=global_num_chains, warmup=300)
 
     alpha = fit_stan.extract(permuted=True)['alpha'].mean()
     beta = fit_stan.extract(permuted=True)['beta'].mean()
@@ -80,5 +85,6 @@ def compare_with_stan_output(data, X_test):
     y_predicted = alpha + beta * X_test
     return y_predicted, t2-t1
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     test_linear_regression()
