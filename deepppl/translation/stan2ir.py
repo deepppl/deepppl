@@ -241,7 +241,7 @@ class StanToIR(stanListener):
         if len(ir) == 1:
             ctx.ir = ir[0]
         else:
-            ctx.ir = List(elements = ir)
+            ctx.ir = Tuple(exprs = ir)
 
     # Statements (section 5)
 
