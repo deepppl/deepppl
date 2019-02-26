@@ -15,7 +15,7 @@ def transformed_data(N=None, x=None):
         K[i - 1, i - 1] = 1 + 0.1
         for j in range(i + 1, N + 1):
             K[i - 1, j - 1] = exp(-0.5 * square(x[i - 1] - x[j - 1]))
-            K[j - 1, i - 1] = K[[i, j] - 1]
+            K[j - 1, i - 1] = K[i - 1, j - 1]
     K[N - 1, N - 1] = 1 + 0.1
     return {'K': K, 'mu': mu}
 
