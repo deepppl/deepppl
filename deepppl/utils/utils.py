@@ -29,6 +29,10 @@ def bernoulli_logit(logits):
     return dist.Bernoulli(logits=logits)
 
 
+def binomial_logit(logits):
+    return dist.Binomial(logits=logits)
+
+
 def poisson_log(alpha):
     return dist.Poisson(torch.exp(alpha))
 
@@ -93,6 +97,7 @@ def inv_logit(p):
 hooks = {x.__name__: x for x in [
     bernoulli_logit,
     categorical_logits,
+    binomial_logit,
     poisson_log,
     ImproperUniform,
     LowerConstrainedImproperUniform,
