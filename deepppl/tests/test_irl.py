@@ -355,3 +355,9 @@ def test_cockroaches():
     filename = r'deepppl/tests/good/cockroaches.stan'
     target_file = r'deepppl/tests/target_py/cockroaches.py'
     normalize_and_compare(filename, target_file)
+
+
+def test_seeds():
+    filename = r'deepppl/tests/good/seeds.stan'
+    target_file = r'deepppl/tests/target_py/seeds.py'
+    normalize_and_compare(filename, target_file)
