@@ -338,7 +338,14 @@ def test_vectorized_probability():
     target_file = r'deepppl/tests/target_py/vectorized_probability.py'
     normalize_and_compare(filename, target_file)
 
+
 def test_lda():
     filename = r'deepppl/tests/good/lda.stan'
     target_file = r'deepppl/tests/target_py/lda.py'
+    normalize_and_compare(filename, target_file)
+
+
+def test_neal_funnel():
+    filename = r'deepppl/tests/good/neal_funnel.stan'
+    target_file = r'deepppl/tests/target_py/neal_funnel.py'
     normalize_and_compare(filename, target_file)
