@@ -29,6 +29,10 @@ def bernoulli_logit(logits):
     return dist.Bernoulli(logits=logits)
 
 
+def poisson_log(alpha):
+    return dist.Poisson(torch.exp(alpha))
+
+
 class ImproperUniform(dist.Normal):
     def __init__(self, shape=None):
         zeros = torch.zeros(shape) if shape else 0
@@ -87,7 +91,9 @@ def inv_logit(p):
 
 
 hooks = {x.__name__: x for x in [
+    bernoulli_logit,
     categorical_logits,
+    poisson_log,
     ImproperUniform,
     LowerConstrainedImproperUniform,
     UpperConstrainedImproperUniform,

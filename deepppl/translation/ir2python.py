@@ -763,9 +763,10 @@ class ShapeCheckingVisitor(IRVisitor):
         return self._ctx[prop.var.id]  ## XXX check presence
 
 class Ir2PythonVisitor(IRVisitor):
-    new_distributions = {name.lower():name for name in [
-                            'categorical_logits',
+    new_distributions = {name.lower(): name for name in [
                             'bernoulli_logit',
+                            'categorical_logits',
+                            'poisson_log',
                             'ImproperUniform',
                             'LowerConstrainedImproperUniform',
                             'UpperConstrainedImproperUniform',
