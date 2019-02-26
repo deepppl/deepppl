@@ -766,6 +766,7 @@ class Ir2PythonVisitor(IRVisitor):
     new_distributions = {name.lower(): name for name in [
                             'bernoulli_logit',
                             'categorical_logits',
+                            'binomial_logit',
                             'poisson_log',
                             'ImproperUniform',
                             'LowerConstrainedImproperUniform',
