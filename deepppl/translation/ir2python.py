@@ -865,7 +865,7 @@ class Ir2PythonVisitor(IRVisitor):
         elif isinstance(target, ast.Subscript):
             base = self.targetToName(target.value)
             arg = target.slice.value
-            format = self.loadAttr(ast.Str('{}'), 'format')
+            format = self.loadAttr(ast.Str('__{}'), 'format')
             formatted = self.call(format, args = [arg,])
             base = ast.BinOp(left = base,
                              right = formatted,

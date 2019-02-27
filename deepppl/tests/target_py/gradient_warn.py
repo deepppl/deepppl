@@ -18,5 +18,5 @@ def model(N=None, Ngrps=None, grp_index=None, p=None):
     ___shape['grpi'] = ()
     for i in range(1, N + 1):
         grpi = grp_index[i - 1]
-        pyro.sample('p' + '{}'.format(i - 1) + '1', dist.LogisticNormal(
+        pyro.sample('p' + '__{}'.format(i - 1) + '__1', dist.LogisticNormal(
             muGrp[grpi - 1], sigmaGrp[grpi - 1]), obs=p[i - 1])

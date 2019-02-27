@@ -20,5 +20,5 @@ def model(J=None, sigma=None, y=None):
     theta = zeros(___shape['theta'])
     for j in range(1, J + 1):
         theta[j - 1] = mu + tau * eta[j - 1]
-    pyro.sample('eta' + '1', dist.Normal(zeros(J), ones(J)), obs=eta)
-    pyro.sample('y' + '2', dist.Normal(theta, sigma), obs=y)
+    pyro.sample('eta' + '__1', dist.Normal(zeros(J), ones(J)), obs=eta)
+    pyro.sample('y' + '__2', dist.Normal(theta, sigma), obs=y)
