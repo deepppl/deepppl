@@ -43,3 +43,5 @@ def model(I=None, N=None, n=None, x1=None, x2=None, transformed_data=None):
     pyro.sample('b' + '__6', dist.Normal(0.0, sigma), obs=b)
     pyro.sample('n' + '__7', binomial_logit(N, alpha0 + alpha1 * x1 + alpha2 *
                                             x2 + alpha12 * x1x2 + b), obs=n)
+    return {'alpha2': alpha2, 'tau': tau, 'sigma': sigma, 'alpha1': alpha1,
+        'alpha0': alpha0, 'b': b, 'alpha12': alpha12}

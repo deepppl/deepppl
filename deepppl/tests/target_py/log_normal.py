@@ -11,3 +11,4 @@ def model():
     theta = pyro.sample('theta', LowerConstrainedImproperUniform(0.0))
     pyro.sample('expr' + '__1', dist.Normal(log(10.0), 1.0), obs=log(theta))
     pyro.sample('expr' + '__2', dist.Exponential(1.0), obs=--log(fabs(theta)))
+    return {'theta': theta}

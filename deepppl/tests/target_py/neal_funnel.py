@@ -17,3 +17,4 @@ def model():
     x = exp(y / 2) * x_std
     pyro.sample('y_std' + '__1', dist.Normal(0, 1), obs=y_std)
     pyro.sample('x_std' + '__2', dist.Normal(0, 1), obs=x_std)
+    return {'x_std': x_std, 'x': x, 'y': y, 'y_std': y_std}

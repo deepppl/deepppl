@@ -1208,6 +1208,11 @@ class Ir2PythonVisitor(IRVisitor):
         body = self.liftBlackBox(model)
         body.extend(self._visitChildren(model))
         body = self._ensureStmtList(body)
+        all_param_names = self._parameters_names.union(self._transformed_parameters_names)
+        k = [ast.Str(name) for name in all_param_names]
+        v = [self.loadName(name) for name in all_param_names]
+        body.append(ast.Return(ast.Dict(k, v)))
+
         return self.buildModel(body)
 
     def samplePosterior(self, l):

@@ -12,3 +12,4 @@ def model():
     pyro.sample('expr' + '__1',
                 dist.Exponential(1.0),
                 obs=-(-0.5 * (theta - 1000.0) * (theta - 1000.0)))
+    return {'theta': theta}

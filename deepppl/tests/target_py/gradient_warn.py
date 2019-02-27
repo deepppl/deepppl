@@ -20,3 +20,4 @@ def model(N=None, Ngrps=None, grp_index=None, p=None):
         grpi = grp_index[i - 1]
         pyro.sample('p' + '__{}'.format(i - 1) + '__1', dist.LogisticNormal(
             muGrp[grpi - 1], sigmaGrp[grpi - 1]), obs=p[i - 1])
+    return {'sigmaGrp': sigmaGrp, 'muGrp': muGrp}

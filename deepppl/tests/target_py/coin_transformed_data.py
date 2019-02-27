@@ -24,3 +24,4 @@ def model(x=None, transformed_data=None):
     for i in range(1, 10 + 1):
         pyro.sample('y' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(theta),
             obs=y[i - 1])
+    return {'theta': theta}

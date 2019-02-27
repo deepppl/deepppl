@@ -15,3 +15,4 @@ def model(x=None):
         if 1 <= 10 and (1 > 5 or 2 < 1):
             pyro.sample('x' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(
                 theta), obs=x[i - 1])
+    return {'theta': theta}

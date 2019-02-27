@@ -32,3 +32,4 @@ def model(nz=None, x=None):
     pyro.sample('z' + '__1', dist.Normal(zeros(nz), ones(nz)), obs=z)
     mu = decoder(z)
     pyro.sample('x' + '__2', dist.Bernoulli(mu), obs=x)
+    return {'z': z}

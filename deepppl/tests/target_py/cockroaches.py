@@ -37,3 +37,4 @@ def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
     pyro.sample('y' + '__3', poisson_log(log_expo + beta[1 - 1] + beta[2 - 1] *
                                        roach1 + beta[3 - 1] * treatment + beta[4 - 1] * senior + lmbda), obs=y
                 )
+    return {'tau': tau, 'lmbda': lmbda, 'sigma': sigma, 'beta': beta}

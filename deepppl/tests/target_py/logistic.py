@@ -19,3 +19,4 @@ def model(M=None, N=None, x=None, y=None):
     for n in range(1, N + 1):
         pyro.sample('y' + '__{}'.format(n - 1) + '__2', dist.Bernoulli(
             inv_logit(x[n - 1] * beta)), obs=y[n - 1])
+    return {'beta': beta}

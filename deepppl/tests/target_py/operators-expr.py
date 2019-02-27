@@ -16,3 +16,4 @@ def model(x=None):
             pyro.sample('x' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(
                 theta), obs=x[i - 1])
     print(x)
+    return {'theta': theta}
