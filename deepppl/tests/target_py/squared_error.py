@@ -21,8 +21,8 @@ def model(K=None, N=None, x=None, y=None):
 
 def generated_quantities(K=None, N=None, x=None, y=None, __sampler=None):
     __sample = __sampler()
-    squared_error = __sample.squared_error
     beta = __sample.beta
+    squared_error = __sample.squared_error
     ___shape['sigma_squared'] = ()
     sigma_squared = squared_error / N
     return {'sigma_squared': sigma_squared}
