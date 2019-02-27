@@ -9,12 +9,12 @@ def model(K=None, N=None, x=None, y=None):
     ___shape = {}
     ___shape['N'] = ()
     ___shape['K'] = ()
-    ___shape['x'] = ()
-    ___shape['y'] = ()
+    ___shape['x'] = N, K
+    ___shape['y'] = N
     ___shape['alpha'] = ()
-    ___shape['beta'] = ()
+    ___shape['beta'] = K
     ___shape['sigma'] = ()
     alpha = pyro.sample('alpha', ImproperUniform())
-    beta = pyro.sample('beta', ImproperUniform())
+    beta = pyro.sample('beta', ImproperUniform(K))
     sigma = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
     pyro.sample('y' + '1', dist.Normal(x * beta + alpha, sigma), obs=y)

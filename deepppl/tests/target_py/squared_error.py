@@ -9,10 +9,10 @@ def model(K=None, N=None, x=None, y=None):
     ___shape = {}
     ___shape['N'] = ()
     ___shape['K'] = ()
-    ___shape['y'] = ()
-    ___shape['x'] = ()
-    ___shape['beta'] = ()
-    beta = pyro.sample('beta', ImproperUniform())
+    ___shape['y'] = N
+    ___shape['x'] = N, K
+    ___shape['beta'] = K
+    beta = pyro.sample('beta', ImproperUniform(K))
     ___shape['squared_error'] = ()
     squared_error = dot_self(y - x * beta)
     pyro.sample('expr' + '1', dist.Exponential(1.0), obs=--squared_error)

@@ -8,8 +8,8 @@ import pyro.distributions as dist
 def model(N=None, x=None, y=None):
     ___shape = {}
     ___shape['N'] = ()
-    ___shape['x'] = ()
-    ___shape['y'] = ()
+    ___shape['x'] = N
+    ___shape['y'] = N
     ___shape['alpha'] = ()
     ___shape['beta'] = ()
     ___shape['sigma'] = ()

@@ -26,18 +26,6 @@ def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
     return mcmc.MCMC(nuts_kernel, **kwargs)
 
-
-def model2(J, sigma, y):
-    eta = pyro.sample('eta', ImproperUniform(J))
-    mu = pyro.sample('mu', ImproperUniform())
-    # mu = pyro.sample('mu', dist.Normal(torch.zeros(1), 10 * torch.ones(1)))
-    tau = pyro.sample('tau', dist.HalfCauchy(scale=25 * torch.ones(1)))
-
-    theta = mu + tau * eta
-
-    return pyro.sample("obs", dist.Normal(theta, sigma), obs=y)
-
-
 def test_schools():
     model = deepppl.DppplModel(model_file=stan_model_file)
 
@@ -66,7 +54,7 @@ def test_schools():
     compare_with_stan_output(schools_dat)
 
 def compare_with_stan_output(data):
-    #stan_code = open(stan_model_file).read()
+    # stan_code = open(stan_model_file).read()
     stan_code = """
     data {
         int<lower=0> J; // number of schools

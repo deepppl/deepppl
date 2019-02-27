@@ -507,11 +507,12 @@ class VariableDecl(IR):
         [self.dim, self.init, self.type_] = children
 
 class Type_(IR):
-    def __init__(self, type_ = None, constraints = None, is_array = False):
+    def __init__(self, type_ = None, constraints = None, is_array = False, dim = None):
         super(Type_, self).__init__()
         self.type_ = type_
         self.constraints = constraints or []
         self.is_array = is_array
+        self.dim = dim
         if self.constraints:
             if self.type_ == 'int':
                 f = lambda x: x.ensureInt()

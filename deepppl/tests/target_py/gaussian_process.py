@@ -7,9 +7,9 @@ import pyro.distributions as dist
 
 def transformed_data(N=None, x=None):
     ___shape = {}
-    ___shape['K'] = ()
+    ___shape['K'] = N, N
     K = zeros(___shape['K'])
-    ___shape['mu'] = ()
+    ___shape['mu'] = N
     mu = rep_vector(0, N)
     for i in range(1, N - 1 + 1):
         K[i - 1, i - 1] = 1 + 0.1
@@ -26,6 +26,6 @@ def model(N=None, x=None, transformed_data=None):
     ___shape = {}
     ___shape['N'] = ()
     ___shape['x'] = N
-    ___shape['y'] = ()
-    y = pyro.sample('y', ImproperUniform())
+    ___shape['y'] = N
+    y = pyro.sample('y', ImproperUniform(N))
     pyro.sample('y' + '1', dist.MultivariateNormal(mu, K), obs=y)

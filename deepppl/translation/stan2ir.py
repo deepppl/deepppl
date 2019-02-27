@@ -63,8 +63,15 @@ class StanToIR(stanListener):
 
     def exitVariableDecl(self, ctx):
         vid = ctx.IDENTIFIER().getText()
-        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
         type_ = ctx.type_().ir
+        dims = None
+        if ctx.arrayDim() is not None and type_.dim is not None:
+            # Avi: to check
+            dims = Tuple(exprs = [ctx.arrayDim().ir, type_.dim])
+        elif ctx.arrayDim() is not None:
+            dims = ctx.arrayDim().ir
+        elif type_.dim is not None:
+            dims = type_.dim
         init = ctx.expression().ir if is_active(ctx.expression) else None
         ctx.ir = VariableDecl(
                     id = vid,
@@ -84,7 +91,8 @@ class StanToIR(stanListener):
             assert False, f"unknown type: {ptype.getText()}"
         constraints = ctx.typeConstraints().ir if ctx.typeConstraints() else None
         is_array = ctx.isArray is not None
-        ctx.ir = Type_(type_ = type_, constraints = constraints, is_array = is_array)
+        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
+        ctx.ir = Type_(type_ = type_, constraints = constraints, is_array = is_array, dim = dims)
 
     def exitTypeConstraints(self, ctx):
         constraints_list = ctx.typeConstraintList()

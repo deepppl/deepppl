@@ -61,7 +61,7 @@ def test_kmeans():
 
     samples_fstan = [marginal()
                         for _ in range(3000)]
-    stack_samples = torch.stack(samples_fstan)  
+    stack_samples = torch.stack(samples_fstan)
     cluster_means = stack_samples.mean(0).numpy()
 
     cluster_centers, t_pystan = compare_with_stan_output(data)
@@ -83,38 +83,8 @@ def test_kmeans():
     print("Kmeans evaluation metric (adjusted_rand_score) using pystan:{}".format(adjusted_rand_score(y, y_pred)))
 
 def compare_with_stan_output(data):
-    #stan_code = open(stan_model_file).read()
+    stan_code = open(stan_model_file).read()
     t1 = time.time()
-    stan_code = """
-        data {
-        int<lower=0> N;  // number of data points
-        int<lower=1> D;  // number of dimensions
-        int<lower=1> K;  // number of clusters
-        vector[D] y[N];  // observations
-        }
-        transformed data {
-        real<upper=0> neg_log_K;
-        neg_log_K = -log(K);
-        }
-        parameters {
-        vector[D] mu[K]; // cluster means
-        }
-        transformed parameters {
-        real<upper=0> soft_z[N, K]; // log unnormalized clusters
-        for (n in 1:N)
-            for (k in 1:K)
-            soft_z[n, k] = neg_log_K
-                - 0.5 * dot_self(mu[k] - y[n]);
-        }
-        model {
-        // prior
-        for (k in 1:K)
-                mu[k] ~ normal(0, 1);
-        // likelihood
-        for (n in 1:N)
-                target += log_sum_exp(soft_z[n]);
-        }
-    """
     #data['y'] = np.array([[1., 2], [1.,4], [1, 0], [4.,2], [4., 4.],[4, 0]])# [2., 4., 0., 2., 4., 0.]])
     # Compile and fit
     sm1 = pystan.StanModel(model_code=str(stan_code))
@@ -124,7 +94,6 @@ def compare_with_stan_output(data):
     cluster_means = mu.mean(axis = 0)
     t2 = time.time()
     return cluster_means, t2-t1
-
 
 
 if __name__ == "__main__":

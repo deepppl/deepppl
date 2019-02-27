@@ -18,16 +18,14 @@ data {
   int<lower=0> N;  // number of data points
   int<lower=1> D;  // number of dimensions
   int<lower=1> K;  // number of clusters
-  // vector[D] y[N];  // observations
-  real y[N, D];
+  vector[D] y[N];  // observations
 }
 transformed data {
   real<upper=0> neg_log_K;
   neg_log_K = -log(K);
 }
 parameters {
-  // vector[D] mu[K]; // cluster means
-  real mu[K, D];
+  vector[D] mu[K]; // cluster means
 }
 transformed parameters {
   real<upper=0> soft_z[N, K]; // log unnormalized clusters
