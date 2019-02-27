@@ -13,4 +13,4 @@ def model(K=None, N=None, x=None, y=None):
     ___shape['y'] = N
     ___shape['beta'] = K
     beta = pyro.sample('beta', ImproperUniform(K))
-    pyro.sample('y' + '1', dist.Normal(x * beta, 1), obs=y)
+    pyro.sample('y' + '__1', dist.Normal(x * beta, 1), obs=y)

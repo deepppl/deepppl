@@ -32,8 +32,8 @@ def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
     tau = pyro.sample('tau', ImproperUniform())
     ___shape['sigma'] = ()
     sigma = 1.0 / sqrt(tau)
-    pyro.sample('tau' + '1', dist.Gamma(0.001, 0.001), obs=tau)
-    pyro.sample('lmbda' + '2', dist.Normal(0, sigma), obs=lmbda)
-    pyro.sample('y' + '3', poisson_log(log_expo + beta[1 - 1] + beta[2 - 1] *
+    pyro.sample('tau' + '__1', dist.Gamma(0.001, 0.001), obs=tau)
+    pyro.sample('lmbda' + '__2', dist.Normal(0, sigma), obs=lmbda)
+    pyro.sample('y' + '__3', poisson_log(log_expo + beta[1 - 1] + beta[2 - 1] *
                                        roach1 + beta[3 - 1] * treatment + beta[4 - 1] * senior + lmbda), obs=y
                 )

@@ -15,5 +15,5 @@ def model():
     y = 3.0 * y_std
     ___shape['x'] = ()
     x = exp(y / 2) * x_std
-    pyro.sample('y_std' + '1', dist.Normal(0, 1), obs=y_std)
-    pyro.sample('x_std' + '2', dist.Normal(0, 1), obs=x_std)
+    pyro.sample('y_std' + '__1', dist.Normal(0, 1), obs=y_std)
+    pyro.sample('x_std' + '__2', dist.Normal(0, 1), obs=x_std)

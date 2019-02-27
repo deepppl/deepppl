@@ -16,4 +16,4 @@ def model(N=None, x=None, y=None):
     alpha = pyro.sample('alpha', ImproperUniform())
     beta = pyro.sample('beta', ImproperUniform())
     sigma = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
-    pyro.sample('y' + '1', dist.Normal(alpha + beta * x, sigma), obs=y)
+    pyro.sample('y' + '__1', dist.Normal(alpha + beta * x, sigma), obs=y)

@@ -29,6 +29,6 @@ def model(nz=None, x=None):
     z = pyro.sample('z', ImproperUniform(nz))
     ___shape['mu'] = 28, 28
     mu = zeros(___shape['mu'])
-    pyro.sample('z' + '1', dist.Normal(zeros(nz), ones(nz)), obs=z)
+    pyro.sample('z' + '__1', dist.Normal(zeros(nz), ones(nz)), obs=z)
     mu = decoder(z)
-    pyro.sample('x' + '2', dist.Bernoulli(mu), obs=x)
+    pyro.sample('x' + '__2', dist.Bernoulli(mu), obs=x)

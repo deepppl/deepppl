@@ -20,7 +20,7 @@ def model(x=None, transformed_data=None):
     ___shape['x'] = 10
     ___shape['theta'] = ()
     theta = pyro.sample('theta', dist.Uniform(0.0, 1.0))
-    pyro.sample('theta' + '1', dist.Uniform(0, 1), obs=theta)
+    pyro.sample('theta' + '__1', dist.Uniform(0, 1), obs=theta)
     for i in range(1, 10 + 1):
-        pyro.sample('y' + '{}'.format(i - 1) + '2', dist.Bernoulli(theta),
+        pyro.sample('y' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(theta),
             obs=y[i - 1])
