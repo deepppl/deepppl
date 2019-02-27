@@ -19,9 +19,10 @@ def model(K=None, N=None, x=None, y=None):
     return {'squared_error': squared_error, 'beta': beta}
 
 
-def generated_quantities(K=None, N=None, x=None, y=None):
-    pyro.param('beta').item()
-    pyro.param('squared_error').item()
+def generated_quantities(K=None, N=None, x=None, y=None, __sampler=None):
+    __sample = __sampler()
+    squared_error = __sample.squared_error
+    beta = __sample.beta
     ___shape['sigma_squared'] = ()
     sigma_squared = squared_error / N
     return {'sigma_squared': sigma_squared}

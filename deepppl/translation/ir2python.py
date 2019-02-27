@@ -1215,11 +1215,11 @@ class Ir2PythonVisitor(IRVisitor):
 
         return self.buildModel(body)
 
-    def samplePosterior(self, l):
-        samples = []
-        for name in l:
-            param = self.call(self._pyroattr('param'), args = [ast.Str(name)])
-            samples.append(ast.Expr(self.call(self.loadAttr(param, 'item'))))
+    def samplePosterior(self, sampler, names):
+        samples = [self._assign(self.loadName('__sample'), self.call(self.loadName(sampler), args = []))]
+        for name in names:
+            param = self.loadAttr(self.loadName('__sample'), name)
+            samples.append(self._assign(self.loadName(name), param))
         return samples
 
     def buildGeneratedQuantities(self):
@@ -1227,10 +1227,9 @@ class Ir2PythonVisitor(IRVisitor):
         if generated_quantities is None:
             return []
         name = 'generated_quantities'
-        args = self.modelArgs()
+        args = self.modelArgs(with_sampler=True)
         body = []
-        body.extend(self.samplePosterior(self._parameters_names))
-        body.extend(self.samplePosterior(self._transformed_parameters_names))
+        body.extend(self.samplePosterior('__sampler', self._parameters_names.union(self._transformed_parameters_names)))
         body.extend(self._visitChildren(generated_quantities))
         k = [ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)]
         v = [self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)]
@@ -1323,11 +1322,14 @@ class Ir2PythonVisitor(IRVisitor):
                             body = body)
         return f
 
-    def modelArgs(self, no_transformed_data=False):
+    def modelArgs(self, no_transformed_data=False, with_sampler=False):
         args = [ast.arg(name, None) for name in sorted(self.data_names)]
         defaults = [ ast.NameConstant(None) for name in self.data_names ]
         if not no_transformed_data and self._transformed_data_names:
             args.append(ast.arg('transformed_data', None))
+            defaults.append(ast.NameConstant(None))
+        if with_sampler:
+            args.append(ast.arg('__sampler', None))
             defaults.append(ast.NameConstant(None))
         return { 'args': args, 'defaults': defaults }
 
