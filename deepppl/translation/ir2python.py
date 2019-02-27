@@ -875,7 +875,7 @@ class Ir2PythonVisitor(IRVisitor):
             base = ast.Str('expr')
             for idx in self.forIndexes:
                 arg = self.loadName(idx)
-                format = self.loadAttr(ast.Str('{}'), 'format')
+                format = self.loadAttr(ast.Str('__{}'), 'format')
                 formatted = self.call(format, args = [arg,])
                 base = ast.BinOp(left = base,
                                  right = formatted,
@@ -885,7 +885,7 @@ class Ir2PythonVisitor(IRVisitor):
         if observed is None:
             return base
         else:
-            observed_str = ast.Str(str(observed))
+            observed_str = ast.Str('__' + str(observed))
             return ast.BinOp(left = base, right = observed_str, op = ast.Add())
 
     def visitConstant(self, const):
