@@ -29,8 +29,8 @@ def bernoulli_logit(logits):
     return dist.Bernoulli(logits=logits)
 
 
-def binomial_logit(logits):
-    return dist.Binomial(logits=logits)
+def binomial_logit(n, logits):
+    return dist.Binomial(n, logits=logits)
 
 
 def poisson_log(alpha):
