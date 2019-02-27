@@ -349,7 +349,7 @@ netName
     ;
 
 netParamDecl
-    : type_ netName '.' netParam arrayDim? ';'
+    : type_ netName '.' netParam arrayDims? ';'
     ;
 
 netParam
@@ -608,7 +608,7 @@ functionBlock
     ;
 
 dataBlock
-    : DATA '{' variableDeclsOpt '}'
+    : DATA '{' parameterDeclsOpt '}'
     ;
 
 networksBlock

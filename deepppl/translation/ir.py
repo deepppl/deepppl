@@ -1,4 +1,5 @@
 import warnings
+from itertools import chain
 
 class IRMeta(type):
     def __init__(cls, *args, **kwargs):
@@ -76,11 +77,9 @@ class Program(IR):
 
     def blockNames(self):
         return [
-            'data', 'transformeddata', 'parameters', 'transformedparameters', \
-                    'networksblock',  \
+            'networksblock', 'data', 'transformeddata', 'parameters', 'transformedparameters', \
                     'guideparameters', \
                     'guide', 'prior', 'model', 'generatedquantities' ]
-
 
 
 
@@ -661,7 +660,7 @@ class NetVariable(Expression):
 
     @property
     def id(self):
-        return self.name + '.'.join(self.ids)
+        return  '.'.join(chain([self.name], self.ids))
 
     def is_net_var(self):
         return True
