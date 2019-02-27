@@ -174,7 +174,6 @@ def compare_with_stan_output():
     alpha12 = np.reshape(alpha12, (alpha12.shape[0], 1))
     alpha2 = np.reshape(alpha2, (alpha2.shape[0], 1))
     tau = np.reshape(tau, (tau.shape[0], 1))
-    import pdb;pdb.set_trace()
     marginal = np.concatenate((alpha0, alpha1, alpha12, alpha2, tau), axis = 1)
     params = ['alpha0', 'alpha1', 'alpha12', 'alpha2', 'tau']
     df = pd.DataFrame(marginal, columns=params)

@@ -231,7 +231,6 @@ def test_cockroaches():
     tau = torch.cat(list(marginal.support(flatten=True).values()), dim=-1).cpu().numpy()
 
     #stack_samples = torch.stack(samples_fstan)
-    import pdb;pdb.set_trace()
 
     pystan_mean_lambda, pystan_tau = compare_with_stan_output()
 
