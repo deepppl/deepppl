@@ -22,4 +22,4 @@ def model(J=None, sigma=None, y=None):
         theta[j - 1] = mu + tau * eta[j - 1]
     pyro.sample('eta' + '__1', dist.Normal(zeros(J), ones(J)), obs=eta)
     pyro.sample('y' + '__2', dist.Normal(theta, sigma), obs=y)
-    return {'tau': tau, 'theta': theta, 'eta': eta, 'mu': mu}
+    return {'theta': theta, 'tau': tau, 'mu': mu, 'eta': eta}

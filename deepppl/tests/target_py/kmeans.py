@@ -33,4 +33,4 @@ def model(D=None, K=None, N=None, y=None, transformed_data=None):
     for n in range(1, N + 1):
         pyro.sample('expr' + '__{}'.format(n) + '__2', dist.Exponential(1.0),
                     obs=-log_sum_exp(soft_z[n - 1]))
-    return {'soft_z': soft_z, 'mu': mu}
+    return {'mu': mu, 'soft_z': soft_z}

@@ -16,7 +16,7 @@ def model(K=None, N=None, x=None, y=None):
     ___shape['squared_error'] = ()
     squared_error = dot_self(y - x * beta)
     pyro.sample('expr' + '__1', dist.Exponential(1.0), obs=--squared_error)
-    return {'squared_error': squared_error, 'beta': beta}
+    return {'beta': beta, 'squared_error': squared_error}
 
 
 def generated_quantities(K=None, N=None, x=None, y=None, __sampler=None):
