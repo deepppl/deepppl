@@ -30,10 +30,10 @@ class TranslationException(DeepPPLException):
 
 
 class MissingPriorNetException(TranslationException):
-    _base_msg = "The following parameters of {} were note given a prior:{}"
+    _base_msg = "The following parameters of {} were not given a prior:{}"
 
 class MissingGuideNetException(TranslationException):
-    _base_msg = "The following parameters of {} were note given a guide:{}"
+    _base_msg = "The following parameters of {} were not given a guide:{}"
 
 class MissingModelException(TranslationException):
     _base_msg = "The following latents {} were not sampled on the model."

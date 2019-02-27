@@ -21,7 +21,6 @@ networks {
 }
 
 data {
-    int nz;
     int<lower=0, upper=1> x[28, 28];
 }
 

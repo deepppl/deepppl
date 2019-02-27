@@ -6,6 +6,12 @@ import pyro.distributions as dist
 
 
 def guide_(nz=None, x=None):
+    check_use(encoder(x))
+    def check_use(expr, shape):
+        if expr.shape[index] != val:
+            raise 
+        else:
+            return expr
     ___shape = {}
     ___shape['nz'] = ()
     ___shape['x'] = 28, 28

@@ -65,6 +65,7 @@ class Type_(object):
         if me._desc == other._desc:
             return
 
+        ### Anonymous Variables
         if isinstance(me._desc, AnonymousVariable):
             me._desc = TypeLink(other)
             return
@@ -78,6 +79,7 @@ class Type_(object):
             other._desc = TypeLink(me)
             return
 
+        ### Network Tensor Type
         if isinstance(me._desc, NetworkTensorType):
             if isinstance(other._desc, NetworkTensorType):
                 if me._desc.path == other._desc.path and me._desc.index == other._desc.index:
@@ -88,6 +90,11 @@ class Type_(object):
                     raise IncompatibleTypes(self, other)
             if isinstance(other._desc, Primitive):
                 me._desc = TypeLink(other)
+                return
+            if isinstance(other._desc, TensorType):
+                # TODO: make this work with primitives instead of reals
+                other._desc.component.unify(Type_.real(), equalities=equalities, tenv=tenv)
+                other._desc = TypeLink(me)
                 return
             if isinstance(other._desc, NonArrayIndexed):
                 # NetworkTensorTypes must have a primitive as the base type
@@ -108,6 +115,29 @@ class Type_(object):
         # arguments to unify
         if isinstance(other._desc, NetworkTensorType):
             return other.unify(me, equalities=equalities, tenv=tenv)
+
+        ### TensorType
+        if isinstance(me._desc, TensorType):
+            if isinstance(other._desc, TensorType):
+                me._desc.component.unify(other._desc.component(), equalities=equalities, tenv=tenv)
+                me._desc = TypeLink(other)
+            if isinstance(other._desc, Primitive):
+                # unify the component with the base type
+                me._desc.component.unify(other._desc, equalities=equalities, tenv=tenv)
+                # and replace it all together
+                me._desc = TypeLink(other)
+                return
+            if isinstance(other._desc, IndexedType):
+                d = me.unify(other._desc.dimension, equalities=equalities, tenv=tenv)
+                me._desc = TypeLink(other)
+                return
+
+        # Rather than copy/paste the above code, just unify with the argument re-ordered
+        # TODO: This is not ideal for error messages, once/if we get better about the expected/actual
+        # arguments to unify
+        if isinstance(other._desc, TensorType):
+            return other.unify(me, equalities=equalities, tenv=tenv)
+
 
         ## TODO: fix this to handle Primitive types (which can be either Integer or Reals)
         def check_prim1(T, t1, t2):          
@@ -567,6 +597,17 @@ class NetworkTensorType(TypeDesc):
 
     def __str__(self):
         return f"??{self.path}@{self.index}"
+
+    __repr__ = __str__
+
+class TensorType(TypeDesc):
+    """Represents a tensor (array with unknown number of dimensions)"""
+    def __init__(self, component:Type_):
+        super(TensorType, self).__init__()
+        self.component = component
+
+    def __str__(self):
+        return f"{self.component}[??]"
 
     __repr__ = __str__
 
