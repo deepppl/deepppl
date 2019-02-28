@@ -153,7 +153,7 @@ class TypeInferenceVisitor(IRVisitor):
         if stmt.id in set(["exp", "softplus", "log"]):
             arg0_type = stmt.args.children[0].accept(self)
             res = arg0_type.asRealArray()
-        elif stmt.id in set(["zeros", "ones", "randn"]):
+        elif stmt.id in set(["zeros", "ones", "randn", "rand"]):
             args = stmt.args.children
             if len(args) == 0:
                 stmt.args.children = [AnonymousShapeProperty()]
@@ -169,6 +169,9 @@ class TypeInferenceVisitor(IRVisitor):
                 a.accept(self)
             res = Tnetwork(stmt)
         else:
+            for a in stmt.args.children:
+                a.accept(self)
+            # TODO: can we do better?
             res = Tnew()
 
             # if stmt.id in self.known_functions:
@@ -183,7 +186,7 @@ class TypeInferenceVisitor(IRVisitor):
     def visitSamplingStmt(self, stmt:SamplingStmt):
         target_type = stmt.target.accept(self)
 
-        if stmt.id == 'Normal':
+        if stmt.id == 'normal':
             assert len(stmt.args) >= 2, f"Normal distribution underspecified; only {len(stmt.args)} arguments given"
             assert len(stmt.args) <= 3, f"Normal distribution overspecified; {len(stmt.args)} arguments given"
             # TODO: this accepts int arrays.  Is that actually valid?
@@ -200,7 +203,7 @@ class TypeInferenceVisitor(IRVisitor):
                 # Do we need a separate visitor for dimensions?
                 t0 = Tarray(dimension=Dnew(), component=t0)
             self.Tunify(target_type, t0)
-        elif stmt.id == 'Bernoulli':
+        elif stmt.id == 'bernoulli':
             assert len(stmt.args) == 1, f"Bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
             t0 = stmt.args[0].accept(self).realArrayToIntArray()
             self.Tunify(target_type, t0)
@@ -211,8 +214,20 @@ class TypeInferenceVisitor(IRVisitor):
             dim0 = self.inferDims(stmt.args[0])
             t0 = Tarray(component = Treal(), dimension=dim0)
             self.Tunify(target_type, t0)
+        elif stmt.id == "Uniform":
+            assert len(stmt.args) == 2, f"Uniform distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            lower = stmt.args[0].accept(self).asRealArray()
+            upper = stmt.args[1].accept(self).asRealArray()
+            self.Tunify(lower, upper)
+            self.Tunify(target_type, lower)
+        elif stmt.id == 'beta':
+            assert len(stmt.args) == 2, f"Beta distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            alpha = stmt.args[0].accept(self).asRealArray()
+            beta = stmt.args[1].accept(self).asRealArray()
+            self.Tunify(alpha, beta)
+            self.Tunify(target_type, alpha)
         else:
-            assert f"The {stmt.id} distribution is not yet supported."
+            assert False, f"The {stmt.id} distribution is not yet supported."
             # for a in stmt.args:
             #     self.Tunify(target_type, a.accept(self))
         stmt.expr_type = target_type
@@ -314,6 +329,14 @@ class TypeInferenceVisitor(IRVisitor):
         return t
 
     visitNetVariableProperty = visitVariableProperty
+
+    def visitForStmt(self, stmt:ForStmt):
+        from_type = stmt.from_.accept(self)
+        to_type = stmt.to_.accept(self)
+        stmt.body.accept(self)
+
+        self.Tunify(from_type, Tint())
+        self.Tunify(to_type, Tint())
 
     def visitAssignStmt(self, stmt:AssignStmt):
         target = stmt.target.accept(self)
