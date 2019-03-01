@@ -17,4 +17,13 @@ def model():
     x = exp(y / 2) * x_std
     pyro.sample('y_std' + '__1', dist.Normal(0, 1), obs=y_std)
     pyro.sample('x_std' + '__2', dist.Normal(0, 1), obs=x_std)
-    return {'y': y, 'x_std': x_std, 'x': x, 'y_std': y_std}
+
+def generated_quantities(__sampler=None):
+    __sample = __sampler()
+    x_std = __sample.x_std
+    y_std = __sample.y_std
+    ___shape['y'] = ()
+    y = 3.0 * y_std
+    ___shape['x'] = ()
+    x = exp(y / 2) * x_std
+    return {'y': y, 'x': x}

@@ -70,4 +70,3 @@ def model(batch_size=None, imgs=None, labels=None):
         'l2.bias'])
     logits = mlp(imgs)
     pyro.sample('labels' + '__5', categorical_logits(logits), obs=labels)
-    return {}

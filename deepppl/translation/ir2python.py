@@ -26,7 +26,8 @@ from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 CallStmt, List, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
                 Minus, UnaryOperator, UMinus, AnonymousShapeProperty,\
-                VariableProperty, NetVariableProperty, Prior
+                VariableProperty, NetVariableProperty, Prior, \
+                TransformedParameters, Model
 
 from .exceptions import *
 
@@ -81,9 +82,13 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     def _addVariable(self, name, decl):
         if name in self.ctx:
-            raise AlreadyDeclaredException(name)
-        self.ctx[name] = self.block
-        self.block2decl[self.block.blockName()].append(decl)
+            if self.ctx[name].blockName() == TransformedParameters.blockName():
+                self.block2decl[self.block.blockName()].append(decl)
+            else:
+                raise AlreadyDeclaredException(name)
+        else:
+            self.ctx[name] = self.block
+            self.block2decl[self.block.blockName()].append(decl)
 
     def _delVariable(self, name):
         if not name in self.ctx:
@@ -126,6 +131,7 @@ class VariableAnnotationsVisitor(IRVisitor):
 
     visitData = visitProgramBlock
     visitTransformedData = visitProgramBlock
+    visitTransformedParameters = visitProgramBlock
     visitGuide = visitProgramBlock
     visitGuideParameters = visitProgramBlock
     visitPrior = visitProgramBlock
@@ -463,6 +469,7 @@ class VariableInitializationVisitor(IRVisitor):
     visitData = _visitBlock
     visitTransformedData = _visitBlock
     visitParameters = _visitBlock
+    visitTransformedParameters = _visitBlock
     visitGuideParameters = _visitBlock
     visitModel = _visitBlock
     visitGeneratedQuantities = _visitBlock
@@ -506,7 +513,8 @@ class VariableInitializationVisitor(IRVisitor):
             if self._currentBlock.is_data() or self._currentBlock.is_parameters():
                 assert False, "Initialization of data or parameters is forbiden."
             initialized = self._buildInit(answer)
-            answer.init = None
+            if not self._currentBlock.is_transformed_parameters():
+                answer.init = None
             if self._currentBlock.is_guide_parameters():
                 self._to_guide.append(initialized)
             else:
@@ -786,6 +794,7 @@ class Ir2PythonVisitor(IRVisitor):
         self._transformed_data_names = set()
         self._parameters_names = set()
         self._transformed_parameters_names = set()
+        self._transformed_parameters = []
         self._generated_quantities_names = set()
         self._priors = {}
         self.target_name_visitor = TargetVisitor(self)
@@ -1199,6 +1208,12 @@ class Ir2PythonVisitor(IRVisitor):
 
     visitParameters = visitData
 
+    def visitTransformedParameters(self, transformed_parameters):
+        body = self._visitChildren(transformed_parameters)
+        body = self._ensureStmtList(body)
+        self._transformed_parameters = body
+        return None
+
     visitGuideParameters = visitParameters
 
     def visitNetworksBlock(self, netBlock):
@@ -1208,11 +1223,6 @@ class Ir2PythonVisitor(IRVisitor):
         body = self.liftBlackBox(model)
         body.extend(self._visitChildren(model))
         body = self._ensureStmtList(body)
-        all_param_names = self._parameters_names.union(self._transformed_parameters_names)
-        k = [ast.Str(name) for name in all_param_names]
-        v = [self.loadName(name) for name in all_param_names]
-        body.append(ast.Return(ast.Dict(k, v)))
-
         return self.buildModel(body)
 
     def samplePosterior(self, sampler, names):
@@ -1223,16 +1233,19 @@ class Ir2PythonVisitor(IRVisitor):
         return samples
 
     def buildGeneratedQuantities(self):
+        transformed_parameters = self._program.transformedparameters
         generated_quantities = self._program.generatedquantities
-        if generated_quantities is None:
-            return []
         name = 'generated_quantities'
         args = self.modelArgs(with_sampler=True)
         body = []
-        body.extend(self.samplePosterior('__sampler', self._parameters_names.union(self._transformed_parameters_names)))
-        body.extend(self._visitChildren(generated_quantities))
-        k = [ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)]
-        v = [self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)]
+        body.extend(self.samplePosterior('__sampler', self._parameters_names))
+        body.extend(self._transformed_parameters)
+        k = [ast.Str(name) for name in self._transformed_parameters_names]
+        v = [self.loadName(name) for name in self._transformed_parameters_names]
+        if not (generated_quantities is None):
+            body.extend(self._visitChildren(generated_quantities))
+            k.extend([ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)])
+            v.extend([self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)])
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,
@@ -1391,11 +1404,12 @@ class Ir2PythonVisitor(IRVisitor):
         self.buildHeaders(program)
         python_nodes = [node.accept(self) for node in [
                                                         program.transformeddata,
+                                                        program.transformedparameters,
                                                         program.guide,
                                                         program.prior,
                                                         program.model,]
                                                 if node]
-        if program.generatedquantities is not None:
+        if program.generatedquantities is not None or program.transformedparameters is not None:
             python_nodes += [self.buildGeneratedQuantities()]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
