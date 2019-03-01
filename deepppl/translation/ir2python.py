@@ -696,6 +696,8 @@ class Ir2PythonVisitor(IRVisitor):
     def visitConstant(self, const):
         if hasattr(const, 'expr_type'):
             dims = const.expr_type.dimensions()
+            if not dims:
+                return ast.Num(const.value)
             args = [self.dimensionToAST(d) for d in dims]
             if const.value == 0:
                 return self.call(self.loadName("zeros"), args=args)
