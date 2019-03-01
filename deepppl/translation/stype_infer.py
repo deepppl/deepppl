@@ -84,7 +84,7 @@ class DimensionInferenceVisitor(IRVisitor):
 
         ## TODO: this does not allow vector/matrix shapes.  This is by design, however it might be the wrong design.
         ## If they are to be handled, we need to decide what the shape of int[3] x[4] should be.
-        if not t.isArray() and not t.isPrimitive():
+        if not t.isArray() and not t.isPrimitive() and not t.isTensor():
             raise IncompatibleTypes(t, Tindexed(Tnew()))
         else:
             d = t.dimensions()
@@ -187,8 +187,8 @@ class TypeInferenceVisitor(IRVisitor):
         target_type = stmt.target.accept(self)
 
         if stmt.id == 'normal':
-            assert len(stmt.args) >= 2, f"Normal distribution underspecified; only {len(stmt.args)} arguments given"
-            assert len(stmt.args) <= 3, f"Normal distribution overspecified; {len(stmt.args)} arguments given"
+            assert len(stmt.args) >= 2, f"normal distribution underspecified; only {len(stmt.args)} arguments given"
+            assert len(stmt.args) <= 3, f"normal distribution overspecified; {len(stmt.args)} arguments given"
             # TODO: this accepts int arrays.  Is that actually valid?
 
             # TODO: if given an int array, then add an IR node to change
@@ -205,18 +205,28 @@ class TypeInferenceVisitor(IRVisitor):
             res = Ttensor(t0)
             self.Tunify(target_type, res)
         elif stmt.id == 'bernoulli':
-            assert len(stmt.args) == 1, f"Bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
+            assert len(stmt.args) == 1, f"bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
             arg0 = stmt.args[0].accept(self)
             t0 = arg0.realArrayToIntArray()
             res = Ttensor(t0)
             self.Tunify(target_type, res)
         elif stmt.id == 'beta':
-            assert len(stmt.args) == 2, f"Beta distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            assert len(stmt.args) == 2, f"beta distribution expected to have 2 argument; {len(stmt.args)} arguments given"
             alpha = stmt.args[0].accept(self).asRealArray()
             beta = stmt.args[1].accept(self).asRealArray()
             self.Tunify(alpha, beta)
             res = Ttensor(alpha)
             self.Tunify(target_type, res)
+        elif stmt.id == 'categorical_logits':
+            assert len(stmt.args) == 1, f"categorical_logits distribution expected to have 1 argument; {len(stmt.args)} arguments given"
+            # Make sure that the result is over an integer
+            self.Tunify(target_type, Ttensor(Tint()))
+
+            # the result is one dimension less than the input (and not over a real)
+            arg0 = stmt.args[0].accept(self)
+            inp = Tindexed(component=target_type.asRealArray())
+            self.Tunify(inp, arg0)
+            
         # Fake distributions created by the translation
         elif stmt.id == 'ImproperUniform':
             assert len(stmt.args) < 2, f"ImproperUniform distribution expected to have at most 1 argument; {len(stmt.args)} arguments given"
@@ -349,7 +359,9 @@ class TypeInferenceVisitor(IRVisitor):
     def visitVariableDecl(self, decl:VariableDecl):
         var_type:Type_ = self.toSType(decl.type_)
         if decl.dim:
-            if isinstance(decl.dim, Variable) or isinstance(decl.dim, AnonymousShapeProperty) or isinstance(decl.dim, Constant) or isinstance(decl.dim, VariableProperty):
+            if isinstance(decl.dim, AnonymousShapeProperty):
+                var_type = Ttensor(var_type)
+            elif isinstance(decl.dim, Variable) or isinstance(decl.dim, Constant) or isinstance(decl.dim, VariableProperty):
                 dim_type = self.toSDim(decl.dim)
                 var_type = Tarray(component=var_type, dimension=dim_type)
             elif decl.dim.children:
