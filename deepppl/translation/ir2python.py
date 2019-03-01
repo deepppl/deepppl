@@ -973,7 +973,10 @@ class Ir2PythonVisitor(IRVisitor):
         if prop.prop != 'shape':
             raise UnsupportedProperty(prop)
 
-        dims = prop.expr_dim
+        if hasattr(prop, 'expr_dim'):
+            dims = prop.expr_dim
+        else:
+            dims = prop.var.expr_type.dimensions()
         if isinstance(dims, list):
             elts = [self.dimToAST(d) for d in dims]
             ast_dims = ast.List(elts = elts,
