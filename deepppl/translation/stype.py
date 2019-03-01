@@ -122,8 +122,25 @@ class Type_(object):
                 # TENSORTYPEHACK Note: this is not actually complete, since
                 # X[??] and int[3][??] will unify X and int[3], but
                 # unifying X and int would also be correct
-                me._desc.component.unify(other._desc.component(), equalities=equalities, tenv=tenv)
-                me._desc = TypeLink(other)
+                my_c = me._desc.component
+                other_c = other._desc.component
+
+                my_dims = len(my_c.dimensions())
+                other_dims = len(other_c.dimensions())
+
+                if my_dims == other_dims:
+                    my_c.unify(other_c, equalities=equalities, tenv=tenv)
+                    me._desc = TypeLink(other)
+                elif my_dims < other_dims:
+                    my2 = Ttensor(my_c)
+                    my2.unify(other_c)
+                    me._desc = TypeLink(other)
+                else:
+                    assert other_dims < my_dims
+                    other2 = Ttensor(other_c)
+                    other2.unify(my_c)
+                    other._desc = TypeLink(me)
+                return
             if isinstance(other._desc, Primitive):
                 # unify the component with the base type
                 me._desc.component.unify(other, equalities=equalities, tenv=tenv)
@@ -341,6 +358,9 @@ class Type_(object):
     def isArray(self):
         return isinstance(self.description(), Array)
     
+    def isNetwork(self):
+        return isinstance(self.description(), NetworkTensor)
+
     def isTensor(self):
         return isinstance(self.description(), Tensor)
 
@@ -370,6 +390,14 @@ class Type_(object):
                 return self
             else:
                 return self.array(component=t, dimension=self.description().dimension)
+        elif self.isTensor():
+            t = self.description().component().asRealArray()
+            if t is self.description().component():
+                return self
+            else:
+                return self.tensor(t)
+        elif self.isNetwork():
+            return self
         else:
             raise IncompatibleTypes(self, [Type_.real(), Type_.int()])
 
