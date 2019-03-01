@@ -27,7 +27,7 @@ from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingStmt, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Minus, UnaryOperator, UMinus, AnonymousShapeProperty,\
+                Plus, Minus, Mult, Div, UnaryOperator, UMinus, AnonymousShapeProperty,\
                 VariableProperty, NetVariableProperty, Prior
 
 from .ir import Type_ as IrType
@@ -183,6 +183,21 @@ class TypeInferenceVisitor(IRVisitor):
         str(res)
         return res
 
+    def dimToRealArray(self, sh):
+        if isinstance(sh, VariableProperty):
+            sh_var = sh.var
+            sh_type = sh_var.accept(self)
+            return sh_type.asRealArray()
+        if isinstance(sh, Variable) or isinstance(sh, Constant) or isinstance(sh, VariableProperty):
+            dim_type = self.toSDim(sh)
+            var_type = Treal()
+            return Tarray(component=var_type, dimension=dim_type)
+        elif sh.children:
+            for d in reversed(sh.children):
+                dim_type = self.toSDim(d)
+                var_type = Tarray(component=var_type, dimension=dim_type)
+            return var_type
+
     def visitSamplingStmt(self, stmt:SamplingStmt):
         target_type = stmt.target.accept(self)
 
@@ -233,11 +248,10 @@ class TypeInferenceVisitor(IRVisitor):
             if len(stmt.args) == 0:
                 stmt.args = [AnonymousShapeProperty()]
             sh = stmt.args[0]
-            assert isinstance(sh, VariableProperty), "unknown shape type given to ImproperUniform"
-            sh_var = sh.var
-            sh_type = sh_var.accept(self)
-            sh_type_real = sh_type.asRealArray()
+
+            sh_type_real = self.dimToRealArray(sh)
             self.Tunify(target_type, sh_type_real)
+
         elif stmt.id == 'LowerConstrainedImproperUniform':
             assert len(stmt.args) <= 2, f"LowerConstrainedImproperUniform distribution expected to have at most 2 argument; {len(stmt.args)} arguments given"
             if len(stmt.args) == 1:
@@ -246,10 +260,7 @@ class TypeInferenceVisitor(IRVisitor):
             lower = stmt.args[0].accept(self).asRealArray()
             lower_vec = Ttensor(lower)
             sh = stmt.args[1]
-            assert isinstance(sh, VariableProperty), "unknown shape type given to LowerConstrainedImproperUniform"
-            sh_var = sh.var
-            sh_type = sh_var.accept(self)
-            sh_type_real = sh_type.asRealArray()
+            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(lower_vec, sh_type_real)
             self.Tunify(target_type, sh_type_real)
@@ -261,10 +272,7 @@ class TypeInferenceVisitor(IRVisitor):
             upper = stmt.args[0].accept(self).asRealArray()
             upper_vec = Ttensor(upper)
             sh = stmt.args[1]
-            assert isinstance(sh, VariableProperty), "unknown shape type given to UpperConstrainedImproperUniform"
-            sh_var = sh.var
-            sh_type = sh_var.accept(self)
-            sh_type_real = sh_type.asRealArray()
+            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(upper_vec, sh_type_real)
             self.Tunify(target_type, sh_type_real)
@@ -276,10 +284,7 @@ class TypeInferenceVisitor(IRVisitor):
             lower = stmt.args[0].accept(self).asRealArray()
             upper = stmt.args[1].accept(self).asRealArray()
             sh = stmt.args[2]
-            assert isinstance(sh, VariableProperty), "unknown shape type given to Uniform"
-            sh_var = sh.var
-            sh_type = sh_var.accept(self)
-            sh_type_real = sh_type.asRealArray()
+            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(lower, upper)
             lower_vec = Ttensor(lower)
@@ -415,6 +420,16 @@ class TypeInferenceVisitor(IRVisitor):
         value = stmt.value.accept(self)
 
         self.Tunify(target, value)
+
+    def visitBinaryOperator(self, op:BinaryOperator):
+        if isinstance(op.op, (Plus, Minus, Mult, Div)):
+            left = op.left.accept(self)
+            right = op.left.accept(self)
+            self.Tunify(left, right)
+            op.expr_type = left
+            return left
+        else:
+            assert False, f"Type inference for operator {type(op.op)} is not yet supported"
 
     def visitSubscript(self, expr:Subscript):
         id_type = expr.id.accept(self)
