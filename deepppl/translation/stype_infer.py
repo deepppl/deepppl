@@ -217,24 +217,64 @@ class TypeInferenceVisitor(IRVisitor):
             self.Tunify(alpha, beta)
             res = Ttensor(alpha)
             self.Tunify(target_type, res)
+        # Fake distributions created by the translation
         elif stmt.id == 'ImproperUniform':
             assert len(stmt.args) < 2, f"ImproperUniform distribution expected to have at most 1 argument; {len(stmt.args)} arguments given"
             if len(stmt.args) == 0:
                 stmt.args = [AnonymousShapeProperty()]
-            dim0 = self.inferDims(stmt.args[0])
-            t0 = Tarray(component = Treal(), dimension=dim0)
-            self.Tunify(target_type, t0)
+            sh = stmt.args[0]
+            assert isinstance(sh, VariableProperty), "unknown shape type given to ImproperUniform"
+            sh_var = sh.var
+            sh_type = sh_var.accept(self)
+            sh_type_real = sh_type.asRealArray()
+            self.Tunify(target_type, sh_type_real)
+        elif stmt.id == 'LowerConstrainedImproperUniform':
+            assert len(stmt.args) <= 2, f"LowerConstrainedImproperUniform distribution expected to have at most 2 argument; {len(stmt.args)} arguments given"
+            if len(stmt.args) == 1:
+                stmt.args.append(AnonymousShapeProperty())
+
+            lower = stmt.args[0].accept(self).asRealArray()
+            lower_vec = Ttensor(lower)
+            sh = stmt.args[1]
+            assert isinstance(sh, VariableProperty), "unknown shape type given to LowerConstrainedImproperUniform"
+            sh_var = sh.var
+            sh_type = sh_var.accept(self)
+            sh_type_real = sh_type.asRealArray()
+
+            self.Tunify(lower_vec, sh_type_real)
+            self.Tunify(target_type, sh_type_real)
+        elif stmt.id == 'UpperConstrainedImproperUniform':
+            assert len(stmt.args) <= 2, f"UpperConstrainedImproperUniform distribution expected to have at most 2 argument; {len(stmt.args)} arguments given"
+            if len(stmt.args) == 1:
+                stmt.args.append(AnonymousShapeProperty())
+
+            upper = stmt.args[0].accept(self).asRealArray()
+            upper_vec = Ttensor(upper)
+            sh = stmt.args[1]
+            assert isinstance(sh, VariableProperty), "unknown shape type given to UpperConstrainedImproperUniform"
+            sh_var = sh.var
+            sh_type = sh_var.accept(self)
+            sh_type_real = sh_type.asRealArray()
+
+            self.Tunify(upper_vec, sh_type_real)
+            self.Tunify(target_type, sh_type_real)
+
         elif stmt.id == "Uniform":
             assert len(stmt.args) <= 3, f"Uniform distribution expected to have 2 argument; {len(stmt.args)} arguments given"
-            # TODO: what should the type be here?
-#            if len(stmt.args) == 2:
-#                stmt.args.append(AnonymousShapeProperty())               
+            if len(stmt.args) == 2:
+                stmt.args.append(AnonymousShapeProperty())          
             lower = stmt.args[0].accept(self).asRealArray()
             upper = stmt.args[1].accept(self).asRealArray()
-#            dim = self.inferDims(stmt.args[2])
+            sh = stmt.args[2]
+            assert isinstance(sh, VariableProperty), "unknown shape type given to Uniform"
+            sh_var = sh.var
+            sh_type = sh_var.accept(self)
+            sh_type_real = sh_type.asRealArray()
+
             self.Tunify(lower, upper)
-#            t0 = Tarray(component = Treal(), dimension=dim0)
-            self.Tunify(target_type, lower)
+            lower_vec = Ttensor(lower)
+            self.Tunify(lower_vec, sh_type_real)
+            self.Tunify(target_type, sh_type_real)
         else:
             assert False, f"The {stmt.id} distribution is not yet supported."
             # for a in stmt.args:
