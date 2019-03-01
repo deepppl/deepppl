@@ -779,18 +779,12 @@ class Ir2PythonVisitor(IRVisitor):
                         value = self.uniformBounds(value,
                             ast.UnaryOp(op=ast.USub(), operand=ast.Num(n=2)),
                             ast.Num(n=2))
-                    keywords = [ast.keyword(
-                                arg='constraint',
-                                value=cstr)]
-                else:
-                    keywords = []
                 value = self.call(self._pyroattr('param'),
                             args = [
                                     target_name,
                                     value,
                                     ## XXX possible constraints
-                            ],
-                            keywords=keywords)
+                            ])
         if self.verbose and ir.target.expr_type is not None:
             ctype = ir.target.expr_type.canon((self.type_infer.dims_canon_map))
             return self._assign(target, value, var_type=self.typeToAnnotation(ctype))
