@@ -318,6 +318,10 @@ class TypeInferenceVisitor(IRVisitor):
 
     visitGuide = visitProgramBlocks
 
+    def visitBlockStmt(self, blocks:BlockStmt):
+        for b in blocks.children:
+            b.accept(self)
+
     def toSType(self, t:IrType):
         if t.type_ == 'int':
             return Tint()
@@ -386,6 +390,13 @@ class TypeInferenceVisitor(IRVisitor):
 
         self.Tunify(from_type, Tint())
         self.Tunify(to_type, Tint())
+    
+    def visitConditionalStmt(self, stmt:ConditionalStmt):
+
+# We currently don't look at the test condition
+#        test_type = stmt.test.accept(self)
+        stmt.true.accept(self)
+        stmt.false.accept(self)
 
     def visitAssignStmt(self, stmt:AssignStmt):
         target = stmt.target.accept(self)
