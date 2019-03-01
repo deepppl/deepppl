@@ -1225,10 +1225,10 @@ class Ir2PythonVisitor(IRVisitor):
         body = self._ensureStmtList(body)
         return self.buildModel(body)
 
-    def samplePosterior(self, sampler, names):
-        samples = [self._assign(self.loadName('__sample'), self.call(self.loadName(sampler), args = []))]
-        for name in names:
-            param = self.loadAttr(self.loadName('__sample'), name)
+    def getParametersSample(self, parameters, names):
+        samples = []
+        for name in sorted(names):
+            param = self.loadAttr(self.loadName(parameters), name)
             samples.append(self._assign(self.loadName(name), param))
         return samples
 
@@ -1236,9 +1236,9 @@ class Ir2PythonVisitor(IRVisitor):
         transformed_parameters = self._program.transformedparameters
         generated_quantities = self._program.generatedquantities
         name = 'generated_quantities'
-        args = self.modelArgs(with_sampler=True)
+        args = self.modelArgs(with_parameters_sample=True)
         body = []
-        body.extend(self.samplePosterior('__sampler', self._parameters_names))
+        body.extend(self.getParametersSample('parameters', self._parameters_names))
         body.extend(self._transformed_parameters)
         k = [ast.Str(name) for name in self._transformed_parameters_names]
         v = [self.loadName(name) for name in self._transformed_parameters_names]
@@ -1335,14 +1335,14 @@ class Ir2PythonVisitor(IRVisitor):
                             body = body)
         return f
 
-    def modelArgs(self, no_transformed_data=False, with_sampler=False):
+    def modelArgs(self, no_transformed_data=False, with_parameters_sample=False):
         args = [ast.arg(name, None) for name in sorted(self.data_names)]
         defaults = [ ast.NameConstant(None) for name in self.data_names ]
         if not no_transformed_data and self._transformed_data_names:
             args.append(ast.arg('transformed_data', None))
             defaults.append(ast.NameConstant(None))
-        if with_sampler:
-            args.append(ast.arg('__sampler', None))
+        if with_parameters_sample:
+            args.append(ast.arg('parameters', None))
             defaults.append(ast.NameConstant(None))
         return { 'args': args, 'defaults': defaults }
 

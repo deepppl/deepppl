@@ -17,9 +17,8 @@ def model(K=None, N=None, x=None, y=None):
     squared_error = dot_self(y - x * beta)
     pyro.sample('expr' + '__1', dist.Exponential(1.0), obs=--squared_error)
 
-def generated_quantities(K=None, N=None, x=None, y=None, __sampler=None):
-    __sample = __sampler()
-    beta = __sample.beta
+def generated_quantities(K=None, N=None, x=None, y=None, parameters=None):
+    beta = parameters.beta
     ___shape['squared_error'] = ()
     squared_error = dot_self(y - x * beta)
     ___shape['sigma_squared'] = ()

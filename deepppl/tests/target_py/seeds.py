@@ -45,14 +45,13 @@ def model(I=None, N=None, n=None, x1=None, x2=None, transformed_data=None):
                                             x2 + alpha12 * x1x2 + b), obs=n)
 
 def generated_quantities(I=None, N=None, n=None, x1=None, x2=None,
-    transformed_data=None, __sampler=None):
-    __sample = __sampler()
-    b = __sample.b
-    tau = __sample.tau
-    alpha12 = __sample.alpha12
-    alpha2 = __sample.alpha2
-    alpha0 = __sample.alpha0
-    alpha1 = __sample.alpha1
+    transformed_data=None, parameters=None):
+    alpha0 = parameters.alpha0
+    alpha1 = parameters.alpha1
+    alpha12 = parameters.alpha12
+    alpha2 = parameters.alpha2
+    b = parameters.b
+    tau = parameters.tau
     ___shape['sigma'] = ()
     sigma = 1.0 / sqrt(tau)
     return {'sigma': sigma}
