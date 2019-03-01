@@ -64,11 +64,11 @@ def test_coin_guide():
         filename = r'deepppl/tests/paper/coin_guide.stan'
         dpplc.stan2astpyFile(filename, verbose=True)
 
-def test_multimodel():
+def test_multimodal():
         filename = r'deepppl/tests/paper/multimodal.stan'
         dpplc.stan2astpyFile(filename, verbose=True)
 
-def test_multimodel_guide():
+def test_multimodal_guide():
         filename = r'deepppl/tests/paper/multimodal_guide.stan'
         dpplc.stan2astpyFile(filename, verbose=True)
 
