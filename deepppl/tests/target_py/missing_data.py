@@ -18,4 +18,3 @@ def model(N_mis=None, N_obs=None, y_obs=None):
     y_mis = pyro.sample('y_mis', ImproperUniform(N_mis))
     pyro.sample('y_obs' + '__1', dist.Normal(mu, sigma), obs=y_obs)
     pyro.sample('y_mis' + '__2', dist.Normal(mu, sigma), obs=y_mis)
-    return {'sigma': sigma, 'y_mis': y_mis, 'mu': mu}

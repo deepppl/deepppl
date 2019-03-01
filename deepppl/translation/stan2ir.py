@@ -486,6 +486,7 @@ class StanToIR(stanListener):
             if ir.is_variable_decl():
                 ir.set_transformed_parameters()
         self._to_model = body
+        ctx.ir = TransformedParameters(body = body)
 
     def exitGuideBlock(self, ctx):
         self.code_block(ctx, Guide)

@@ -34,4 +34,3 @@ def model(K=None, M=None, N=None, V=None, alpha=None, beta=None, doc=None,
                                                                        1, w[n - 1] - 1])
         pyro.sample('expr' + '__{}'.format(n) + '__3', dist.Exponential(1.0),
                     obs=-log_sum_exp(gamma))
-    return {'phi': phi, 'theta': theta}

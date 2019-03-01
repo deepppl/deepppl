@@ -28,3 +28,8 @@ Tests without doing inference:
 ```
 pytest -v -k 'not inference'
 ```
+
+Compile a file:
+```
+python -m deepppl.dpplc --print --noinfer deepppl/tests/good/coin.stan
+```

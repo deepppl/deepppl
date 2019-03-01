@@ -12,4 +12,3 @@ def model(x=None):
     theta = pyro.sample('theta', dist.Uniform(0.0, 1.0))
     pyro.sample('theta' + '__1', dist.Uniform(0.0, 1.0), obs=theta)
     pyro.sample('x' + '__2', dist.Bernoulli(theta), obs=x)
-    return {'theta': theta}

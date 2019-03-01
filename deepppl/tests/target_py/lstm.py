@@ -99,4 +99,3 @@ def model(category=None, input=None, n_characters=None):
         obs=model_rnn['decoder.bias'])
     logits = rnn(input)
     pyro.sample('category' + '__8', categorical_logits(logits), obs=category)
-    return {}

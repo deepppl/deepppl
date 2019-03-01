@@ -10,4 +10,3 @@ def model():
     if 1.0 == 0.0:
         ___shape['a'] = ()
         a = 1.0
-    return {}
