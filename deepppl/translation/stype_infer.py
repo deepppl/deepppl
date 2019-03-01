@@ -36,7 +36,7 @@ from .sdim import KnownDimension, Dimension, \
         Dnew, Dnamed, Dshape, Druntime, Dconstant, Groups
 from .stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
-        Tnamed, Tnew, Tnetwork
+        Tnamed, Tnew, Tnetwork, Ttensor
 
 from .exceptions import *
 
@@ -84,7 +84,7 @@ class DimensionInferenceVisitor(IRVisitor):
 
         ## TODO: this does not allow vector/matrix shapes.  This is by design, however it might be the wrong design.
         ## If they are to be handled, we need to decide what the shape of int[3] x[4] should be.
-        if not t.isArray():
+        if not t.isArray() and not t.isPrimitive():
             raise IncompatibleTypes(t, Tindexed(Tnew()))
         else:
             d = t.dimensions()
@@ -202,11 +202,21 @@ class TypeInferenceVisitor(IRVisitor):
                 # TODO: This is wrong.  How do we find the right shape?
                 # Do we need a separate visitor for dimensions?
                 t0 = Tarray(dimension=Dnew(), component=t0)
-            self.Tunify(target_type, t0)
+            res = Ttensor(t0)
+            self.Tunify(target_type, res)
         elif stmt.id == 'bernoulli':
             assert len(stmt.args) == 1, f"Bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
-            t0 = stmt.args[0].accept(self).realArrayToIntArray()
-            self.Tunify(target_type, t0)
+            arg0 = stmt.args[0].accept(self)
+            t0 = arg0.realArrayToIntArray()
+            res = Ttensor(t0)
+            self.Tunify(target_type, res)
+        elif stmt.id == 'beta':
+            assert len(stmt.args) == 2, f"Beta distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            alpha = stmt.args[0].accept(self).asRealArray()
+            beta = stmt.args[1].accept(self).asRealArray()
+            self.Tunify(alpha, beta)
+            res = Ttensor(alpha)
+            self.Tunify(target_type, res)
         elif stmt.id == 'ImproperUniform':
             assert len(stmt.args) < 2, f"ImproperUniform distribution expected to have at most 1 argument; {len(stmt.args)} arguments given"
             if len(stmt.args) == 0:
@@ -215,17 +225,16 @@ class TypeInferenceVisitor(IRVisitor):
             t0 = Tarray(component = Treal(), dimension=dim0)
             self.Tunify(target_type, t0)
         elif stmt.id == "Uniform":
-            assert len(stmt.args) == 2, f"Uniform distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            assert len(stmt.args) <= 3, f"Uniform distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            # TODO: what should the type be here?
+#            if len(stmt.args) == 2:
+#                stmt.args.append(AnonymousShapeProperty())               
             lower = stmt.args[0].accept(self).asRealArray()
             upper = stmt.args[1].accept(self).asRealArray()
+#            dim = self.inferDims(stmt.args[2])
             self.Tunify(lower, upper)
+#            t0 = Tarray(component = Treal(), dimension=dim0)
             self.Tunify(target_type, lower)
-        elif stmt.id == 'beta':
-            assert len(stmt.args) == 2, f"Beta distribution expected to have 2 argument; {len(stmt.args)} arguments given"
-            alpha = stmt.args[0].accept(self).asRealArray()
-            beta = stmt.args[1].accept(self).asRealArray()
-            self.Tunify(alpha, beta)
-            self.Tunify(target_type, alpha)
         else:
             assert False, f"The {stmt.id} distribution is not yet supported."
             # for a in stmt.args:
