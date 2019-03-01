@@ -54,28 +54,28 @@ def normalize_and_compare(src_file, target_file):
 
 def test_bayes_nn():
         filename = r'deepppl/tests/paper/bayes_nn.stan'
-        dpplc.stan2astpyFile(filename)
-
-def test_biased_coin():
-        filename = r'deepppl/tests/paper/biased_coin.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
 
 def test_coin():
         filename = r'deepppl/tests/paper/coin.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
+
+def test_coin_guide():
+        filename = r'deepppl/tests/paper/coin_guide.stan'
+        dpplc.stan2astpyFile(filename, verbose=True)
 
 def test_multimodel():
         filename = r'deepppl/tests/paper/multimodal.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
 
 def test_multimodel_guide():
         filename = r'deepppl/tests/paper/multimodal_guide.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
 
 def test_posterior_twice():
         filename = r'deepppl/tests/paper/posterior_twice.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
 
 def test_vae():
         filename = r'deepppl/tests/paper/vae.stan'
-        dpplc.stan2astpyFile(filename)
+        dpplc.stan2astpyFile(filename, verbose=True)
