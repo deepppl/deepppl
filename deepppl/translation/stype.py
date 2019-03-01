@@ -80,24 +80,24 @@ class Type_(object):
             return
 
         ### Network Tensor Type
-        if isinstance(me._desc, NetworkTensorType):
-            if isinstance(other._desc, NetworkTensorType):
+        if isinstance(me._desc, NetworkTensor):
+            if isinstance(other._desc, NetworkTensor):
                 if me._desc.path == other._desc.path and me._desc.index == other._desc.index:
                     me._desc = TypeLink(other)
                     return
                 else:
-                    # We don't currently support unifying two NetworkTensorTypes unless they are the same
+                    # We don't currently support unifying two NetworkTensors unless they are the same
                     raise IncompatibleTypes(self, other)
             if isinstance(other._desc, Primitive):
                 me._desc = TypeLink(other)
                 return
-            if isinstance(other._desc, TensorType):
+            if isinstance(other._desc, Tensor):
                 # TODO: make this work with primitives instead of reals
                 other._desc.component.unify(Type_.real(), equalities=equalities, tenv=tenv)
                 other._desc = TypeLink(me)
                 return
             if isinstance(other._desc, NonArrayIndexed):
-                # NetworkTensorTypes must have a primitive as the base type
+                # NetworkTensors must have a primitive as the base type
                 raise IncompatibleTypes(self, other)
 
             if isinstance(other._desc, Indexed):
@@ -113,29 +113,53 @@ class Type_(object):
         # Rather than copy/paste the above code, just unify with the argument re-ordered
         # TODO: This is not ideal for error messages, once/if we get better about the expected/actual
         # arguments to unify
-        if isinstance(other._desc, NetworkTensorType):
+        if isinstance(other._desc, NetworkTensor):
             return other.unify(me, equalities=equalities, tenv=tenv)
 
-        ### TensorType
-        if isinstance(me._desc, TensorType):
-            if isinstance(other._desc, TensorType):
+        ### Tensor
+        if isinstance(me._desc, Tensor):
+            if isinstance(other._desc, Tensor):
+                # TENSORTYPEHACK Note: this is not actually complete, since
+                # X[??] and int[3][??] will unify X and int[3], but
+                # unifying X and int would also be correct
                 me._desc.component.unify(other._desc.component(), equalities=equalities, tenv=tenv)
                 me._desc = TypeLink(other)
             if isinstance(other._desc, Primitive):
                 # unify the component with the base type
-                me._desc.component.unify(other._desc, equalities=equalities, tenv=tenv)
+                me._desc.component.unify(other, equalities=equalities, tenv=tenv)
                 # and replace it all together
                 me._desc = TypeLink(other)
                 return
-            if isinstance(other._desc, IndexedType):
-                d = me.unify(other._desc.dimension, equalities=equalities, tenv=tenv)
-                me._desc = TypeLink(other)
-                return
+            if isinstance(other._desc, Indexed):
+                # TENSORTYPEHACK This is non-trivial. sigh.
+                # And by non-trivial, I mean non-principled.  Since given:
+                # unify("X"[??], int[3])
+                # is "X" = int, or "X" = int[3]?
+#                d = me.unify(other._desc.dimension, equalities=equalities, tenv=tenv)
+                if isinstance(other._desc, Array):
+                    # we are going to try and match up dimensions
+                    my_dims = len(me._desc.component.dimensions())
+                    other_dims = len(other.dimensions())
 
+                    c = me._desc.component
+                    if my_dims < other_dims:
+                        for i in range(my_dims, other_dims):
+                            c = Type_.array(component=c)
+
+                    me._desc = TypeLink(c)
+                    me.unify(other, equalities=equalities, tenv=tenv)
+                    return
+                else:
+                    # TENSORTYPEHACK: This does not correctly handle SomeIndexed that could be an array
+                    # TENSORTYPEHACK: TODO: That, at least, we might be able to rectify
+                    me._desc.component.unify(other, equalities=equalities, tenv=tenv)
+                    # and replace it all together
+                    me._desc = TypeLink(other)
+                    return
         # Rather than copy/paste the above code, just unify with the argument re-ordered
         # TODO: This is not ideal for error messages, once/if we get better about the expected/actual
         # arguments to unify
-        if isinstance(other._desc, TensorType):
+        if isinstance(other._desc, Tensor):
             return other.unify(me, equalities=equalities, tenv=tenv)
 
 
@@ -256,9 +280,9 @@ class Type_(object):
         if not component:
             component = cls.newVariable()
 
-        if not dimension:
+        if dimension is None:
             dimension = Dimension.newVariable()
-
+        
         if isinstance(dimension, list):
             c = component
             for dim in dimension:
@@ -270,7 +294,15 @@ class Type_(object):
     @classmethod
     def network(cls, path, index:int=0) -> 'Type_':
         """Create a new type representing a network tensor type"""
-        return cls(NetworkTensorType(path, index))
+        return cls(NetworkTensor(path, index))
+
+    @classmethod
+    def tensor(cls, component) -> 'Type_':
+        """Create a new type representing a network tensor type"""
+        if component.isTensor():
+            return component
+        else:
+            return cls(Tensor(component))
 
     ### This method is used to find the "actual" type (following links as needed)
     def target(self) -> 'Type_':
@@ -308,6 +340,10 @@ class Type_(object):
 
     def isArray(self):
         return isinstance(self.description(), Array)
+    
+    def isTensor(self):
+        return isinstance(self.description(), Tensor)
+
 
     def dimensions(self) -> List[Dimension] :
         ## TODO: Note again the choice that only arrays have "dimensions".  This may need to be revisited.
@@ -582,10 +618,10 @@ class Array(Indexed):
 
     __repr__ = __str__
 
-class NetworkTensorType(TypeDesc):
+class NetworkTensor(TypeDesc):
     """Represents the result of calling or using a path from a network variable"""
     def __init__(self, path, index:int):
-        super(NetworkTensorType, self).__init__()
+        super(NetworkTensor, self).__init__()
         self.path = path
         self.index = index
 
@@ -600,10 +636,10 @@ class NetworkTensorType(TypeDesc):
 
     __repr__ = __str__
 
-class TensorType(TypeDesc):
+class Tensor(TypeDesc):
     """Represents a tensor (array with unknown number of dimensions)"""
     def __init__(self, component:Type_):
-        super(TensorType, self).__init__()
+        super(Tensor, self).__init__()
         self.component = component
 
     def __str__(self):
@@ -621,3 +657,4 @@ Trow_vector = Type_.row_vector
 Tmatrix = Type_.matrix
 Tarray = Type_.array
 Tnetwork = Type_.network
+Ttensor = Type_.tensor
