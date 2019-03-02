@@ -46,12 +46,14 @@ def model(I=None, N=None, n=None, x1=None, x2=None, transformed_data=None):
 
 def generated_quantities(I=None, N=None, n=None, x1=None, x2=None,
     transformed_data=None, parameters=None):
-    alpha0 = parameters.alpha0
-    alpha1 = parameters.alpha1
-    alpha12 = parameters.alpha12
-    alpha2 = parameters.alpha2
-    b = parameters.b
-    tau = parameters.tau
+    x1x2 = transformed_data['x1x2']
+    alpha0 = parameters['alpha0']
+    alpha1 = parameters['alpha1']
+    alpha12 = parameters['alpha12']
+    alpha2 = parameters['alpha2']
+    b = parameters['b']
+    tau = parameters['tau']
+    ___shape = {}
     ___shape['sigma'] = ()
     sigma = 1.0 / sqrt(tau)
     return {'sigma': sigma}

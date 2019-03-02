@@ -1228,7 +1228,10 @@ class Ir2PythonVisitor(IRVisitor):
     def getParametersSample(self, parameters, names):
         samples = []
         for name in sorted(names):
-            param = self.loadAttr(self.loadName(parameters), name)
+            # param = self.loadAttr(self.loadName(parameters), name)
+            param = ast.Subscript(value = self.loadName(parameters),
+                                  slice = ast.Index(value = ast.Str(name)),
+                                  ctx = ast.Load())
             samples.append(self._assign(self.loadName(name), param))
         return samples
 
@@ -1238,7 +1241,9 @@ class Ir2PythonVisitor(IRVisitor):
         name = 'generated_quantities'
         args = self.modelArgs(with_parameters_sample=True)
         body = []
+        body.extend(self.buildTransformedDataAccess())
         body.extend(self.getParametersSample('parameters', self._parameters_names))
+        body.extend(self.buildBasicHeaders())
         body.extend(self._transformed_parameters)
         k = [ast.Str(name) for name in self._transformed_parameters_names]
         v = [self.loadName(name) for name in self._transformed_parameters_names]

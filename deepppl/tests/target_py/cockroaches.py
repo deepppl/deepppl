@@ -39,9 +39,11 @@ def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
                 )
 def generated_quantities(N=None, exposure2=None, roach1=None, senior=None,
     treatment=None, y=None, transformed_data=None, parameters=None):
-    beta = parameters.beta
-    lmbda = parameters.lmbda
-    tau = parameters.tau
+    log_expo = transformed_data['log_expo']
+    beta = parameters['beta']
+    lmbda = parameters['lmbda']
+    tau = parameters['tau']
+    ___shape = {}
     ___shape['sigma'] = ()
     sigma = 1.0 / sqrt(tau)
     return {'sigma': sigma}
