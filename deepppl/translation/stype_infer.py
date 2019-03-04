@@ -219,6 +219,21 @@ class TypeInferenceVisitor(IRVisitor):
                 t0 = Tarray(dimension=Dnew(), component=t0)
             res = Ttensor(t0)
             self.Tunify(target_type, res)
+        elif stmt.id == 'uniform':
+            assert len(stmt.args) >= 2, f"uniform distribution underspecified; only {len(stmt.args)} arguments given"
+            assert len(stmt.args) <= 2, f"uniform distribution overspecified; {len(stmt.args)} arguments given"
+            # TODO: this accepts int arrays.  Is that actually valid?
+
+            # TODO: if given an int array, then add an IR node to change
+            # the int array into a real array to make pyro happy
+            alpha = stmt.args[0].accept(self)
+            beta = stmt.args[1].accept(self)
+            # They both need to be reals
+            self.Tunify(alpha, Ttensor(Treal()))
+            self.Tunify(beta, Ttensor(Treal()))
+
+            res = Ttensor(alpha)
+            self.Tunify(target_type, res)
         elif stmt.id == 'bernoulli':
             assert len(stmt.args) == 1, f"bernoulli distribution expected to have 1 argument; {len(stmt.args)} arguments given"
             arg0 = stmt.args[0].accept(self)
