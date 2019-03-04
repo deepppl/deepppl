@@ -92,9 +92,12 @@ class Type_(object):
                 me._desc = TypeLink(other)
                 return
             if isinstance(other._desc, Tensor):
+                other_c = other._desc.component
+                ## TODO: FIXME!  
                 # TODO: make this work with primitives instead of reals
-                other._desc.component.unify(Type_.real(), equalities=equalities, tenv=tenv)
-                other._desc = TypeLink(me)
+                me.unify(other_c, equalities=equalities, tenv=tenv)
+#                other_c.unify(Type_.real(), equalities=equalities, tenv=tenv)
+                me._desc = TypeLink(other_c)
                 return
             if isinstance(other._desc, NonArrayIndexed):
                 # NetworkTensors must have a primitive as the base type

@@ -239,7 +239,7 @@ class TypeInferenceVisitor(IRVisitor):
 
             # the result is one dimension less than the input (and not over a real)
             arg0 = stmt.args[0].accept(self)
-            inp = Tindexed(component=target_type.asRealArray())
+            inp = Ttensor(component=target_type.asRealArray())
             self.Tunify(inp, arg0)
             
         # Fake distributions created by the translation

@@ -71,7 +71,8 @@ def pickCanonDim(group:Set['KnownDimension'])->Optional['KnownDimension']:
         if isinstance(i, ConstantDimension):
             # goodness = 1000
             return i
-        tryPick(i, RuntimeDimension, 10)
+        tryPick(i, SubscriptedShapeDimension, 10) or tryPick(i, ShapeDimension, 20)
+        tryPick(i, RuntimeDimension, 30)
     return best
 
 def makeGroupCanonLookup(groups:Set[Set[T]])->Mapping['KnownDimension', 'KnownDimension']:
