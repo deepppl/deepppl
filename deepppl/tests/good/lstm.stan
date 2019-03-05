@@ -36,7 +36,7 @@ parameters {
 }
 
 model {
-    int logits[n_characters];
+    real logits[n_characters];
     rnn.encoder.weight ~  normal(zeros(rnn.encoder.weight$shape), ones(rnn.encoder.weight$shape));
     rnn.gru.weight_ih_l0 ~ normal(zeros(rnn.gru.weight_ih_l0$shape), ones(rnn.gru.weight_ih_l0$shape));
     rnn.gru.weight_hh_l0 ~ normal(zeros(rnn.gru.weight_hh_l0$shape), ones(rnn.gru.weight_hh_l0$shape));
