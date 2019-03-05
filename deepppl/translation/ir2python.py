@@ -25,7 +25,7 @@ import sys
 from .sdim import KnownDimension, makeGroupCanonLookup
 from .ir import NetVariable, Program, ForStmt, ConditionalStmt, \
                 AssignStmt, Subscript, BlockStmt,\
-                CallStmt, List, SamplingDeclaration, SamplingObserved,\
+                CallStmt, List, SamplingStmt, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
                 Minus, UnaryOperator, UMinus, AnonymousShapeProperty,\
                 VariableProperty, NetVariableProperty, Prior, \
@@ -39,6 +39,19 @@ from_test = lambda: hasattr(sys, "_called_from_test")
 class IRVisitor(object):
     def defaultVisit(self, node):
         raise NotImplementedError
+
+    def _defaultVisit(self, node):
+        answer = node
+        # Hack: what is a better way to do this?
+        if isinstance(node, SamplingStmt):
+            answer.args = self._visitAll(node.args)
+            if node.target is not None:
+                answer.target = node.target.accept(self)
+            if node.shape is not None:
+                answer.shape = node.shape.accept(self)
+        else:
+            answer.children = self._visitChildren(node)
+        return answer
 
     def __getattr__(self, attr):
         if attr.startswith('visit'):
@@ -79,9 +92,7 @@ class VariableAnnotationsVisitor(IRVisitor):
         self._to_model = []
 
     def defaultVisit(self, node):
-        answer = node
-        answer.children = self._visitChildren(node)
-        return answer
+        return self._defaultVisit(node)
 
     def _addVariable(self, name, decl):
         if name in self.ctx:
@@ -191,13 +202,13 @@ class VariableAnnotationsVisitor(IRVisitor):
             dist = 'ImproperUniform'
             args = []
 
-        if decl.dim:
-            args.append(decl.dim)
+        shape = decl.dim
 
         #XXX check dimensions
         sampling = SamplingParameters(
                         target = target,
                         args = args,
+                        shape = shape,
                         id = dist)
         return sampling
 
@@ -225,9 +236,7 @@ class NetworksVisitor(IRVisitor):
         self._shouldAddNetPrior = False
 
     def defaultVisit(self, node):
-        answer = node
-        answer.children = self._visitChildren(node)
-        return answer
+        return self._defaultVisit(node)
 
     def visitProgram(self, program):
         answer = Program()
@@ -270,7 +279,8 @@ class NetworksVisitor(IRVisitor):
                 sampling = SamplingDeclaration(
                             target = var,
                             id  = 'ImproperUniform',
-                            args = [shape]
+                            args = [],
+                            shape = shape
                         )
                 var.block_name = prior.blockName()
                 body.append(sampling)
@@ -337,9 +347,7 @@ class SamplingConsistencyVisitor(IRVisitor):
         self._declarations = None
 
     def defaultVisit(self, node):
-        answer = node
-        answer.children = self._visitChildren(node)
-        return answer
+        return self._defaultVisit(node)
 
     def visitVariableDecl(self, var):
         if self._declarations is not None:
@@ -548,9 +556,7 @@ class VariableInitializationVisitor(IRVisitor):
             return None
 
     def defaultVisit(self, node):
-        answer = node
-        answer.children = self._visitChildren(node)
-        return answer
+        return self._defaultVisit(node)
 
     def visitProgram(self, program):
         answer = Program()
@@ -981,8 +987,11 @@ class Ir2PythonVisitor(IRVisitor):
             dims = prop.var.expr_type.dimensions()
         if isinstance(dims, list):
             elts = [self.dimToAST(d) for d in dims]
-            ast_dims = ast.List(elts = elts,
-                                ctx = ast.Load())
+            if len(elts) == 1:
+                ast_dims = elts[0]
+            else:
+                ast_dims = ast.Tuple(elts = elts,
+                                    ctx = ast.Load())
         else:
             ast_dims = self.dimToAST(dims)
         return ast_dims
