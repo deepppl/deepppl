@@ -69,6 +69,12 @@ class DimensionInferenceVisitor(IRVisitor):
 
     visitNetVariable = visitVariable
 
+    def visitConstant(self, const:Constant):
+        v = const.value
+        if isinstance(v, (int, float)):
+            return []
+        assert False, f"We do not yet handle constant non-flat shapes {const.value}"
+
     def visitAnonymousShapeProperty(self, prop:AnonymousShapeProperty):
         d = Dnamed(self.outer.denv, prop.var.id)
 
@@ -153,7 +159,7 @@ class TypeInferenceVisitor(IRVisitor):
         if stmt.id in set(["exp", "softplus", "log"]):
             arg0_type = stmt.args.children[0].accept(self)
             res = arg0_type.asRealArray()
-        elif stmt.id in set(["zeros", "ones", "randn", "rand"]):
+        elif stmt.id in set(["zeros", "ones", "rantdn", "rand"]):
             args = stmt.args.children
             if len(args) == 0:
                 stmt.args.children = [AnonymousShapeProperty()]
@@ -316,7 +322,10 @@ class TypeInferenceVisitor(IRVisitor):
             self.Tunify(target_type, res)
 
         else:
-            assert False, f"The {stmt.id} distribution is not yet supported."
+            print("WARNING: unknown distribution {stmt.id} is not yet supported")
+            for arg in stmt.args:
+                arg.accept(self)
+
             # for a in stmt.args:
             #     self.Tunify(target_type, a.accept(self))
         stmt.expr_type = target_type
