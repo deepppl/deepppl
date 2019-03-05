@@ -27,7 +27,7 @@ from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingStmt, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Plus, Minus, Mult, Div, UnaryOperator, UMinus, AnonymousShapeProperty,\
+                Plus, Minus, Mult, Div, UnaryOperator, UPlus, UMinus, AnonymousShapeProperty,\
                 VariableProperty, NetVariableProperty, Prior
 
 from .ir import Type_ as IrType
@@ -203,7 +203,7 @@ class TypeInferenceVisitor(IRVisitor):
 
         if stmt.id == 'normal':
             assert len(stmt.args) >= 2, f"normal distribution underspecified; only {len(stmt.args)} arguments given"
-            assert len(stmt.args) <= 3, f"normal distribution overspecified; {len(stmt.args)} arguments given"
+            assert len(stmt.args) <= 2, f"normal distribution overspecified; {len(stmt.args)} arguments given"
             # TODO: this accepts int arrays.  Is that actually valid?
 
             # TODO: if given an int array, then add an IR node to change
@@ -211,8 +211,8 @@ class TypeInferenceVisitor(IRVisitor):
             t0 = stmt.args[0].accept(self).asRealArray()
             t1 = stmt.args[1].accept(self).asRealArray()
             self.Tunify(t0, t1)
-            if len(stmt.args) == 3:
-                t2 = stmt.args[2].accept(self)
+            if stmt.shape is not None:
+                t2 = stmt.shape.accept(self)
                 self.Tunify(t2, Tint())
                 # TODO: This is wrong.  How do we find the right shape?
                 # Do we need a separate visitor for dimensions?
@@ -256,55 +256,65 @@ class TypeInferenceVisitor(IRVisitor):
             arg0 = stmt.args[0].accept(self)
             inp = Ttensor(component=target_type.asRealArray())
             self.Tunify(inp, arg0)
-            
+
+
         # Fake distributions created by the translation
         elif stmt.id == 'ImproperUniform':
-            assert len(stmt.args) < 2, f"ImproperUniform distribution expected to have at most 1 argument; {len(stmt.args)} arguments given"
-            if len(stmt.args) == 0:
-                stmt.args = [AnonymousShapeProperty()]
-            sh = stmt.args[0]
-
+            assert len(stmt.args) == 0, f"ImproperUniform distribution expected to have at most 0 argument; {len(stmt.args)} arguments given"
+            if stmt.shape is None:
+                stmt.shape = AnonymousShapeProperty()
+            sh = stmt.shape
             sh_type_real = self.dimToRealArray(sh)
+
             self.Tunify(target_type, sh_type_real)
 
         elif stmt.id == 'LowerConstrainedImproperUniform':
-            assert len(stmt.args) <= 2, f"LowerConstrainedImproperUniform distribution expected to have at most 2 argument; {len(stmt.args)} arguments given"
-            if len(stmt.args) == 1:
-                stmt.args.append(AnonymousShapeProperty())
+            assert len(stmt.args) == 1, f"LowerConstrainedImproperUniform distribution expected to one non shape argument; {len(stmt.args)} arguments given"
+            if stmt.shape is None:
+                stmt.shape = AnonymousShapeProperty()
+            sh = stmt.shape
+            sh_type_real = self.dimToRealArray(sh)
 
             lower = stmt.args[0].accept(self).asRealArray()
             lower_vec = Ttensor(lower)
-            sh = stmt.args[1]
-            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(lower_vec, sh_type_real)
             self.Tunify(target_type, sh_type_real)
         elif stmt.id == 'UpperConstrainedImproperUniform':
-            assert len(stmt.args) <= 2, f"UpperConstrainedImproperUniform distribution expected to have at most 2 argument; {len(stmt.args)} arguments given"
-            if len(stmt.args) == 1:
-                stmt.args.append(AnonymousShapeProperty())
+            assert len(stmt.args) == 1, f"UpperConstrainedImproperUniform distribution expected to have one non shape argument; {len(stmt.args)} arguments given"
+            if stmt.shape is None:
+                stmt.shape = AnonymousShapeProperty()
+            sh = stmt.shape
+            sh_type_real = self.dimToRealArray(sh)
 
             upper = stmt.args[0].accept(self).asRealArray()
             upper_vec = Ttensor(upper)
-            sh = stmt.args[1]
-            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(upper_vec, sh_type_real)
             self.Tunify(target_type, sh_type_real)
 
         elif stmt.id == "Uniform":
-            assert len(stmt.args) <= 3, f"Uniform distribution expected to have 2 argument; {len(stmt.args)} arguments given"
-            if len(stmt.args) == 2:
-                stmt.args.append(AnonymousShapeProperty())          
+            assert len(stmt.args) == 2, f"Uniform distribution expected to have 2 non-shape argument; {len(stmt.args)} arguments given"
+            if stmt.shape is None:
+                stmt.shape = AnonymousShapeProperty()
+            sh = stmt.shape
+            sh_type_real = self.dimToRealArray(sh)
+
             lower = stmt.args[0].accept(self).asRealArray()
             upper = stmt.args[1].accept(self).asRealArray()
-            sh = stmt.args[2]
-            sh_type_real = self.dimToRealArray(sh)
 
             self.Tunify(lower, upper)
             lower_vec = Ttensor(lower)
             self.Tunify(lower_vec, sh_type_real)
             self.Tunify(target_type, sh_type_real)
+        elif stmt.id == 'Exponential':
+            assert len(stmt.args) == 1, f"Exponential distribution expected to have 2 argument; {len(stmt.args)} arguments given"
+            rate = stmt.args[0].accept(self).asRealArray()
+            self.Tunify(rate, Ttensor(Treal()))
+
+            res = Ttensor(rate)
+            self.Tunify(target_type, res)
+
         else:
             assert False, f"The {stmt.id} distribution is not yet supported."
             # for a in stmt.args:
@@ -337,6 +347,7 @@ class TypeInferenceVisitor(IRVisitor):
             b.accept(self)
 
     visitData = visitProgramBlocks
+    visitTransformedData = visitProgramBlocks
     visitParameters = visitProgramBlocks
     visitGuideParameters = visitProgramBlocks
     visitSamplingBlocks = visitProgramBlocks
@@ -428,7 +439,8 @@ class TypeInferenceVisitor(IRVisitor):
 # We currently don't look at the test condition
 #        test_type = stmt.test.accept(self)
         stmt.true.accept(self)
-        stmt.false.accept(self)
+        if stmt.false is not None:
+            stmt.false.accept(self)
 
     def visitAssignStmt(self, stmt:AssignStmt):
         target = stmt.target.accept(self)
@@ -439,10 +451,18 @@ class TypeInferenceVisitor(IRVisitor):
     def visitBinaryOperator(self, op:BinaryOperator):
         if isinstance(op.op, (Plus, Minus, Mult, Div)):
             left = op.left.accept(self)
-            right = op.left.accept(self)
+            right = op.right.accept(self)
             self.Tunify(left, right)
             op.expr_type = left
             return left
+        else:
+            assert False, f"Type inference for operator {type(op.op)} is not yet supported"
+
+    def visitUnaryOperator(self, op:BinaryOperator):
+        if isinstance(op.op, (UPlus, UMinus)):
+            value = op.value.accept(self)
+            op.expr_type = value
+            return value
         else:
             assert False, f"Type inference for operator {type(op.op)} is not yet supported"
 

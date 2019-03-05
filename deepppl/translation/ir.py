@@ -221,20 +221,21 @@ class AssignStmt(Statements):
         [self.target, self.value] = children
 
 class SamplingStmt(Statements):
-    def __init__(self, target = None, id = None, args = None):
+    def __init__(self, target = None, id = None, args = None, shape = None):
         super(SamplingStmt, self).__init__()
         self.target = target
         self.id = id
         self.args = args
+        self.shape = shape
 
     @property
     def children(self):
-        return [self.target,] + self.args
+        return [self.target,] + self.args + ([self.shape] if self.shape else [])
 
-    @children.setter
-    def children(self, children):
-        self.target = children[0]
-        self.args = children[1:]
+    # @children.setter
+    # def children(self, children):
+    #     self.target = children[0]
+    #     self.args = children[1:]
 
 class SamplingDeclaration(SamplingStmt):
     pass
@@ -257,7 +258,8 @@ class SamplingFactor(SamplingStmt):
     def __init__(self, target = None):
         super(SamplingFactor, self).__init__(target = target,
                                             id = None,
-                                            args = [])
+                                            args = [],
+                                            shape = None)
 
 class ForStmt(Statements):
     def __init__(self, id = None, from_ = None, to_ = None, body = None):
