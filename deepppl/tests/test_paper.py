@@ -45,37 +45,31 @@ def normalize_and_compare(src_file, target_file):
     compiled = dpplc.stan2astpyFile(src_file, verbose=True)
     assert code_to_normalized(compiled) == target
 
-
-# def test_coin():
-#     filename = r'deepppl/tests/good/coin.stan'
-#     target_file = r'deepppl/tests/target_py/coin.py'
-#     normalize_and_compare(filename, target_file)
-
+def normalize_and_compare_test(test_name):
+        filename = f'deepppl/tests/good/paper/{test_name}.stan'
+        target_file = f'deepppl/tests/target_py/paper/{test_name}.py'
+        normalize_and_compare(filename, target_file)
 
 def test_bayes_nn():
-        filename = r'deepppl/tests/paper/bayes_nn.stan'
+        filename = r'deepppl/tests/good/paper/bayes_nn.stan'
         dpplc.stan2astpyFile(filename, verbose=True)
+# TODO: for some reason comparison fails, even when the input/output appears to be exactly the same
+#        normalize_and_compare_test('bayes_nn')
 
 def test_coin():
-        filename = r'deepppl/tests/paper/coin.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('coin')
 
 def test_coin_guide():
-        filename = r'deepppl/tests/paper/coin_guide.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('coin_guide')
 
 def test_multimodal():
-        filename = r'deepppl/tests/paper/multimodal.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('multimodal')
 
 def test_multimodal_guide():
-        filename = r'deepppl/tests/paper/multimodal_guide.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('multimodal_guide')
 
 def test_posterior_twice():
-        filename = r'deepppl/tests/paper/posterior_twice.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('posterior_twice')
 
 def test_vae():
-        filename = r'deepppl/tests/paper/vae.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        normalize_and_compare_test('vae')
