@@ -17,7 +17,7 @@
 from deepppl import dpplc
 from deepppl.translation.exceptions import *
 from deepppl.translation.sdim import KnownDimension, Dimension, \
-        Dnew, Dnamed, Dshape, Druntime, Dconstant
+        Dnew, Dnamed, Dshape, Druntime, Dconstant, Groups
 from deepppl.translation.stype import Type_, \
         Treal, Tint, Tindexed, Tvector, Trow_vector, Tmatrix, Tarray, \
         Tnamed, Tnew
@@ -57,34 +57,34 @@ def test_unify_dim_named_variable_named_variable_different():
         Dnamed(denv, "x").unify(Dnamed(denv, "y"))
 
 def test_unify_dim_variable_path():
-        equalities = set()
+        equalities = Groups()
         Dnew().unify(Dshape("mlp.size"))
-        assert(len(equalities)==0)
+        assert(len(equalities.groups())==0)
 
 def test_unify_dim_named_variable_path():
         denv = {}
-        equalities = set()
+        equalities = Groups()
         Dnamed(denv, "x").unify(Dshape("mlp.size"))
-        assert(len(equalities)==0)
+        assert(len(equalities.groups())==0)
 
 def test_unify_dim_path_path_same():
-        equalities = set()
+        equalities = Groups()
         Dshape("mlp.size").unify(Dshape("mlp.size"))
-        assert(len(equalities)==0)
+        assert(len(equalities.groups())==0)
 
 def test_unify_dim_path_path_different():
-        equalities = set()
+        equalities = Groups()
         Dshape("mlp.size").unify(Dshape("mlp.other_size"), equalities=equalities)
-        assert(len(equalities)==1)
+        assert(len(equalities.groups())==1)
 
 
 def test_unify_dim_path_path_different_via_named():
         denv = {}
-        equalities = set()
+        equalities = Groups()
         Dnamed(denv, "x").unify(Dshape("mlp.size"),equalities=equalities)
         Dshape("mlp.size_other").unify(Dnamed(denv, "y"),equalities=equalities)
         Dnamed(denv, "x").unify(Dnamed(denv, "y"), equalities=equalities)
-        assert(len(equalities)==1)
+        assert(len(equalities.groups())==1)
 
 
 def test_unify_dim_constant_same():
@@ -95,9 +95,9 @@ def test_unify_dim_constant_different():
                 Dconstant(3).unify(Dconstant(4))
 
 def test_unify_dim_constant_path():
-        equalities = set()
+        equalities = Groups()
         Dconstant(3).unify(Dshape(4), equalities=equalities)
-        assert(len(equalities)==1)
+        assert(len(equalities.groups())==1)
 
 ### This section tests unification of types (with anonymous dimensions)
 def test_unify_int_int():
