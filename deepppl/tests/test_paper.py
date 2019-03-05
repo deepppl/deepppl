@@ -71,5 +71,8 @@ def test_multimodal_guide():
 def test_posterior_twice():
         normalize_and_compare_test('posterior_twice')
 
+def test_vae_inferred_shape():
+        normalize_and_compare_test('vae_inferred_shape')
+
 def test_vae():
         normalize_and_compare_test('vae')
