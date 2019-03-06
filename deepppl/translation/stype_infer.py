@@ -167,6 +167,9 @@ class TypeInferenceVisitor(IRVisitor):
             res = Treal()
             for arg in stmt.args.children:
                 dim = self.inferDims(arg)
+                if isinstance(dim, list):
+                    dim = dim.copy()
+                    dim.reverse()
                 res = Tarray(component = res, dimension=dim)
         elif stmt.id in self._nets:
             # right now we do not impose any constraints on the input
@@ -199,6 +202,7 @@ class TypeInferenceVisitor(IRVisitor):
             var_type = Treal()
             return Tarray(component=var_type, dimension=dim_type)
         elif sh.children:
+            var_type = Treal()
             for d in reversed(sh.children):
                 dim_type = self.toSDim(d)
                 var_type = Tarray(component=var_type, dimension=dim_type)
