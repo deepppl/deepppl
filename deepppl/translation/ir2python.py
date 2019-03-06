@@ -910,7 +910,20 @@ class Ir2PythonVisitor(IRVisitor):
 
     def samplingDist(self, sampling):
         kwds = []
-        args = [arg.accept(self) for arg in sampling.args]
+        result_shape = sampling.expr_type.dimensions()
+
+        def fitShape(arg, target_shape):
+            if target_shape:
+                dims = [self.dimensionToAST(d) for d in target_shape]
+                ones = self.call(self.loadName("ones"), args=dims)
+                return ast.BinOp(left = arg,
+                            right = ones,
+                            op = ast.Mult())
+            else:
+                return arg
+
+        args = [fitShape(arg.accept(self), result_shape) for arg in sampling.args]
+
         if sampling.shape:
             sh = sampling.shape.accept(self)
             if not isinstance(sh, ast.Tuple) or len(sh.elts) != 0:
