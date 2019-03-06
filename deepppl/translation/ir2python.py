@@ -909,7 +909,12 @@ class Ir2PythonVisitor(IRVisitor):
                 ctx=ast.Load())
 
     def samplingDist(self, sampling):
+        kwds = []
         args = [arg.accept(self) for arg in sampling.args]
+        if sampling.shape:
+            sh = sampling.shape.accept(self)
+            if not isinstance(sh, ast.Tuple) or len(sh.elts) != 0:
+                kwds.append(ast.keyword('shape', sh))
         id = sampling.id
         if hasattr(torch.distributions, id.capitalize()):
             # Check if the distribution exists in torch.distributions
@@ -922,7 +927,9 @@ class Ir2PythonVisitor(IRVisitor):
         else:
             raise UnknownDistributionException(id)
         return self.call(dist,
-                        args = args)
+                        args = args,
+                        keywords = kwds
+                        )
 
     def visitSamplingDeclaration(self, sampling):
         """This node represents when a variable is declared to have a given distribution"""
