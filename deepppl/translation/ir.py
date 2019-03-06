@@ -230,7 +230,8 @@ class SamplingStmt(Statements):
 
     @property
     def children(self):
-        return [self.target,] + self.args + ([self.shape] if self.shape else [])
+        assert False, "SamplingStmt.children should not be called"
+        # return [self.target,] + self.args + ([self.shape] if self.shape else [])
 
     # @children.setter
     # def children(self, children):
