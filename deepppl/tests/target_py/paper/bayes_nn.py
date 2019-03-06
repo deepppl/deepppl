@@ -25,10 +25,10 @@ def guide_mlp(img: 'int[28,28]'=None, label: 'int'=None):
 
 def prior_mlp(img: 'int[28,28]'=None, label: 'int'=None):
     prior_mlp = {}
-    prior_mlp['l1.weight']: 'real' = ImproperUniform()
-    prior_mlp['l1.bias']: 'real' = ImproperUniform()
-    prior_mlp['l2.weight']: 'real' = ImproperUniform()
-    prior_mlp['l2.bias']: 'real' = ImproperUniform()
+    prior_mlp['l1.weight']: 'real' = ImproperUniform(shape=mlp.l1.weight.shape)
+    prior_mlp['l1.bias']: 'real' = ImproperUniform(shape=mlp.l1.bias.shape)
+    prior_mlp['l2.weight']: 'real' = ImproperUniform(shape=mlp.l2.weight.shape)
+    prior_mlp['l2.bias']: 'real' = ImproperUniform(shape=mlp.l2.bias.shape)
     lifted_mlp = pyro.random_module('mlp', mlp, prior_mlp)
     return lifted_mlp()
 

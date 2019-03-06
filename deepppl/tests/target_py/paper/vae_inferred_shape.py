@@ -16,7 +16,8 @@ def guide_(x: 'int[28,28]'=None):
 
 def model(x: 'int[28,28]'=None):
     pyro.module('decoder', decoder)
-    z: 'real[encoder(x)$shape[1]][??]' = pyro.sample('z', ImproperUniform())
+    z: 'real[encoder(x)$shape[1]][??]' = pyro.sample('z', ImproperUniform(
+        shape=encoder(x)[1].size()))
     mu: 'real[28,28]' = zeros((28, 28))
     pyro.sample('z' + '__1', dist.Normal(0, 1), obs=z)
     mu: 'real[28,28]' = decoder(z)
