@@ -372,6 +372,8 @@ class Type_(object):
         ## TODO: Note again the choice that only arrays have "dimensions".  This may need to be revisited.
         if isinstance(self.description(), Array):
             return self.description().dimensions()
+        elif self.isTensor():
+            return self.description().component.dimensions()
         else:
             return list()
 
