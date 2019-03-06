@@ -358,6 +358,7 @@ class TypeInferenceVisitor(IRVisitor):
     visitData = visitProgramBlocks
     visitTransformedData = visitProgramBlocks
     visitParameters = visitProgramBlocks
+    visitTransformedParameters = visitProgramBlocks
     visitGuideParameters = visitProgramBlocks
     visitSamplingBlocks = visitProgramBlocks
     visitModel = visitSamplingBlocks
@@ -468,7 +469,7 @@ class TypeInferenceVisitor(IRVisitor):
             assert False, f"Type inference for operator {type(op.op)} is not yet supported"
 
     def visitUnaryOperator(self, op:BinaryOperator):
-        if isinstance(op.op, (UPlus, UMinus)):
+        if isinstance(op.op, (UPlus, UMinus, Exp)):
             value = op.value.accept(self)
             op.expr_type = value
             return value
