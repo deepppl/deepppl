@@ -863,7 +863,13 @@ class Ir2PythonVisitor(IRVisitor):
     def visitMult(self, dummy):
         return ast.Mult()
 
+    def visitDotMult(self, dummy):
+        return ast.Mult()
+
     def visitDiv(self, dummy):
+        return ast.Div()
+
+    def visitDotDiv(self, dummy):
         return ast.Div()
 
     def visitAnd(self, dummy):

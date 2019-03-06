@@ -225,9 +225,9 @@ class StanToIR(stanListener):
             ctx.GE_OP : GE,
             ctx.LE_OP : LE,
             ctx.EQ_OP : EQ,
-            ctx.DOT_DIV_OP : Div,
+            ctx.DOT_DIV_OP : DotDiv,
             ctx.DIV_OP : Div,
-            ctx.DOT_MULT_OP : Mult,
+            ctx.DOT_MULT_OP : DotMult,
             ctx.MULT_OP : Mult}
         op = None
         for src in mapping:
@@ -281,10 +281,14 @@ class StanToIR(stanListener):
                 op = Plus()
             if ctx.MINUS_EQ() is not None:
                 op = Minus()
-            if ctx.MULT_EQ() or ctx.DOT_MULT_EQ() is not None:
+            if ctx.MULT_EQ() is not None:
                 op = Mult()
-            if ctx.DIV_EQ() or ctx.DOT_DIV_EQ() is not None:
+            if ctx.DOT_MULT_EQ() is not None:
+                op = DotMult()
+            if ctx.DIV_EQ() is not None:
                 op = Div()
+            if ctx.DOT_DIV_EQ() is not None:
+                op = DotDiv()
             if op:
                 expr = BinaryOperator(left = lvalue, op = op, right = expr)
         ctx.ir = AssignStmt(

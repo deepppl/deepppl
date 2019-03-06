@@ -683,7 +683,13 @@ class Pow(Operator):
 class Mult(Operator):
     pass
 
+class DotMult(Operator):
+    pass
+
 class Div(Operator):
+    pass
+
+class DotDiv(Operator):
     pass
 
 class And(Operator):
