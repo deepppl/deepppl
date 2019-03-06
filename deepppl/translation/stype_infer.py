@@ -27,7 +27,7 @@ from .ir import IR, Program, ProgramBlocks, Data, VariableDecl, Subscript, \
                 AssignStmt, Subscript, BlockStmt,\
                 CallStmt, List, SamplingStmt, SamplingDeclaration, SamplingObserved,\
                 SamplingParameters, Variable, Constant, BinaryOperator, \
-                Plus, Minus, Mult, Div, UnaryOperator, UPlus, UMinus, AnonymousShapeProperty,\
+                Plus, Minus, Mult, DotMult, Div, DotDiv, UnaryOperator, UPlus, UMinus, AnonymousShapeProperty,\
                 VariableProperty, NetVariableProperty, Prior
 
 from .ir import Type_ as IrType
@@ -459,17 +459,25 @@ class TypeInferenceVisitor(IRVisitor):
         self.Tunify(target, value)
 
     def visitBinaryOperator(self, op:BinaryOperator):
-        if isinstance(op.op, (Plus, Minus, Mult, Div)):
+        if isinstance(op.op, (Plus, Minus, DotMult, DotDiv)):
             left = op.left.accept(self)
             right = op.right.accept(self)
             self.Tunify(left, right)
             op.expr_type = left
             return left
+        elif isinstance(op.op, Mult):
+            left = op.left.accept(self)
+            right = op.right.accept(self)
+            return Treal()
+        elif isinstance(op.op, Div):
+            left = op.left.accept(self)
+            right = op.right.accept(self)
+            return Treal()
         else:
             assert False, f"Type inference for operator {type(op.op)} is not yet supported"
 
     def visitUnaryOperator(self, op:BinaryOperator):
-        if isinstance(op.op, (UPlus, UMinus, Exp)):
+        if isinstance(op.op, (UPlus, UMinus)):
             value = op.value.accept(self)
             op.expr_type = value
             return value
