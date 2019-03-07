@@ -11,6 +11,7 @@ from sklearn.metrics import mean_squared_error
 import time
 
 stan_model_file = 'deepppl/tests/good/linear_regression.stan'
+stan_array_model_file = 'deepppl/tests/good/linear_regression_array.stan'
 global_num_iterations=3000
 global_num_chains=1
 global_warmup_steps = 300
@@ -23,7 +24,7 @@ def nuts(model, **kwargs):
 
 def test_linear_regression():
     model = deepppl.DppplModel(
-        model_file=stan_model_file)
+        model_file=stan_array_model_file)
 
     posterior = model.posterior(
         method=nuts,

@@ -16,8 +16,8 @@
 
 data {
     int<lower=0> N;
-    vector[N] x;
-    vector[N] y;
+    real x[N];
+    real y[N];
     }
 parameters {
     real alpha;
