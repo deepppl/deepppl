@@ -912,17 +912,23 @@ class Ir2PythonVisitor(IRVisitor):
         kwds = []
         result_shape = sampling.expr_type.dimensions()
 
-        def fitShape(arg, target_shape):
+        def fitShape(arg, arg_type, target_shape):
             if target_shape:
-                dims = [self.dimensionToAST(d) for d in target_shape]
-                ones = self.call(self.loadName("ones"), args=dims)
-                return ast.BinOp(left = arg,
-                            right = ones,
-                            op = ast.Mult())
+                arg_shape = arg_type.dimensions()
+                arg_dims = len(arg_shape)
+                if len(target_shape) > arg_dims:
+                    target_dims = target_shape[arg_dims:]
+                    dims = [self.dimensionToAST(d) for d in target_shape]
+                    ones = self.call(self.loadName("ones"), args=dims)
+                    return ast.BinOp(left = arg,
+                                right = ones,
+                                op = ast.Mult())
+                else:
+                    return arg
             else:
                 return arg
 
-        args = [fitShape(arg.accept(self), result_shape) for arg in sampling.args]
+        args = [fitShape(arg.accept(self), arg.expr_type, result_shape) for arg in sampling.args]
 
         if sampling.shape:
             sh = sampling.shape.accept(self)
