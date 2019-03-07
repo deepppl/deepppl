@@ -6,13 +6,15 @@ from pyro.infer import mcmc
 import deepppl
 import os
 import numpy as np
+import pandas as pd
 import pystan
 from sklearn.metrics import mean_squared_error
 import time
 
 stan_model_file = 'deepppl/tests/good/linear_regression.stan'
-global_num_iterations = 3000
-global_num_chains = 1
+global_num_iterations=3000
+global_num_chains=1
+global_warmup_steps = 300
 
 
 def nuts(model, **kwargs):
@@ -26,8 +28,8 @@ def test_linear_regression():
 
     posterior = model.posterior(
         method=nuts,
-        num_samples=2700,
-        warmup_steps=300)
+        num_samples=global_num_iterations - global_warmup_steps,
+        warmup_steps=global_warmup_steps)
 
     # Add Data
     num_samples = 10
@@ -43,47 +45,59 @@ def test_linear_regression():
     t1 = time.time()
     marginal = pyro.infer.EmpiricalMarginal(posterior.run(
         N=num_samples, x=X, y=y), sites=['alpha', 'beta', 'sigma'])
-    samples_fstan = [marginal() for _ in range(1000)]
+    samples_fstan = [marginal() for _ in range(global_num_iterations - global_warmup_steps)]
     stack_samples = torch.stack(samples_fstan)
     params = torch.mean(stack_samples, 0)
     t2 = time.time()
+    stack_samples = torch.stack(samples_fstan).numpy()
 
-    time_taken = t2-t1
-    print(params)
-    alpha = float(params[0])
-    beta = float(params[1])
+    params = ['alpha', 'beta', 'sigma']
+    df = pd.DataFrame(stack_samples, columns=params)
 
-    num_test_samples = 10
-    X_test = np.arange(10, 10+num_test_samples)
-    y_test = np.arange(10, 10+num_test_samples)
-    y_predicted = alpha + beta * X_test
+    pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output(data)
 
-    y_pred, time_taken_pystan = compare_with_stan_output(data, X_test)
+    assert df.shape == pystan_output.shape
+    from scipy.stats import entropy
+    for column in params:
+        #import pdb;pdb.set_trace()
+        hist1 = np.histogram(df[column], bins = 10)
+        hist2 = np.histogram(pystan_output[column], bins = hist1[1])
+        kl = entropy(hist1[0]+1, hist2[0]+1)
+        skl = kl + entropy(hist2[0]+1, hist1[0]+1)
+        print('skl for column:{} is:{:.2f}'.format(column, skl))
 
-    print("mean_squared_error using deepstan:{} with time taken by inference:{}".format(
-        mean_squared_error(y_test, y_predicted), time_taken))
-
-    print("mean_squared_error using pystan:{} with time taken by inference:{}".format(
-        mean_squared_error(y_test, y_pred), time_taken_pystan))
+    print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, pystan_time))
 
 
-def compare_with_stan_output(data, X_test):
+def compare_with_stan_output(data):
     stan_code = open(stan_model_file).read()
     t1 = time.time()
 
     # Compile and fit
     sm1 = pystan.StanModel(model_code=str(stan_code))
+    t2 = time.time()
+    pystan_compilation_time = t2-t1
+
+    t1 = time.time()
     fit_stan = sm1.sampling(
         data=data, iter=global_num_iterations, chains=global_num_chains, warmup=300)
 
-    alpha = fit_stan.extract(permuted=True)['alpha'].mean()
-    beta = fit_stan.extract(permuted=True)['beta'].mean()
+    alpha = fit_stan.extract(permuted=True)['alpha']
+    beta = fit_stan.extract(permuted=True)['beta']
+    sigma = fit_stan.extract(permuted=True)['sigma']
+
+    alpha = np.reshape(alpha, (alpha.shape[0], 1))
+    beta = np.reshape(beta, (beta.shape[0], 1))
+    sigma = np.reshape(sigma, (sigma.shape[0], 1))
+
+    marginal = np.concatenate((alpha, beta, sigma), axis = 1)
+    params = ['alpha', 'beta', 'sigma']
+    df = pd.DataFrame(marginal, columns=params)
+
     t2 = time.time()
 
-    print(alpha, beta)
+    return df, t2-t1, pystan_compilation_time
 
-    y_predicted = alpha + beta * X_test
-    return y_predicted, t2-t1
 
 
 if __name__ == "__main__":
