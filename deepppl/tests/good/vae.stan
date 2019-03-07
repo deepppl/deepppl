@@ -21,6 +21,7 @@ networks {
 }
 
 data {
+    int nz;
     int<lower=0, upper=1> x[28, 28];
 }
 
@@ -36,7 +37,7 @@ model {
 }
 
 guide {
-    real encoded[2, _] = encoder(x);
+    real encoded[2, nz] = encoder(x);
     real mu_z[_] = encoded[1];
     real sigma_z[_] = encoded[2];
     z ~ normal(mu_z, sigma_z);
