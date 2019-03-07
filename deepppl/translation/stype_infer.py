@@ -463,19 +463,57 @@ class TypeInferenceVisitor(IRVisitor):
         self.Tunify(target, value)
 
     def visitBinaryOperator(self, op:BinaryOperator):
-        if isinstance(op.op, (Plus, Minus, DotMult, DotDiv)):
+        if isinstance(op.op, (DotMult, DotDiv)):
             left = op.left.accept(self)
             right = op.right.accept(self)
             self.Tunify(left, right)
             op.expr_type = left
             return left
+        if isinstance(op.op, (Plus, Minus)):
+            left = op.left.accept(self)
+            right = op.right.accept(self)
+            if left.isPrimitive():
+                op.expr_type = right
+                return right
+            if right.isPrimitive():
+                op.expr_type = left
+                return left
+            if left.isArray() and right.isArray():
+                tl = Ttensor(left)                
+                tr = Ttensor(right)
+                self.Tunify(tl, tr)
+                rett = tl.description().component
+                op.expr_type = rett
+                return rett
+            op.expr_type = left
+            return left
         elif isinstance(op.op, Mult):
             left = op.left.accept(self)
             right = op.right.accept(self)
+            # HACK: This should really be with a vector/matrix, 
+            # but we don't support them well right now
+            if left.isPrimitive():
+                # we should do more checking here
+                op.expr_type = right
+                return right
+            if right.isPrimitive():
+                op.expr_type = left
+                return left
+            op.expr_type = Treal()
             return Treal()
         elif isinstance(op.op, Div):
             left = op.left.accept(self)
             right = op.right.accept(self)
+            # HACK: This should really be with a vector/matrix, 
+            # but we don't support them well right now
+            if left.isPrimitive():
+                # we should do more checking here
+                op.expr_type = right
+                return right
+            if right.isPrimitive():
+                op.expr_type = left
+                return left
+            op.expr_type = Treal()
             return Treal()
         else:
             assert False, f"Type inference for operator {type(op.op)} is not yet supported"
