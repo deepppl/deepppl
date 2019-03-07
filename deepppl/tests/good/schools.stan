@@ -20,14 +20,14 @@ data {
     real<lower=0> sigma[J]; // s.e. of effect estimates
 }
 parameters {
-    real mu;
-    real<lower=0> tau;
+    real mu[1];
+    real<lower=0> tau[1];
     real eta[J];
 }
 transformed parameters {
     real theta[J];
     for (j in 1:J)
-        theta[j] = mu + tau * eta[j];
+        theta[j] = mu[0] + tau[0] * eta[j];
 }
 model {
     eta ~ normal(zeros(J), ones(J));
