@@ -19,9 +19,9 @@ import os
 import pandas as pd
 
 stan_model_file = 'deepppl/tests/good/schools.stan'
-global_num_iterations=3000
+global_num_iterations=1000
 global_num_chains=1
-global_warmup_steps = 300
+global_warmup_steps = 100
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
@@ -31,8 +31,8 @@ def test_schools():
     model = deepppl.DppplModel(model_file=stan_model_file)
 
     J = 8
-    y = torch.tensor([28., 8., -3., 7., -1., 1., 18., 12.])
-    sigma = torch.tensor([15., 10., 16., 11., 9., 11., 10., 18.])
+    y = torch.Tensor([28., 8., -3., 7., -1., 1., 18., 12.])
+    sigma = torch.Tensor([15., 10., 16., 11., 9., 11., 10., 18.])
 
     schools_dat = {'J': 8,
                 'y': [28,  8, -3,  7, -1,  1, 18, 12],
@@ -44,15 +44,28 @@ def test_schools():
         num_samples=global_num_iterations-global_warmup_steps,
         warmup_steps=global_warmup_steps).run(J=J, sigma=sigma, y=y)
 
-    marginal = posterior.marginal(sites=["mu", "tau", "eta"])
+    marginal = posterior.marginal(sites=["mu"])
     marginal = torch.cat(list(marginal.support(
         flatten=True).values()), dim=-1).cpu().numpy()
     
+    marginal2 = posterior.marginal(sites=["mu"])
+    marginal2 = torch.cat(list(marginal2.support(
+        flatten=True).values()), dim=-1).cpu().numpy()
+
+
+    marginal1 = posterior.marginal(sites=["eta"])
+    marginal1 = torch.cat(list(marginal1.support(
+        flatten=True).values()), dim=-1).cpu().numpy()
     t2 = time.time()
+    marginal = np.reshape(marginal, (marginal.shape[0], 1))
+    marginal2 = np.reshape(marginal2, (marginal2.shape[0], 1))
+    marginal = np.concatenate([marginal, marginal2], axis = 1)
+
+    marginal = np.concatenate([marginal, marginal1], axis = 1)
     params = ['mu', 'tau', 'eta[0]', 'eta[1]', 'eta[2]',
               'eta[3]', 'eta[4]', 'eta[5]', 'eta[6]', 'eta[7]']
     df = pd.DataFrame(marginal, columns=params)
-    pystan_output, time_pystan = compare_with_stan_output(schools_dat)
+    pystan_output, time_pystan, pystan_compilation_time = compare_with_stan_output(schools_dat)
     assert df.shape == pystan_output.shape
     from scipy.stats import entropy
     for column in params:
@@ -61,11 +74,11 @@ def test_schools():
         hist2 = np.histogram(pystan_output[column], bins = hist1[1])
         kl = entropy(hist1[0]+1, hist2[0]+1)
         skl = kl + entropy(hist2[0]+1, hist1[0]+1)
-        print('skl for column:{} is:{}'.format(column, skl))
+        print('skl for column:{} is:{:.2f}'.format(column, skl))
 
-    print("Time taken: deepstan:{}, pystan:{}".format(t2-t1, time_pystan))
+    print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, time_pystan))
 def compare_with_stan_output(data):
-    # stan_code = open(stan_model_file).read()
+    stan_code = open(stan_model_file).read()
     stan_code = """
     data {
         int<lower=0> J; // number of schools
@@ -87,11 +100,12 @@ def compare_with_stan_output(data):
         y ~ normal(theta, sigma);
     }
     """
-
     # Compile and fit
-    sm1 = pystan.StanModel(model_code=str(stan_code))
     t1 = time.time()
-
+    sm1 = pystan.StanModel(model_code=str(stan_code))
+    t2 = time.time()
+    pystan_compilation_time = t2 - t1
+    t1 = time.time()
     fit_stan = sm1.sampling(data=data, iter=global_num_iterations, chains=global_num_chains, warmup = global_warmup_steps)
 
     mu = fit_stan.extract(permuted=True)['mu']
@@ -106,7 +120,7 @@ def compare_with_stan_output(data):
     df = pd.DataFrame(marginal, columns=params)
 
     t2 = time.time()
-    return df, t2-t1
+    return df, t2-t1, pystan_compilation_time
 
 if __name__ == "__main__":
     test_schools()
