@@ -188,9 +188,9 @@ import os
 import pandas as pd
 
 stan_model_file = 'deepppl/tests/good/cockroaches.stan'
-global_num_iterations=1000
+global_num_iterations=3000
 global_num_chains=1
-global_warmup_steps = 100
+global_warmup_steps = 300
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
@@ -198,7 +198,7 @@ def nuts(model, **kwargs):
 
 def test_cockroaches():
     model = deepppl.DppplModel(model_file=stan_model_file)
-    model._model = model2
+    t1 = time.time()
     posterior = model.posterior(
         method=nuts,
         num_samples=global_num_iterations-global_warmup_steps,
@@ -210,81 +210,34 @@ def test_cockroaches():
     local_treatment = torch.Tensor(treatment)
     local_y = torch.Tensor(y)
 
-    # marginal = pyro.infer.EmpiricalMarginal(posterior.run(N = N, 
-    #             exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
-    #             treatment = local_treatment, y = local_y, transformed_data = transformed_data(N = N, 
-    #             exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
-    #             treatment = local_treatment, y = local_y)), sites=['lmbda', 'tau'])
-
     posterior = posterior.run(N = N, 
                 exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
                 treatment = local_treatment, y = local_y, transformed_data = transformed_data(N = N, 
                 exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
                 treatment = local_treatment, y = local_y))
-    marginal = posterior.marginal(sites=["lmbda"])
+    marginal = posterior.marginal(sites=["beta"])
 
-    #samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
-    marginal = torch.cat(list(marginal.support(flatten=True).values()), dim=-1).cpu().numpy()
-    mean_lambda = marginal.mean(axis = 0)
+    marginal = torch.cat(list(marginal.support(
+        flatten=True).values()), dim=-1).cpu().numpy()
+    t2 = time.time()
 
-    marginal = posterior.marginal(sites=["tau"])
-    tau = torch.cat(list(marginal.support(flatten=True).values()), dim=-1).cpu().numpy()
+    params = ['beta0', 'beta1', 'beta2', 'beta3']
+    df = pd.DataFrame(marginal, columns=params)
 
-    #stack_samples = torch.stack(samples_fstan)
-
-    pystan_mean_lambda, pystan_tau = compare_with_stan_output()
-
+    pystan_output, time_pystan, pystan_compilation_time = compare_with_stan_output()
+    assert df.shape == pystan_output.shape
     from scipy.stats import entropy
-    hist1 = np.histogram(tau, bins = 10)
-    hist2 = np.histogram(pystan_tau, bins = hist1[1])
-    kl = entropy(hist1[0]+1, hist2[0]+1)
-    skl = kl + entropy(hist2[0]+1, hist1[0]+1)
-    print('skl for tau is:{}'.format(skl))
+    for column in params:
+        hist1 = np.histogram(df[column], bins = 10)
+        hist2 = np.histogram(pystan_output[column], bins = hist1[1])
+        kl = entropy(hist1[0]+1, hist2[0]+1)
+        skl = kl + entropy(hist2[0]+1, hist1[0]+1)
+        print('skl for column:{} is:{:.2f}'.format(column, skl))
 
-    # mean_lambda = stack_samples.mean(dim=0)
-    # mean_lambda_arr = mean_lambda[0, :]
-
-    # from scipy.stats import entropy
-    # hist1 = np.histogram(mean_lambda_arr.numpy(), bins = 10)
-    # hist2 = np.histogram(pystan_mean_lambda, bins = hist1[1])
-    # kl = entropy(hist1[0]+1, hist2[0]+1)
-    # skl = kl + entropy(hist2[0]+1, hist1[0]+1)
-    # print('skl for lambda is:{}'.format(skl))
-
+    print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, time_pystan))
 
 def compare_with_stan_output():
     stan_code = open(stan_model_file).read()
-    stan_code = """
-        data {
-            int N;
-            vector[N] exposure2;
-            vector[N] roach1;
-            vector[N] senior;
-            vector[N] treatment;
-            int y[N];
-        }
-        transformed data {
-            vector[N] log_expo;
-            log_expo=log(exposure2);
-        }
-        parameters {
-            vector[4] beta;
-            vector[N] lmbda;
-            real tau;
-        }
-        transformed parameters {
-            real sigma = 1.0 / sqrt(tau);
-        }
-        model {
-            tau ~ gamma(0.001, 0.001);
-            lmbda ~ normal(0, sigma);
-            y ~ poisson_log(log_expo + beta[1]
-                + beta[2] * roach1
-                + beta[3] * treatment
-                + beta[4] * senior
-                + lmbda);
-        }    
-    """
     data = {
         'N': N, 
         'exposure2': exposure2, 
@@ -293,20 +246,26 @@ def compare_with_stan_output():
         'treatment': treatment, 
         'y': y        
     }
+    t1 = time.time()
 
     # Compile and fit
     sm1 = pystan.StanModel(model_code=str(stan_code))
     print("Compilation done")
+    t2 = time.time()
+    pystan_compilation_time = t2-t1
+
     t1 = time.time()
 
     fit_stan = sm1.sampling(data = data, iter=global_num_iterations, chains=global_num_chains, 
                             warmup = global_warmup_steps)
 
     t2 = time.time()
-    mean_lambda = fit_stan.extract(permuted=True)['lmbda'].mean(axis = 0)
-    tau = fit_stan.extract(permuted=True)['tau']
+    beta = fit_stan.extract(permuted=True)['beta']
 
-    return mean_lambda, tau
+    params = ['beta0', 'beta1', 'beta2', 'beta3']
+    pystan_output = pd.DataFrame(beta, columns=params)
+
+    return pystan_output, t2-t1, pystan_compilation_time
 
 if __name__ == "__main__":
     test_cockroaches()
