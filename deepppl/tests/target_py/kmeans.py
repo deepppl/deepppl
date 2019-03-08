@@ -10,6 +10,7 @@ def transformed_data(D: 'int'=None, K: 'int'=None, N: 'int'=None, y:
     neg_log_K: 'real' = -log(K)
     return {'neg_log_K': neg_log_K}
 
+
 def model(D: 'int'=None, K: 'int'=None, N: 'int'=None, y: 'real[N,D]'=None,
     transformed_data=None):
     neg_log_K = transformed_data['neg_log_K']
@@ -21,7 +22,7 @@ def model(D: 'int'=None, K: 'int'=None, N: 'int'=None, y: 'real[N,D]'=None,
                 1] - y[n - 1])
     for k in range(1, K + 1):
         pyro.sample('mu' + '__{}'.format(k - 1) + '__1', dist.Normal(zeros(
-            D) * ones(D), ones(D) * ones(D)), obs=mu[k - 1])
+            D), ones(D)), obs=mu[k - 1])
     for n in range(1, N + 1):
         pyro.sample('expr' + '__{}'.format(n) + '__2', dist.Exponential(1.0
             ), obs=-log_sum_exp(soft_z[n - 1]))
