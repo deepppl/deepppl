@@ -1,4 +1,3 @@
-
 import torch
 import pyro
 import pyro.distributions as dist
@@ -32,7 +31,8 @@ def test_linear_regression():
     # Add Data
     num_samples = 10
     X = np.arange(num_samples)
-    y = np.arange(num_samples)
+    # y = np.arange(num_samples)
+    y = np.array([ dist.Normal(i, 0.1).sample() for i in range(num_samples)])
     data = {'N': num_samples,
             'x': X,
             'y': y}
@@ -78,9 +78,10 @@ def compare_with_stan_output(data, X_test):
 
     alpha = fit_stan.extract(permuted=True)['alpha'].mean()
     beta = fit_stan.extract(permuted=True)['beta'].mean()
+    sigma = fit_stan.extract(permuted=True)['sigma'].mean()
     t2 = time.time()
 
-    print(alpha, beta)
+    print(alpha, beta, sigma)
 
     y_predicted = alpha + beta * X_test
     return y_predicted, t2-t1
