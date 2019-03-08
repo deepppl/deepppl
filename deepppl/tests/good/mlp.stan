@@ -55,16 +55,16 @@ guide parameters {
 }
 
 guide {
-    l1wloc = randn(l1wloc$shape);
-    l1wscale = randn(l1wscale$shape);
+    l1wloc = randn();
+    l1wscale = randn();
     mlp.l1.weight ~  normal(l1wloc, softplus(l1wscale));
-    l1bloc = randn(l1bloc$shape);
-    l1bscale = randn(l1bscale$shape);
+    l1bloc = randn();
+    l1bscale = randn();
     mlp.l1.bias ~ normal(l1bloc, softplus(l1bscale));
-    l2wloc = randn(l2wloc$shape);
-    l2wscale = randn(l2wscale$shape);
+    l2wloc = randn();
+    l2wscale = randn();
     mlp.l2.weight ~ normal(l2wloc, softplus(l2wscale));
-    l2bloc = randn(l2bloc$shape);
-    l2bscale = randn(l2bscale$shape);
+    l2bloc = randn();
+    l2bscale = randn();
     mlp.l2.bias ~ normal(l2bloc, softplus(l2bscale));
 }
