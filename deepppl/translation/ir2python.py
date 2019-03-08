@@ -921,6 +921,13 @@ class Ir2PythonVisitor(IRVisitor):
                 if len(target_shape) > arg_dims:
                     target_dims = target_shape[arg_dims:]
                     dims = [self.dimensionToAST(d) for d in target_shape]
+                    if isinstance(arg, ast.Num):
+                        if arg.n == 0:
+                            zeros = self.call(self.loadName("zeros"), args=dims)
+                            return zeros
+                        elif arg.n == 1:
+                            ones = self.call(self.loadName("ones"), args=dims)
+                            return zeros
                     ones = self.call(self.loadName("ones"), args=dims)
                     return ast.BinOp(left = arg,
                                 right = ones,
