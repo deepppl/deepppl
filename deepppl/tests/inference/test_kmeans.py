@@ -56,8 +56,8 @@ def test_kmeans():
 
     marginal = pyro.infer.EmpiricalMarginal(
         posterior.run(N=num_samples, D=num_features, K=num_clusters, y=X,
-                      transformed_data=model._transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X)),
-        sites="mu")
+                      transformed_data=model.transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X)),
+        sites='mu')
 
     samples_fstan = [marginal()
                         for _ in range(3000)]

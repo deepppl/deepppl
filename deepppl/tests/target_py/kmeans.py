@@ -35,9 +35,10 @@ def model(D=None, K=None, N=None, y=None, transformed_data=None):
                     obs=-log_sum_exp(soft_z[n - 1]))
 
 def generated_quantities(D=None, K=None, N=None, y=None, transformed_data=
-    None, __sampler=None):
-    __sample = __sampler()
-    mu = __sample.mu
+    None, parameters=None):
+    neg_log_K = transformed_data['neg_log_K']
+    mu = parameters['mu']
+    ___shape = {}
     ___shape['soft_z'] = N, K
     soft_z = zeros(___shape['soft_z'])
     for n in range(1, N + 1):

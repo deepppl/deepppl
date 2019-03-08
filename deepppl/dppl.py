@@ -36,7 +36,8 @@ class DppplModel(object):
     def _updateHooksAll(self, hooks):
         [self._updateHooks(f, hooks) for f in (self._model,
                                                self._guide,
-                                               self._transformed_data)]
+                                               self._transformed_data,
+                                               self._generated_quantities)]
 
     def _updateHooks(self, f, hooks):
         if f:
@@ -50,12 +51,16 @@ class DppplModel(object):
         self._updateHooks(self._model, locals_)
         self._guide = None
         self._transformed_data = None
+        self._generated_quantities = None
         for k in locals_.keys():
             if k.startswith('guide_'):
                 self._guide = locals_[k]
                 self._updateHooks(self._model, locals_)
             if k.startswith('transformed_data'):
                 self._transformed_data = locals_[k]
+                self._updateHooks(self._model, locals_)
+            if k.startswith('generated_quantities'):
+                self._generated_quantities = locals_[k]
                 self._updateHooks(self._model, locals_)
         self._loadBasicHooks()
 
@@ -82,6 +87,9 @@ class DppplModel(object):
 
     def transformed_data(self, *args, **kwargs):
         return self._transformed_data(*args, **kwargs)
+
+    def generated_quantities(self, *args, **kwargs):
+        return self._generated_quantities(*args, **kwargs)
 
 
 class SVIProxy(object):

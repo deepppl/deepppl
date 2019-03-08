@@ -23,11 +23,11 @@ def model(J=None, sigma=None, y=None):
     pyro.sample('eta' + '__1', dist.Normal(zeros(J), ones(J)), obs=eta)
     pyro.sample('y' + '__2', dist.Normal(theta, sigma), obs=y)
 
-def generated_quantities(J=None, sigma=None, y=None, __sampler=None):
-    __sample = __sampler()
-    tau = __sample.tau
-    mu = __sample.mu
-    eta = __sample.eta
+def generated_quantities(J=None, sigma=None, y=None, parameters=None):
+    eta = parameters['eta']
+    mu = parameters['mu']
+    tau = parameters['tau']
+    ___shape = {}
     ___shape['theta'] = J
     theta = zeros(___shape['theta'])
     for j in range(1, J + 1):

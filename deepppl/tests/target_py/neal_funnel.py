@@ -18,10 +18,10 @@ def model():
     pyro.sample('y_std' + '__1', dist.Normal(0, 1), obs=y_std)
     pyro.sample('x_std' + '__2', dist.Normal(0, 1), obs=x_std)
 
-def generated_quantities(__sampler=None):
-    __sample = __sampler()
-    x_std = __sample.x_std
-    y_std = __sample.y_std
+def generated_quantities(parameters=None):
+    x_std = parameters['x_std']
+    y_std = parameters['y_std']
+    ___shape = {}
     ___shape['y'] = ()
     y = 3.0 * y_std
     ___shape['x'] = ()

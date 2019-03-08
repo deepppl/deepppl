@@ -1,5 +1,4 @@
 import torch
-<<<<<<< HEAD
 from torch import tensor, rand
 import pyro
 import torch.distributions.constraints as constraints
@@ -23,9 +22,6 @@ def model2():
     return (x, y)
 
 
-import torch
-=======
->>>>>>> 4 working examples
 from torch import nn
 from torch.nn import functional as F
 from torch import tensor
@@ -38,27 +34,16 @@ import logging
 import time
 import pystan
 from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
-<<<<<<< HEAD
 import matplotlib.pyplot as plt
-=======
-
->>>>>>> 4 working examples
 
 import deepppl
 import os
 import pandas as pd
 
 stan_model_file = 'deepppl/tests/good/neal_funnel.stan'
-<<<<<<< HEAD
-global_num_iterations = 1000
-global_num_chains = 1
-global_warmup_steps = 100
-
-=======
 global_num_iterations=3000
 global_num_chains=1
 global_warmup_steps = 300
->>>>>>> 4 working examples
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
@@ -66,20 +51,23 @@ def nuts(model, **kwargs):
 
 def test_neals_funnel():
     model = deepppl.DppplModel(model_file=stan_model_file)
-    #print(astor.to_source(model._model))
+    # model._model = model2
     posterior = model.posterior(
         method=nuts,
         num_samples=global_num_iterations-global_warmup_steps,
         warmup_steps=global_warmup_steps)
 
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(), sites=['x_std', 'y_std'])
+    # xy = [model._model() for _ in range(100)]
+    # x = [xi.item() for (xi, yi) in xy]
+    # y = [yi.item() for (xi, yi) in xy]
 
-    samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
-    stack_samples = torch.stack(samples_fstan)
-    import matplotlib.pyplot as plt
-    y = 3 * stack_samples[:, 1]
-    x = exp(y/2)*stack_samples[:, 0]
+    def params_of_sample(s):
+        return { 'x_std':s[0], 'y_std': s[1] }
+    samples_fstan = [marginal() for _ in range(100)]
+    xy = [ model.generated_quantities(parameters=params_of_sample(sample)) for sample in samples_fstan ]
+    x = [ o['x'].item() for o in xy ]
+    y = [ o['y'].item() for o in xy ]
 
     plt.scatter(x, y)
     plt.plot()

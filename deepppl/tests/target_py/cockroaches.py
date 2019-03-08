@@ -37,14 +37,13 @@ def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
     pyro.sample('y' + '__3', poisson_log(log_expo + beta[1 - 1] + beta[2 - 1] *
                                        roach1 + beta[3 - 1] * treatment + beta[4 - 1] * senior + lmbda), obs=y
                 )
-
-
 def generated_quantities(N=None, exposure2=None, roach1=None, senior=None,
-    treatment=None, y=None, transformed_data=None, __sampler=None):
-    __sample = __sampler()
-    beta = __sample.beta
-    tau = __sample.tau
-    lmbda = __sample.lmbda
+    treatment=None, y=None, transformed_data=None, parameters=None):
+    log_expo = transformed_data['log_expo']
+    beta = parameters['beta']
+    lmbda = parameters['lmbda']
+    tau = parameters['tau']
+    ___shape = {}
     ___shape['sigma'] = ()
     sigma = 1.0 / sqrt(tau)
     return {'sigma': sigma}
