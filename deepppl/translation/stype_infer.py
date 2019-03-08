@@ -159,7 +159,7 @@ class TypeInferenceVisitor(IRVisitor):
         if stmt.id in set(["exp", "softplus", "log"]):
             arg0_type = stmt.args.children[0].accept(self)
             res = arg0_type.asRealArray()
-        elif stmt.id in set(["zeros", "ones", "rantdn", "rand"]):
+        elif stmt.id in set(["zeros", "ones", "randn", "rand"]):
             args = stmt.args.children
             if len(args) == 0:
                 stmt.args.children = [AnonymousShapeProperty()]
