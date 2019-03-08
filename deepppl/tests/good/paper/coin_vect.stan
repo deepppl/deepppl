@@ -8,6 +8,5 @@ parameters {
 }
 model {
   z ~ beta(1, 1);
-  for (i in 1:N)
-    x[i] ~ bernoulli(z);
+  x ~ bernoulli(z);
 }
