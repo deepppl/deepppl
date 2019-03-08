@@ -51,16 +51,16 @@ def normalize_and_compare_test(test_name):
         normalize_and_compare(filename, target_file)
 
 def test_bayes_nn():
-#        filename = r'deepppl/tests/good/paper/bayes_nn.stan'
-#        dpplc.stan2astpyFile(filename)
-# TODO: for some reason comparison fails, even when the input/output appears to be exactly the same
         normalize_and_compare_test('bayes_nn')
-
-def test_coin():
-        normalize_and_compare_test('coin')
 
 def test_coin_guide():
         normalize_and_compare_test('coin_guide')
+
+def test_coin_vect():
+        normalize_and_compare_test('coin_vect')
+
+def test_coin():
+        normalize_and_compare_test('coin')
 
 def test_multimodal():
         normalize_and_compare_test('multimodal')
