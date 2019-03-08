@@ -62,9 +62,9 @@ def model2(I=None, N=None, n=None, x1=None, x2=None, transformed_data=None):
                                           x2 + alpha12 * x1x2 + b), obs=n)
 
 stan_model_file = 'deepppl/tests/good/seeds.stan'
-global_num_iterations=1000
+global_num_iterations=3000
 global_num_chains=1
-global_warmup_steps = 100
+global_warmup_steps = 300
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
@@ -72,7 +72,6 @@ def nuts(model, **kwargs):
 
 def test_seeds():
     model = deepppl.DppplModel(model_file=stan_model_file)
-    model._model = model2
     posterior = model.posterior(
         method=nuts,
         num_samples=global_num_iterations-global_warmup_steps,
@@ -83,18 +82,21 @@ def test_seeds():
     local_x1 = torch.Tensor(x1)
     local_x2 = torch.Tensor(x2)
 
+    t1 = time.time()
     marginal = pyro.infer.EmpiricalMarginal(posterior.run(I = I, n = local_n,
     N = local_N, x1 = local_x1, x2 = local_x2, transformed_data = 
     transformed_data(I = I, n = local_n, N = local_N, x1 = local_x1, x2 = local_x2)), 
         sites=['alpha0', 'alpha1', 'alpha12', 'alpha2', 'tau'])
 
     samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
+    t2 = time.time()
+    
     stack_samples = torch.stack(samples_fstan).numpy()
 
     params = ['alpha0', 'alpha1', 'alpha12', 'alpha2', 'tau']
     df = pd.DataFrame(stack_samples, columns=params)
 
-    pystan_output, pystan_time = compare_with_stan_output()
+    pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output()
 
     assert df.shape == pystan_output.shape
     from scipy.stats import entropy
@@ -105,6 +107,8 @@ def test_seeds():
         kl = entropy(hist1[0]+1, hist2[0]+1)
         skl = kl + entropy(hist2[0]+1, hist1[0]+1)
         print('skl for column:{} is:{}'.format(column, skl))
+
+    print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, pystan_time))
 
 def compare_with_stan_output():
     stan_code = open(stan_model_file).read()
@@ -155,8 +159,15 @@ def compare_with_stan_output():
     }
 
     # Compile and fit
+    t1 = time.time()
+
     sm1 = pystan.StanModel(model_code=str(stan_code))
     print("Compilation done")
+
+    t2 = time.time()
+
+    pystan_compilation_time = t2-t1
+
     t1 = time.time()
 
     fit_stan = sm1.sampling(data = data, iter=global_num_iterations, chains=global_num_chains, 
@@ -179,7 +190,7 @@ def compare_with_stan_output():
     df = pd.DataFrame(marginal, columns=params)
 
     t2 = time.time()
-    return df, t2-t1
+    return df, t2-t1, pystan_compilation_time
 
 
 if __name__ == "__main__":
