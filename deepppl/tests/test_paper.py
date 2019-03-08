@@ -42,7 +42,7 @@ def normalize_and_compare(src_file, target_file):
         target_code = f.read()
     target = code_to_normalized(target_code)
     
-    compiled = dpplc.stan2astpyFile(src_file, verbose=True)
+    compiled = dpplc.stan2astpyFile(src_file)
     assert code_to_normalized(compiled) == target
 
 def normalize_and_compare_test(test_name):
@@ -51,10 +51,10 @@ def normalize_and_compare_test(test_name):
         normalize_and_compare(filename, target_file)
 
 def test_bayes_nn():
-        filename = r'deepppl/tests/good/paper/bayes_nn.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+#        filename = r'deepppl/tests/good/paper/bayes_nn.stan'
+#        dpplc.stan2astpyFile(filename)
 # TODO: for some reason comparison fails, even when the input/output appears to be exactly the same
-#        normalize_and_compare_test('bayes_nn')
+        normalize_and_compare_test('bayes_nn')
 
 def test_coin():
         normalize_and_compare_test('coin')

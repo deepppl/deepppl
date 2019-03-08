@@ -5,18 +5,18 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def guide_(nz: 'int'=None, x: 'int[28,28]'=None):
+def guide_(nz=None, x=None):
     pyro.module('encoder', encoder)
-    encoded: 'real[2,nz]' = encoder(x)
-    mu_z: 'real[nz]' = encoded[1 - 1]
-    sigma_z: 'real[nz]' = encoded[2 - 1]
-    z: 'real[nz][??]' = pyro.sample('z', dist.Normal(mu_z, sigma_z))
+    encoded = encoder(x)
+    mu_z = encoded[1 - 1]
+    sigma_z = encoded[2 - 1]
+    z = pyro.sample('z', dist.Normal(mu_z, sigma_z))
 
 
-def model(nz: 'int'=None, x: 'int[28,28]'=None):
+def model(nz=None, x=None):
     pyro.module('decoder', decoder)
-    z: 'real[nz][??]' = pyro.sample('z', ImproperUniform(shape=nz))
-    mu: 'real[28,28]' = zeros((28, 28))
-    pyro.sample('z' + '__1', dist.Normal(0, 1), obs=z)
-    mu: 'real[28,28]' = decoder(z)
+    z = pyro.sample('z', ImproperUniform(shape=nz))
+    mu = zeros((28, 28))
+    pyro.sample('z' + '__1', dist.Normal(zeros(nz), 1), obs=z)
+    mu = decoder(z)
     pyro.sample('x' + '__2', dist.Bernoulli(mu), obs=x)
