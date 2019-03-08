@@ -66,6 +66,7 @@ class DppplModel(object):
 
     def _loadBasicHooks(self):
         hooks = {x.__name__: x for x in [
+            torch.sqrt,
             torch.randn,
             torch.exp,
             torch.log,
