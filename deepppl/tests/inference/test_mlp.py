@@ -54,3 +54,8 @@ def test_mlp_inference():
         images, labels = data
         accuracy = (predict(images, posterior) == labels).type(torch.float).mean()
         assert accuracy > 0.6
+
+    print('accuracy:', accuracy)
+
+if __name__ == "__main__":
+    test_mlp_inference()
