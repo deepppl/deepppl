@@ -5,16 +5,11 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def model(N_mis=None, N_obs=None, y_obs=None):
-    ___shape = {}
-    ___shape['N_obs'] = ()
-    ___shape['N_mis'] = ()
-    ___shape['y_obs'] = N_obs
-    ___shape['mu'] = ()
-    ___shape['sigma'] = ()
-    ___shape['y_mis'] = N_mis
-    mu = pyro.sample('mu', ImproperUniform())
-    sigma = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
-    y_mis = pyro.sample('y_mis', ImproperUniform(N_mis))
-    pyro.sample('y_obs' + '__1', dist.Normal(mu, sigma), obs=y_obs)
-    pyro.sample('y_mis' + '__2', dist.Normal(mu, sigma), obs=y_mis)
+def model(N_mis: 'int'=None, N_obs: 'int'=None, y_obs: 'real[N_obs]'=None):
+    mu: 'real' = pyro.sample('mu', ImproperUniform())
+    sigma: 'real' = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
+    y_mis: 'real[N_mis]' = pyro.sample('y_mis', ImproperUniform(shape=N_mis))
+    pyro.sample('y_obs' + '__1', dist.Normal(mu * ones(N_obs), sigma), obs=
+        y_obs)
+    pyro.sample('y_mis' + '__2', dist.Normal(mu * ones(N_mis), sigma), obs=
+        y_mis)
