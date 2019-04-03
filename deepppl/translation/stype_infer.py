@@ -143,11 +143,13 @@ class TypeInferenceVisitor(IRVisitor):
         ir.accept(visitor)
         return visitor
 
-    def __init__(self, *, denv={}, tenv={}, equalities=Groups()):
+    def __init__(self, *, denv={}, tenv={}, equalities=None):
         super(TypeInferenceVisitor, self).__init__()
         self._ctx = {}
         self._anons = {}
         self._nets = {}
+        if equalities is None:
+            equalities = Groups()
         self.equalities = equalities
         self.denv = denv
         self.tenv = tenv
