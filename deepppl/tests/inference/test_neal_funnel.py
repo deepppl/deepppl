@@ -5,6 +5,7 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 from deepppl.utils.utils import *
 from torch import exp
+import pytest
 
 
 def model2():
