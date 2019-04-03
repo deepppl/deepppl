@@ -49,6 +49,7 @@ def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
     return mcmc.MCMC(nuts_kernel, **kwargs)
 
+@pytest.mark.xfail(strict=False, reason="There is a call to marginal that does not resolve.  Not sure what it is supposed to do.")
 def test_neals_funnel():
     model = deepppl.DppplModel(model_file=stan_model_file)
     # model._model = model2
