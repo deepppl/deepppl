@@ -11,6 +11,7 @@ import logging
 import time
 import pystan
 from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
+from deepppl.tests.utils import skip_on_travis
 import deepppl
 import os
 import pandas as pd
@@ -24,6 +25,7 @@ def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
     return mcmc.MCMC(nuts_kernel, **kwargs)
 
+@skip_on_travis
 def test_multi_modal():
     model = deepppl.DppplModel(model_file=stan_model_file)
     #model._model = model2

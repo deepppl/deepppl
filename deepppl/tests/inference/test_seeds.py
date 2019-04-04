@@ -22,6 +22,8 @@ import os
 import pandas as pd
 from torch import zeros, ones, sqrt
 from deepppl.utils.utils import *
+from deepppl.tests.utils import skip_on_travis
+
 
 def transformed_data(I=None, N=None, n=None, x1=None, x2=None):
     ___shape = {}
@@ -70,6 +72,7 @@ def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
     return mcmc.MCMC(nuts_kernel, **kwargs)
 
+@skip_on_travis
 def test_seeds():
     model = deepppl.DppplModel(model_file=stan_model_file)
     posterior = model.posterior(
