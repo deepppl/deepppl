@@ -50,7 +50,7 @@ def test_schools():
     marginal = torch.cat(list(marginal.support(
         flatten=True).values()), dim=-1).cpu().numpy()
     
-    marginal2 = posterior.marginal(sites=["mu"])
+    marginal2 = posterior.marginal(sites=["tau"])
     marginal2 = torch.cat(list(marginal2.support(
         flatten=True).values()), dim=-1).cpu().numpy()
 
