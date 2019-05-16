@@ -328,7 +328,7 @@ class TypeInferenceVisitor(IRVisitor):
             self.Tunify(target_type, res)
 
         else:
-            print("WARNING: unknown distribution {stmt.id} is not yet supported")
+            print(f"WARNING: unknown distribution {stmt.id} is not yet supported")
             for arg in stmt.args:
                 arg.accept(self)
 
