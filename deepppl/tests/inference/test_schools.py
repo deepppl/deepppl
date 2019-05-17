@@ -20,9 +20,9 @@ import os
 import pandas as pd
 
 stan_model_file = 'deepppl/tests/good/schools.stan'
-global_num_iterations=1000
+global_num_iterations=10000
 global_num_chains=1
-global_warmup_steps = 100
+global_warmup_steps = 1000
 
 def nuts(model, **kwargs):
     nuts_kernel = mcmc.NUTS(model)
