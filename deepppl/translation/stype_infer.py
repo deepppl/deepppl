@@ -367,6 +367,7 @@ class TypeInferenceVisitor(IRVisitor):
     visitTransformedParameters = visitProgramBlocks
     visitGuideParameters = visitProgramBlocks
     visitSamplingBlocks = visitProgramBlocks
+    visitGeneratedQuantities = visitProgramBlocks
     visitModel = visitSamplingBlocks
     visitGuide = visitSamplingBlocks
     visitPrior = visitSamplingBlocks
