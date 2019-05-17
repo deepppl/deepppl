@@ -14,7 +14,8 @@
 #  * limitations under the License.
 #  */
 
-
+import pandas as pd
+from collections import defaultdict
 import pyro
 from pyro import infer
 from pyro.optim import Adam
