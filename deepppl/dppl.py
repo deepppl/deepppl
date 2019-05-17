@@ -92,6 +92,17 @@ class DppplModel(object):
     def generated_quantities(self, *args, **kwargs):
         return self._generated_quantities(*args, **kwargs)
 
+    def run_generated(self, posterior, **kwargs):
+        args = dict(kwargs)
+        def convert_dict(dict):
+            return {k:_convert_to_np(dict, k) for k in dict}
+        answer = defaultdict(list)
+        for params in extract_params(posterior):
+            args['parameters'] = params
+            for k,v in convert_dict(self.generated_quantities(**args)).items():
+                answer[k].append(v)
+        return {k : pd.DataFrame(v) for k, v in answer.items()}
+
 
 class SVIProxy(object):
     def __init__(self, svi):
@@ -104,3 +115,22 @@ class SVIProxy(object):
 
     def step(self, *args):
         return self.svi.step(*args)
+
+
+def _convert_to_np(dict, k):
+    value = dict[k]
+    if type(value) == torch.Tensor:
+        return value.cpu().numpy()
+    else:
+        return value
+
+
+def _make_params(trace):
+    answer = {}
+    for name, node in trace.nodes.items():
+        if node['type'] == 'sample' and not node['is_observed']:
+            answer[name] = _convert_to_np(node, 'value')
+    return answer
+
+def extract_params(posterior):
+    return [_make_params(trace) for trace in posterior.exec_traces]
