@@ -12,7 +12,7 @@ import time
 
 stan_model_file = 'deepppl/tests/good/linear_regression.stan'
 stan_array_model_file = 'deepppl/tests/good/linear_regression_array.stan'
-global_num_iterations=3000
+global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
@@ -66,7 +66,7 @@ def test_linear_regression():
         hist2 = np.histogram(pystan_output[column], bins = hist1[1])
         kl = entropy(hist1[0]+1, hist2[0]+1)
         skl = kl + entropy(hist2[0]+1, hist1[0]+1)
-        print('skl for column:{} is:{:.2f}'.format(column, skl))
+        print('skl for column:{} is:{:.6f}'.format(column, skl))
 
     print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, pystan_time))
 

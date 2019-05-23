@@ -64,7 +64,7 @@ def model2(I=None, N=None, n=None, x1=None, x2=None, transformed_data=None):
                                           x2 + alpha12 * x1x2 + b), obs=n)
 
 stan_model_file = 'deepppl/tests/good/seeds.stan'
-global_num_iterations=3000
+global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
