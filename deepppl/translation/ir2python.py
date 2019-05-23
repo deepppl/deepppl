@@ -1273,10 +1273,11 @@ class Ir2PythonVisitor(IRVisitor):
                                         args = self.modelArgsAsParams()
                                         )
                             )
-        states = self.call(self.loadAttr(self.loadName(prior), 'state_dict'))
+        states = self.call(self.loadAttr(self.loadName(prior), 'named_parameters'))
+        _dict = self.call(self.loadName('dict'), [states,])
         states_dict = self._assign(
                             self.loadName(f'{basename}_{prior}'),
-                            states
+                            _dict
                         )
         return [lifted_prior, states_dict]
 
