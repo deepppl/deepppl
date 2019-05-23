@@ -36,7 +36,7 @@ def prior_mlp(batch_size=None, imgs=None, labels=None):
 
 def model(batch_size=None, imgs=None, labels=None):
     mlp = prior_mlp(batch_size, imgs, labels)
-    model_mlp = mlp.state_dict()
+    model_mlp = dict(mlp.named_parameters())
     logits = zeros(batch_size)
     pyro.sample('model_mlp' + '__{}'.format('l1.weight') + '__1', dist.
         Normal(zeros(mlp.l1.weight.shape), ones(mlp.l1.weight.shape)), obs=

@@ -73,7 +73,7 @@ def model(category=None, input=None, n_characters=None):
     ___shape['input'] = n_characters
     ___shape['category'] = n_characters
     rnn = prior_rnn(category, input, n_characters)
-    model_rnn = rnn.state_dict()
+    model_rnn = dict(rnn.named_parameters())
     ___shape['logits'] = n_characters
     logits = zeros(___shape['logits'])
     pyro.sample('model_rnn' + '__{}'.format('encoder.weight') + '__1', dist.
