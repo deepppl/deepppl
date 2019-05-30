@@ -1,8 +1,6 @@
 
 # Aspirin example from https://jrnold.github.io/bugs-examples-in-stan/aspirin.html#non-centered-parameterization
-import seaborn as sns
 from matplotlib import pyplot as plt
-sns.set_style('white')
 from collections import defaultdict
 import torch
 from torch import tensor, rand
