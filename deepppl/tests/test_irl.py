@@ -146,113 +146,116 @@ def test_lstm():
     target_file = r'deepppl/tests/target_py/lstm.py'
     normalize_and_compare(filename, target_file)
 
+def compile(filename):
+    config = dpplc.Config()
+    dpplc.stan2astpyFile(filename, config, verbose=True)
 
 def test_coin_guide_missing_var():
     with pytest.raises(MissingGuideException):
         filename = r'deepppl/tests/good/coin_guide_missing_var.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_guide_sample_obs():
     with pytest.raises(ObserveOnGuideException):
         filename = r'deepppl/tests/good/coin_guide_sample_obs.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_guide_missing_model():
     "Implicit prior allows to write missing model."
     with not_raises(MissingModelException):
         filename = r'deepppl/tests/good/coin_guide_missing_model.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_mlp_undeclared_parameters():
     with pytest.raises(UndeclaredParametersException):
         filename = r'deepppl/tests/good/mlp_undeclared_parameters.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_mlp_undeclared_network1():
     with pytest.raises(UndeclaredNetworkException):
         filename = r'deepppl/tests/good/mlp_undeclared_net1.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_mlp_undeclared_network2():
     with pytest.raises(UndeclaredNetworkException):
         filename = r'deepppl/tests/good/mlp_undeclared_net2.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_mlp_missing_guide():
     with pytest.raises(MissingGuideNetException):
         filename = r'deepppl/tests/good/mlp_missing_guide.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 @pytest.mark.xfail(strict=False, reason="This currently fails with type inference.  Reasons not yet investigated.")
 def test_mlp_missing_model():
     with not_raises(MissingPriorNetException):
         filename = r'deepppl/tests/good/mlp_missing_model.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 @pytest.mark.xfail(strict=False, reason="Type inference results in a different error.")
 def test_mlp_incorrect_shape1():
     with pytest.raises(IncompatibleShapes):
         filename = r'deepppl/tests/good/mlp_incorrect_shape1.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 @pytest.mark.xfail(strict=False, reason="Type inference results in this test passing.")
 def test_mlp_incorrect_shape2():
     with pytest.raises(IncompatibleShapes):
         filename = r'deepppl/tests/good/mlp_incorrect_shape2.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 @pytest.mark.xfail(strict=False, reason="Type inference results in this test passing.")
 def test_mlp_incorrect_shape3():
     with pytest.raises(IncompatibleShapes):
         filename = r'deepppl/tests/good/mlp_incorrect_shape3.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 @pytest.mark.xfail(strict=False, reason="Type inference results in this test passing.")
 def test_mlp_incorrect_shape4():
     with pytest.raises(IncompatibleShapes):
         filename = r'deepppl/tests/good/mlp_incorrect_shape4.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_invalid_sampling():
     with not_raises(InvalidSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_invalid_sampling2():
     with not_raises(NonRandomSamplingException):
         filename = r'deepppl/tests/good/coin_invalid_sampling2.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_unknown_identifier():
     with pytest.raises(UndeclaredVariableException):
         filename = r'deepppl/tests/good/coin_unknown_identifier.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_unknown_distribution():
     with pytest.raises(UnknownDistributionException):
         filename = r'deepppl/tests/good/coin_unknown_distribution.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_coin_already_declared():
     with pytest.raises(AlreadyDeclaredException):
         filename = r'deepppl/tests/good/coin_already_declared_var.stan'
-        dpplc.stan2astpyFile(filename, verbose=True)
+        compile(filename)
 
 
 def test_mlp_unsupported_property():
