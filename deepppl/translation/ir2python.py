@@ -582,7 +582,7 @@ class Ir2PythonVisitor(IRVisitor):
 
 
 
-    def __init__(self, type_infer, verbose=False):
+    def __init__(self, type_infer, config, verbose=False):
         super(Ir2PythonVisitor, self).__init__()
         self._program = None
         self.data_names = set()
@@ -600,6 +600,9 @@ class Ir2PythonVisitor(IRVisitor):
         self.forIndexes = []
         self.type_infer = type_infer
         self.verbose = verbose
+        self._config = config
+        self._moduleHeader = ModuleHeader.create(config, self.helper)
+        
 
     def _ensureStmt(self, node):
         return self.helper.ensureStmt(node)
@@ -1210,7 +1213,7 @@ class Ir2PythonVisitor(IRVisitor):
     def modelArgsAsParams(self, no_transformed_data=False):
         args = [self.loadName(name) for name in sorted(self.data_names)]
         if not no_transformed_data and self._transformed_data_names:
-            td_args = modelArgsAsParams(self, no_transformed_data=True)
+            td_args = self.modelArgsAsParams(no_transformed_data=True)
             td_call = self.call(
                 id = self.loadName('transformed_data'),
                 args = td_args
@@ -1332,23 +1335,48 @@ class Ir2PythonVisitor(IRVisitor):
             python_nodes += [self.buildGeneratedQuantities()]
         body = self._ensureStmtList(python_nodes)
         module = ast.Module()
-        module.body = [
-            self.import_('torch'),
-            self.importFrom_('torch', ['tensor', 'rand']),
-            self.import_('pyro'),
-            self.import_('torch.distributions.constraints', 'constraints'),
-            self.import_('pyro.distributions', 'dist')]
-        module.body += body
+        module.body = self._moduleHeader.build() + body
         ast.fix_missing_locations(module)
         if from_test():
             # astpretty.pprint(module)
             print(astor.to_source(module))
         return module
 
+class ModuleHeader(object):
+    def __init__(self, helper):
+        self._helper = helper
+        
+    def build(self):
+        raise NotImplementedError
+    
+    def import_(self, *args):
+        return self._helper.import_(*args)
+    
+    def importFrom_(self, *args):
+        return self._helper.importFrom_(*args)
+    
+    @classmethod
+    def create(cls, config, helper):
+        if config.numpyro:
+            return NumPyroModuleHeader(helper)
+        else:
+            return PyroModuleHeader(helper)
+        
+class PyroModuleHeader(ModuleHeader):
+    def build(self):
+        answer = [
+            self.import_('torch'),
+            self.importFrom_('torch', ['tensor', 'rand']),
+            self.import_('pyro'),
+            self.import_('torch.distributions.constraints', 'constraints'),
+            self.import_('pyro.distributions', 'dist')]
+        return answer
+    
+        
 
 
 
-def ir2python(ir, verbose=False):
+def ir2python(ir, config, verbose=False):
     initialization = VariableInitializationVisitor()
     ir.accept(initialization)
     annotator = VariableAnnotationsVisitor()
@@ -1363,7 +1391,7 @@ def ir2python(ir, verbose=False):
     type_infer.dims_canon_map = makeGroupCanonLookup(equality_groups)
     if verbose and len(equality_groups) != 0:
         print(f"WARNING: There are unproven equality constraints: {equality_grouper}.  The lookup map is {type_infer.dims_canon_map}")
-    visitor = Ir2PythonVisitor(type_infer, verbose=verbose)
+    visitor = Ir2PythonVisitor(type_infer, config, verbose=verbose)
     a = ir.accept(visitor)
     ast.fix_missing_locations(a)
     return a

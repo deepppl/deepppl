@@ -28,6 +28,9 @@ import torch
 import pyro
 import pyro.distributions as dist
 
+class Config(object):
+    numpyro = False
+
 class MyErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         print('Line ' + str(line) + ':' + str(column) +
@@ -48,35 +51,37 @@ def parsetreeToIR(tree):
     walker.walk(toIr, tree)
     return tree.ir
 
-def stan2astpy(stream, verbose=False):
+def stan2astpy(stream, config, verbose=False):
     tree = streamToParsetree(stream)
     ir = parsetreeToIR(tree)
-    return ir2python(ir, verbose=verbose)
+    return ir2python(ir, config, verbose=verbose)
 
-def stan2astpyFile(filename, verbose=False):
+def stan2astpyFile(filename, config, verbose=False):
     stream = FileStream(filename)
-    return stan2astpy(stream, verbose=verbose)
+    return stan2astpy(stream, config, verbose=verbose)
 
-def stan2astpyStr(str, verbose=False):
+def stan2astpyStr(str, config, verbose=False):
     stream = InputStream(str)
-    return stan2astpy(stream, verbose=verbose)
+    return stan2astpy(stream, config, verbose=verbose)
 
-def stan2pystr(str, verbose=False):
+def stan2pystr(str, config, verbose=False):
     """Return the program's python source code""" 
-    py = stan2astpyStr(str, verbose=verbose)
+    py = stan2astpyStr(str, config, verbose=verbose)
     return astor.to_source(py)
 
 def do_compile(model_code = None, model_file = None, verbose=False):
     if not (model_code or model_file) or (model_code and model_file):
         assert False, "Either code or file but not both must be provided."
+    config = Config()
     if model_code:
-        ast_ = stan2astpyStr(model_code, verbose=verbose)
+        ast_ = stan2astpyStr(model_code, config, verbose=verbose)
     else:
-        ast_ = stan2astpyFile(model_file, verbose=verbose)
+        ast_ = stan2astpyFile(model_file, config, verbose=verbose)
     return compile(ast_, "<deepppl_ast>", 'exec')
 
 def main(file, verbose=False):
-    return stan2astpyFile(file, verbose=verbose)
+    config = Config()
+    return stan2astpyFile(file, config, verbose=verbose)
 
 
 if __name__ == '__main__':
