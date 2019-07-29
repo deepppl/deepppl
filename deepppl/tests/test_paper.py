@@ -41,8 +41,9 @@ def normalize_and_compare(src_file, target_file):
     with open(target_file) as f:
         target_code = f.read()
     target = code_to_normalized(target_code)
+    config = dpplc.Config()
     
-    compiled = dpplc.stan2astpyFile(src_file)
+    compiled = dpplc.stan2astpyFile(src_file, config)
     assert code_to_normalized(compiled) == target
 
 def normalize_and_compare_test(test_name):
