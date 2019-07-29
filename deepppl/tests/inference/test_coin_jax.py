@@ -21,7 +21,7 @@ import pandas as pd
 stan_model_file = 'deepppl/tests/good/coin.stan'
 global_num_iterations=10000
 global_num_chains=1
-global_warmup_steps = 300
+global_warmup_steps = 1000
 
 x = [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
 def run_inference(model, x):
@@ -57,7 +57,7 @@ def test_coin():
     skl = kl + entropy(hist2[0]+1, hist1[0]+1)
     ks = ks_2samp(samples_fstan, pystan_output)
     print('skl for theta is:{:.6}'.format(skl))
-    print(f'skl for theta is: {ks}')
+    print(f'ks for theta is: {ks}')
 
     print("Time taken: deepstan:{:.2f}, pystan_compilation:{:.2f}, pystan:{:.2f}".format(t2-t1, pystan_compilation_time, pystan_time))
 
