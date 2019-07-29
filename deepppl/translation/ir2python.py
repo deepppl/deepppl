@@ -972,7 +972,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def samplingCall(self, sampling, target, keywords = [], observed = None):
         dist = self.samplingDist(sampling)
-        sample = self._pyroattr('sample')
+        sample = self.loadName('sample')
         target_name = self.targetToName(target, observed = observed)
         return self.call(sample,
                         args = [target_name, dist],

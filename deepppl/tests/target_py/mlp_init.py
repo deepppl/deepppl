@@ -38,17 +38,17 @@ def model(batch_size=None, imgs=None, labels=None):
     mlp = prior_mlp(batch_size, imgs, labels)
     model_mlp = dict(mlp.named_parameters())
     logits = zeros(batch_size)
-    pyro.sample('model_mlp' + '__{}'.format('l1.weight') + '__1', dist.
+    sample('model_mlp' + '__{}'.format('l1.weight') + '__1', dist.
         Normal(zeros(mlp.l1.weight.shape), ones(mlp.l1.weight.shape)), obs=
         model_mlp['l1.weight'])
-    pyro.sample('model_mlp' + '__{}'.format('l1.bias') + '__2', dist.Normal
+    sample('model_mlp' + '__{}'.format('l1.bias') + '__2', dist.Normal
         (zeros(mlp.l1.bias.shape), ones(mlp.l1.bias.shape)), obs=model_mlp[
         'l1.bias'])
-    pyro.sample('model_mlp' + '__{}'.format('l2.weight') + '__3', dist.
+    sample('model_mlp' + '__{}'.format('l2.weight') + '__3', dist.
         Normal(zeros(mlp.l2.weight.shape), ones(mlp.l2.weight.shape)), obs=
         model_mlp['l2.weight'])
-    pyro.sample('model_mlp' + '__{}'.format('l2.bias') + '__4', dist.Normal
+    sample('model_mlp' + '__{}'.format('l2.bias') + '__4', dist.Normal
         (zeros(mlp.l2.bias.shape), ones(mlp.l2.bias.shape)), obs=model_mlp[
         'l2.bias'])
     logits = mlp(imgs)
-    pyro.sample('labels' + '__5', categorical_logits(logits), obs=labels)
+    sample('labels' + '__5', categorical_logits(logits), obs=labels)

@@ -11,19 +11,19 @@ def guide_():
     mu2 = pyro.param('mu2', (2 - -2) * rand(()) + -2)
     log_sigma1 = pyro.param('log_sigma1', (2 - -2) * rand(()) + -2)
     log_sigma2 = pyro.param('log_sigma2', (2 - -2) * rand(()) + -2)
-    cluster = pyro.sample('cluster', dist.Normal(mu_cluster, 1))
+    cluster = sample('cluster', dist.Normal(mu_cluster, 1))
     if cluster > 0:
-        theta = pyro.sample('theta', dist.Normal(mu1, exp(log_sigma1)))
+        theta = sample('theta', dist.Normal(mu1, exp(log_sigma1)))
     else:
-        theta = pyro.sample('theta', dist.Normal(mu2, exp(log_sigma2)))
+        theta = sample('theta', dist.Normal(mu2, exp(log_sigma2)))
 
 
 def model():
-    cluster = pyro.sample('cluster', ImproperUniform())
-    theta = pyro.sample('theta', ImproperUniform())
-    pyro.sample('cluster' + '__1', dist.Normal(0, 1), obs=cluster)
+    cluster = sample('cluster', ImproperUniform())
+    theta = sample('theta', ImproperUniform())
+    sample('cluster' + '__1', dist.Normal(0, 1), obs=cluster)
     if cluster > 0:
         mu = 2
     else:
         mu = 0
-    pyro.sample('theta' + '__2', dist.Normal(mu, 1), obs=theta)
+    sample('theta' + '__2', dist.Normal(mu, 1), obs=theta)

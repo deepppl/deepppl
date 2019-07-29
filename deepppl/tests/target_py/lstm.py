@@ -76,26 +76,26 @@ def model(category=None, input=None, n_characters=None):
     model_rnn = dict(rnn.named_parameters())
     ___shape['logits'] = n_characters
     logits = zeros(___shape['logits'])
-    pyro.sample('model_rnn' + '__{}'.format('encoder.weight') + '__1', dist.
+    sample('model_rnn' + '__{}'.format('encoder.weight') + '__1', dist.
         Normal(zeros(rnn.encoder.weight.shape), ones(rnn.encoder.weight.
         shape)), obs=model_rnn['encoder.weight'])
-    pyro.sample('model_rnn' + '__{}'.format('gru.weight_ih_l0') + '__2', dist.
+    sample('model_rnn' + '__{}'.format('gru.weight_ih_l0') + '__2', dist.
         Normal(zeros(rnn.gru.weight_ih_l0.shape), ones(rnn.gru.weight_ih_l0
         .shape)), obs=model_rnn['gru.weight_ih_l0'])
-    pyro.sample('model_rnn' + '__{}'.format('gru.weight_hh_l0') + '__3', dist.
+    sample('model_rnn' + '__{}'.format('gru.weight_hh_l0') + '__3', dist.
         Normal(zeros(rnn.gru.weight_hh_l0.shape), ones(rnn.gru.weight_hh_l0
         .shape)), obs=model_rnn['gru.weight_hh_l0'])
-    pyro.sample('model_rnn' + '__{}'.format('gru.bias_ih_l0') + '__4', dist.
+    sample('model_rnn' + '__{}'.format('gru.bias_ih_l0') + '__4', dist.
         Normal(zeros(rnn.gru.bias_ih_l0.shape), ones(rnn.gru.bias_ih_l0.
         shape)), obs=model_rnn['gru.bias_ih_l0'])
-    pyro.sample('model_rnn' + '__{}'.format('gru.bias_hh_l0') + '__5', dist.
+    sample('model_rnn' + '__{}'.format('gru.bias_hh_l0') + '__5', dist.
         Normal(zeros(rnn.gru.bias_hh_l0.shape), ones(rnn.gru.bias_hh_l0.
         shape)), obs=model_rnn['gru.bias_hh_l0'])
-    pyro.sample('model_rnn' + '__{}'.format('decoder.weight') + '__6', dist.
+    sample('model_rnn' + '__{}'.format('decoder.weight') + '__6', dist.
         Normal(zeros(rnn.decoder.weight.shape), ones(rnn.decoder.weight.
         shape)), obs=model_rnn['decoder.weight'])
-    pyro.sample('model_rnn' + '__{}'.format('decoder.bias') + '__7', dist.
+    sample('model_rnn' + '__{}'.format('decoder.bias') + '__7', dist.
         Normal(zeros(rnn.decoder.bias.shape), ones(rnn.decoder.bias.shape)),
         obs=model_rnn['decoder.bias'])
     logits = rnn(input)
-    pyro.sample('category' + '__8', categorical_logits(logits), obs=category)
+    sample('category' + '__8', categorical_logits(logits), obs=category)

@@ -27,5 +27,5 @@ def model(N=None, x=None, transformed_data=None):
     ___shape['N'] = ()
     ___shape['x'] = N
     ___shape['y'] = N
-    y = pyro.sample('y', ImproperUniform(N))
-    pyro.sample('y' + '__1', dist.MultivariateNormal(mu, K), obs=y)
+    y = sample('y', ImproperUniform(N))
+    sample('y' + '__1', dist.MultivariateNormal(mu, K), obs=y)
