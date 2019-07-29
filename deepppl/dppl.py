@@ -20,6 +20,10 @@ import pyro
 from pyro import infer
 from pyro.optim import Adam
 import torch
+import numpy as onp
+from jax import numpy as jnp
+import numpyro 
+from numpyro import handlers
 from torch.nn import functional as F
 import sys
 from . import dpplc
@@ -29,10 +33,12 @@ import inspect
 
 class DppplModel(object):
     def __init__(self, model_code=None, model_file=None, **kwargs):
-        self._py = dpplc.do_compile(
-            model_code=model_code, model_file=model_file)
+        self._py = self.compile(model_code=model_code, model_file=model_file)
         self._load_py()
         self._updateHooksAll(kwargs)
+
+    def compile(self, **kwargs):
+        return dpplc.do_compile(**kwargs)
 
     def _updateHooksAll(self, hooks):
         [self._updateHooks(f, hooks) for f in (self._model,
@@ -104,7 +110,26 @@ class DppplModel(object):
             for k,v in convert_dict(self.generated_quantities(**args)).items():
                 answer[k].append(v)
         return {k : pd.DataFrame(v) for k, v in answer.items()}
-
+    
+class NumPyroDPPLModel(DppplModel):
+    def _loadBasicHooks(self):
+        hooks = {x.__name__: x for x in [
+            jnp.sqrt,
+            onp.random.randn,
+            jnp.exp,
+            jnp.log,
+            jnp.zeros,
+            jnp.ones,
+            handlers.sample]}
+        hooks['softplus'] = lambda x: jnp.logaddexp(x, 0.)
+        hooks['fabs'] = torch.abs
+        self._updateHooksAll(hooks)
+        self._updateHooksAll(utils.hooks)
+        
+    def compile(self, **kwargs):
+        config = dpplc.Config
+        config.numpyro = True
+        return super(NumPyroDPPLModel, self).compile(config=config, **kwargs)
 
 class SVIProxy(object):
     def __init__(self, svi):

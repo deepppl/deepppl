@@ -69,10 +69,11 @@ def stan2pystr(str, config, verbose=False):
     py = stan2astpyStr(str, config, verbose=verbose)
     return astor.to_source(py)
 
-def do_compile(model_code = None, model_file = None, verbose=False):
+def do_compile(model_code = None, model_file = None, config=None, verbose=False):
     if not (model_code or model_file) or (model_code and model_file):
         assert False, "Either code or file but not both must be provided."
-    config = Config()
+    if config is None:
+        config = Config()
     if model_code:
         ast_ = stan2astpyStr(model_code, config, verbose=verbose)
     else:

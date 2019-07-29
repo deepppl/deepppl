@@ -1372,6 +1372,14 @@ class PyroModuleHeader(ModuleHeader):
             self.import_('pyro.distributions', 'dist')]
         return answer
     
+class NumPyroModuleHeader(ModuleHeader):
+    def build(self):
+        answer = [
+            self.importFrom_('numpy.random', ['rand']),
+            self.import_('numpyro.distributions.constraints', 'constraints'),
+            self.import_('numpyro.distributions', 'dist')]
+        return answer
+    
         
 
 
