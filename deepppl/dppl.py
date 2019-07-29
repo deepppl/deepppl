@@ -73,7 +73,8 @@ class DppplModel(object):
             torch.log,
             torch.zeros,
             torch.ones,
-            F.softplus]}
+            F.softplus, 
+            pyro.sample]}
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
         self._updateHooksAll(utils.hooks)

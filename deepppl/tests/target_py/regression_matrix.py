@@ -14,7 +14,7 @@ def model(K=None, N=None, x=None, y=None):
     ___shape['alpha'] = ()
     ___shape['beta'] = K
     ___shape['sigma'] = ()
-    alpha = pyro.sample('alpha', ImproperUniform())
-    beta = pyro.sample('beta', ImproperUniform(K))
-    sigma = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
-    pyro.sample('y' + '__1', dist.Normal(x * beta + alpha, sigma), obs=y)
+    alpha = sample('alpha', ImproperUniform())
+    beta = sample('beta', ImproperUniform(K))
+    sigma = sample('sigma', LowerConstrainedImproperUniform(0.0))
+    sample('y' + '__1', dist.Normal(x * beta + alpha, sigma), obs=y)

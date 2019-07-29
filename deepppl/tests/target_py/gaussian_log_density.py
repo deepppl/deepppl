@@ -6,6 +6,6 @@ import pyro.distributions as dist
 
 
 def model():
-    theta: 'real' = pyro.sample('theta', ImproperUniform())
-    pyro.sample('expr' + '__1', dist.Exponential(1.0), 
+    theta: 'real' = sample('theta', ImproperUniform())
+    sample('expr' + '__1', dist.Exponential(1.0), 
         obs=-(-0.5 * (theta - 1000.0) * (theta - 1000.0)))

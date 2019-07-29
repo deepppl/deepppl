@@ -37,13 +37,13 @@ def model(img=None, label=None):
     mlp = prior_mlp(img, label)
     model_mlp = dict(mlp.named_parameters())
     logits = zeros(10)
-    pyro.sample('model_mlp' + '__{}'.format('l1.weight') + '__1', dist.
+    sample('model_mlp' + '__{}'.format('l1.weight') + '__1', dist.
         Normal(0, 1), obs=model_mlp['l1.weight'])
-    pyro.sample('model_mlp' + '__{}'.format('l1.bias') + '__2', dist.Normal
+    sample('model_mlp' + '__{}'.format('l1.bias') + '__2', dist.Normal
         (0, 1), obs=model_mlp['l1.bias'])
-    pyro.sample('model_mlp' + '__{}'.format('l2.weight') + '__3', dist.
+    sample('model_mlp' + '__{}'.format('l2.weight') + '__3', dist.
         Normal(0, 1), obs=model_mlp['l2.weight'])
-    pyro.sample('model_mlp' + '__{}'.format('l2.bias') + '__4', dist.Normal
+    sample('model_mlp' + '__{}'.format('l2.bias') + '__4', dist.Normal
         (0, 1), obs=model_mlp['l2.bias'])
     logits = mlp(img)
-    pyro.sample('label' + '__5', categorical_logits(logits), obs=label)
+    sample('label' + '__5', categorical_logits(logits), obs=label)

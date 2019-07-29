@@ -17,13 +17,13 @@ def model(N: 'int'=None, exposure2: 'real[N]'=None, roach1: 'real[N]'=None,
     senior: 'real[N]'=None, treatment: 'real[N]'=None, y: 'int[N]'=None,
     transformed_data=None):
     log_expo = transformed_data['log_expo']
-    beta: 'real[4]' = pyro.sample('beta', ImproperUniform(shape=4))
-    lmbda: 'real[N]' = pyro.sample('lmbda', ImproperUniform(shape=N))
-    tau: 'real' = pyro.sample('tau', ImproperUniform())
+    beta: 'real[4]' = sample('beta', ImproperUniform(shape=4))
+    lmbda: 'real[N]' = sample('lmbda', ImproperUniform(shape=N))
+    tau: 'real' = sample('tau', ImproperUniform())
     sigma: 'real' = 1.0 / sqrt(tau)
-    pyro.sample('tau' + '__1', dist.Gamma(0.001, 0.001), obs=tau)
-    pyro.sample('lmbda' + '__2', dist.Normal(zeros(N), sigma), obs=lmbda)
-    pyro.sample('y' + '__3', poisson_log(log_expo + beta[1 - 1] + beta[2 -
+    sample('tau' + '__1', dist.Gamma(0.001, 0.001), obs=tau)
+    sample('lmbda' + '__2', dist.Normal(zeros(N), sigma), obs=lmbda)
+    sample('y' + '__3', poisson_log(log_expo + beta[1 - 1] + beta[2 -
         1] * roach1 + beta[3 - 1] * treatment + beta[4 - 1] * senior +
         lmbda), obs=y)
 

@@ -6,10 +6,10 @@ import pyro.distributions as dist
 
 
 def model(N_mis: 'int'=None, N_obs: 'int'=None, y_obs: 'real[N_obs]'=None):
-    mu: 'real' = pyro.sample('mu', ImproperUniform())
-    sigma: 'real' = pyro.sample('sigma', LowerConstrainedImproperUniform(0.0))
-    y_mis: 'real[N_mis]' = pyro.sample('y_mis', ImproperUniform(shape=N_mis))
-    pyro.sample('y_obs' + '__1', dist.Normal(mu * ones(N_obs), sigma), obs=
+    mu: 'real' = sample('mu', ImproperUniform())
+    sigma: 'real' = sample('sigma', LowerConstrainedImproperUniform(0.0))
+    y_mis: 'real[N_mis]' = sample('y_mis', ImproperUniform(shape=N_mis))
+    sample('y_obs' + '__1', dist.Normal(mu * ones(N_obs), sigma), obs=
         y_obs)
-    pyro.sample('y_mis' + '__2', dist.Normal(mu * ones(N_mis), sigma), obs=
+    sample('y_mis' + '__2', dist.Normal(mu * ones(N_mis), sigma), obs=
         y_mis)

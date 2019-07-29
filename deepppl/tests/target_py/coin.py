@@ -6,8 +6,8 @@ import pyro.distributions as dist
 
 
 def model(x: 'int[10]'=None):
-    theta: 'real' = pyro.sample('theta', dist.Uniform(0.0, 1.0))
-    pyro.sample('theta' + '__1', dist.Beta(1, 1), obs=theta)
+    theta: 'real' = sample('theta', dist.Uniform(0.0, 1.0))
+    sample('theta' + '__1', dist.Beta(1, 1), obs=theta)
     for i in range(1, 10 + 1):
-        pyro.sample('x' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(
+        sample('x' + '__{}'.format(i - 1) + '__2', dist.Bernoulli(
             theta), obs=x[i - 1])
