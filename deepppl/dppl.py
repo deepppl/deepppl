@@ -130,7 +130,7 @@ class NumPyroDPPLModel(DppplModel):
         hooks['softplus'] = lambda x: jnp.logaddexp(x, 0.)
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
-        self._updateHooksAll(utils.hooks)
+        self._updateUtilsHooks()
         
     def compile(self, **kwargs):
         config = dpplc.Config
