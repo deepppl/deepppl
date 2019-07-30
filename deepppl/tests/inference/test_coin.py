@@ -10,7 +10,6 @@ from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
-from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
 import deepppl
 import os
 import pandas as pd

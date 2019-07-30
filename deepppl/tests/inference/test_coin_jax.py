@@ -12,7 +12,6 @@ import jax.random as random
 import logging
 import time
 import pystan
-from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
 import deepppl
 import os
 import pandas as pd
@@ -24,24 +23,15 @@ global_num_chains=1
 global_warmup_steps = 1000
 
 x = [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
-def run_inference(model, x):
-    rng, rng_predict = random.split(random.PRNGKey(1+1))
-    if global_num_chains > 1:
-        rng = random.split(rng, global_num_chains)
-        assert False, "don't know what to do"
-    init_params, potential_fn, constrain_fn = initialize_model(rng, model, x)
-    hmc_states = mcmc(global_warmup_steps, global_num_iterations, init_params,
-                      sampler='hmc', potential_fn=potential_fn, constrain_fn=constrain_fn)
-    return hmc_states
 
 def test_coin():
     model = deepppl.NumPyroDPPLModel(model_file=stan_model_file)
     #model._model = model2
 
-    local_x = jnp.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 1])
+    posterior = model.posterior(global_num_iterations, global_warmup_steps)
 
     t1 = time.time()
-    states = run_inference(model._model, x)
+    states = posterior(x)
     samples_fstan = states['theta'][global_warmup_steps:]
 
     t2 = time.time()

@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 from functools import partial
 import pystan
-from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
 import deepppl
 import astor
 from deepppl.tests.utils import skip_on_travis

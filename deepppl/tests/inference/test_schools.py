@@ -11,7 +11,6 @@ from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
-from deepppl.utils.utils import ImproperUniform, LowerConstrainedImproperUniform
 from deepppl.tests.utils import skip_on_travis
 
 

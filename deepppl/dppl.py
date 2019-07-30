@@ -24,6 +24,9 @@ import numpy as onp
 from jax import numpy as jnp
 import numpyro 
 from numpyro import handlers
+import jax.random as random
+from numpyro.hmc_util import initialize_model
+from numpyro.mcmc import mcmc
 from torch.nn import functional as F
 import sys
 from . import dpplc
@@ -83,7 +86,10 @@ class DppplModel(object):
             pyro.sample]}
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
-        self._updateHooksAll(utils.hooks)
+        self._updateUtilsHooks()
+        
+    def _updateUtilsHooks(self):
+        self._updateHooksAll(utils.build_hooks())
 
     def posterior(self, num_samples=3000, method=infer.Importance, **kwargs):
         return method(self._model, num_samples=num_samples, **kwargs)
@@ -130,6 +136,24 @@ class NumPyroDPPLModel(DppplModel):
         config = dpplc.Config
         config.numpyro = True
         return super(NumPyroDPPLModel, self).compile(config=config, **kwargs)
+    
+    def posterior(self, num_samples=10000, warmup_steps=1000, num_chains=1, sampler='hmc'):
+        model = self._model
+        def run_inference(*args, **kwargs):
+            nonlocal model
+            rng, rng_predict = random.split(random.PRNGKey(1+1))
+            if num_chains > 1:
+                rng = random.split(rng, num_chains)
+                assert False, "don't know what to do"
+            init_params, potential_fn, constrain_fn = initialize_model(rng, model, *args, **kwargs)
+            hmc_states = mcmc(warmup_steps, num_samples, init_params,
+                            sampler='hmc', potential_fn=potential_fn, constrain_fn=constrain_fn)
+            return hmc_states
+        return run_inference
+    
+    def _updateUtilsHooks(self):
+        self._updateHooksAll(utils.build_hooks(npyro=True))
+        
 
 class SVIProxy(object):
     def __init__(self, svi):
