@@ -16,95 +16,113 @@
 
 from pyro import distributions as dist
 from torch.distributions import constraints
+from numpyro import distributions as np_dist
+from numpyro.distributions import constraints as np_constraints
+import jax.numpy as jnp
 import torch
 
 # Utils to be imported by DppplModel
 
 
-def categorical_logits(logits):
-    return dist.Categorical(logits=logits)
-
-
-def bernoulli_logit(logits):
-    return dist.Bernoulli(logits=logits)
-
-
-def binomial_logit(n, logits):
-    return dist.Binomial(n, logits=logits)
-
-
-def poisson_log(alpha):
-    return dist.Poisson(torch.exp(alpha))
-
-
-class ImproperUniform(dist.Normal):
-    def __init__(self, shape=None):
-        zeros = torch.zeros(shape) if shape else 0
-        ones = torch.ones(shape) if shape else 1
-        super(ImproperUniform, self).__init__(zeros, ones)
-
-    def log_prob(self, x):
-        return x.new_zeros(x.shape)
-
-
-class LowerConstrainedImproperUniform(ImproperUniform):
-    def __init__(self, lower_bound=0, shape=None):
-        self.lower_bound = lower_bound
-        super(LowerConstrainedImproperUniform, self).__init__(shape)
-        self.support = constraints.greater_than(lower_bound)
-
-    def log_prob(self, x):
-        return x.new_zeros(x.shape)
-
-    def sample(self):
-        s = dist.Uniform(self.lower_bound, self.lower_bound + 2).sample()
-        return s
-
-
-class UpperConstrainedImproperUniform(ImproperUniform):
-    def __init__(self, upper_bound=0, shape=None):
-        self.upper_bound = upper_bound
-        super(UpperConstrainedImproperUniform, self).__init__(shape)
-        self.support = constraints.less_than(upper_bound)
-
-    def log_prob(self, x):
-        return x.new_zeros(x.shape)
-
-    def sample(self):
-        s = dist.Uniform(self.upper_bound - 2, self.upper_bound).sample()
-        return s
-
-
-def log(x):
-    if isinstance(x, torch.Tensor):
-        return torch.log(x)
+def build_hooks(npyro=False):
+    if npyro:
+        d = np_dist
+        const = np_constraints
+        provider = jnp
     else:
-        return torch.log(torch.tensor(x).float())
+        d = dist
+        const = constraints
+        provider = torch
+        
+    def categorical_logits(logits):
+        return d.Categorical(logits=logits)
 
 
-def dot_self(x):
-    return torch.dot(x, x)
+    def bernoulli_logit(logits):
+        return d.Bernoulli(logits=logits)
 
 
-def log_sum_exp(x):
-    return torch.logsumexp(x, 0)
+    def binomial_logit(n, logits):
+        return d.Binomial(n, logits=logits)
 
 
-def inv_logit(p):
-    return torch.log(p / (1. - p))
+    def poisson_log(alpha):
+        return d.Poisson(provider.exp(alpha))
+
+    def new_zeros(x):
+        if npyro:
+            return jnp.zeros_like(x)
+        else:
+            return x.new_zeros(x.shape)
+
+    class ImproperUniform(d.Normal):
+        def __init__(self, shape=None):
+            zeros = provider.zeros(shape) if shape else 0
+            ones = provider.ones(shape) if shape else 1
+            super(ImproperUniform, self).__init__(zeros, ones)
+
+        def log_prob(self, x):
+            return new_zeros(x)
 
 
-hooks = {x.__name__: x for x in [
-    bernoulli_logit,
-    categorical_logits,
-    binomial_logit,
-    poisson_log,
-    ImproperUniform,
-    LowerConstrainedImproperUniform,
-    UpperConstrainedImproperUniform,
-    log,
-    dot_self,
-    log_sum_exp,
-    inv_logit]
+    class LowerConstrainedImproperUniform(ImproperUniform):
+        def __init__(self, lower_bound=0, shape=None):
+            self.lower_bound = lower_bound
+            super(LowerConstrainedImproperUniform, self).__init__(shape)
+            self.support = const.greater_than(lower_bound)
 
-}
+        def sample(self):
+            s = d.Uniform(self.lower_bound, self.lower_bound + 2).sample()
+            return s
+
+
+    class UpperConstrainedImproperUniform(ImproperUniform):
+        def __init__(self, upper_bound=0.0, shape=None):
+            self.upper_bound = upper_bound
+            super(UpperConstrainedImproperUniform, self).__init__(shape)
+            self.support = const.less_than(upper_bound)
+
+        def sample(self):
+            s = d.Uniform(self.upper_bound - 2.0, self.upper_bound).sample()
+            return s
+
+    def is_arrayed(x):
+        cls = jnp.DeviceArray if npyro else torch.Tensor
+        return isinstance(x, cls)
+        
+    def build_array(x):
+        return jnp.array(x, dtype=float) if npyro else torch.tensor(x).float()
+
+    def log(x):
+        if not is_arrayed(x):
+            x = build_array(x)
+        return provider.log(x)
+
+
+    def dot_self(x):
+        return provider.dot(x, x)
+
+
+    def log_sum_exp(x):
+        f = jnp.logaddexp if npyro else torch.logsumexp
+        return f(x, 0)
+
+
+    def inv_logit(p):
+        return provider.log(p / (1. - p))
+
+
+    return {x.__name__: x for x in [
+        bernoulli_logit,
+        categorical_logits,
+        binomial_logit,
+        poisson_log,
+        ImproperUniform,
+        LowerConstrainedImproperUniform,
+        UpperConstrainedImproperUniform,
+        log,
+        dot_self,
+        log_sum_exp,
+        inv_logit]
+
+    }
