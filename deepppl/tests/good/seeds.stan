@@ -14,7 +14,7 @@ parameters {
     real alpha1;
     real alpha12;
     real alpha2;
-    real tau;
+    real<lower=0> tau;
     real b[I];
 }
 transformed parameters {

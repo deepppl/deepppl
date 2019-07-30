@@ -28,15 +28,6 @@ def code_to_normalized(code):
 
 from contextlib import contextmanager
 
-
-@contextmanager
-def not_raises(exception):
-    try:
-        yield
-    except exception:
-        raise pytest.fail("DID RAISE {0}".format(exception))
-
-
 def normalize_and_compare(src_file, target_file):
     with open(target_file) as f:
         target_code = f.read()
@@ -56,6 +47,9 @@ def test_bayes_nn():
 
 def test_coin_guide():
         normalize_and_compare_test('coin_guide')
+        
+def test_seeds():
+        normalize_and_compare_test('seeds')
 
 def test_coin_vect():
         normalize_and_compare_test('coin_vect')

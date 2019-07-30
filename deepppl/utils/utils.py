@@ -71,8 +71,8 @@ def build_hooks(npyro=False):
             super(LowerConstrainedImproperUniform, self).__init__(shape)
             self.support = const.greater_than(lower_bound)
 
-        def sample(self):
-            s = d.Uniform(self.lower_bound, self.lower_bound + 2).sample()
+        def sample(self, *args, **kwargs):
+            s = d.Uniform(self.lower_bound, self.lower_bound + 2).sample(*args, **kwargs)
             return s
 
 
@@ -82,8 +82,8 @@ def build_hooks(npyro=False):
             super(UpperConstrainedImproperUniform, self).__init__(shape)
             self.support = const.less_than(upper_bound)
 
-        def sample(self):
-            s = d.Uniform(self.upper_bound - 2.0, self.upper_bound).sample()
+        def sample(self, *args, **kwargs):
+            s = d.Uniform(self.upper_bound - 2.0, self.upper_bound).sample(*args, **kwargs)
             return s
 
     def is_arrayed(x):
