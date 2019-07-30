@@ -19,7 +19,7 @@ def model(I: 'int'=None, N: 'int[I]'=None, n: 'int[I]'=None, x1: 'real[I]'=
     alpha1: 'real' = sample('alpha1', ImproperUniform())
     alpha12: 'real' = sample('alpha12', ImproperUniform())
     alpha2: 'real' = sample('alpha2', ImproperUniform())
-    tau: 'real' = sample('tau', ImproperUniform())
+    tau: 'real' = sample('tau', LowerConstrainedImproperUniform(0.0))
     b: 'real[I]' = sample('b', ImproperUniform(shape=I))
     sigma: 'real' = 1.0 / sqrt(tau)
     sample('alpha0' + '__1', dist.Normal(0.0, 1000), obs=alpha0)
