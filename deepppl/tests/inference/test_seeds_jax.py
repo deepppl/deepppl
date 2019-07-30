@@ -123,7 +123,7 @@ def compare_with_stan_output():
             real alpha1;
             real alpha12;
             real alpha2;
-            real tau;
+            real<lower=0> tau;
             vector[I] b;
         }
         transformed parameters {
