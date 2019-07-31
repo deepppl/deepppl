@@ -1,18 +1,9 @@
-import torch
-from torch import nn
-from torch.nn import functional as F
-from torch import tensor
-import pyro
 import numpy as np
-from numpyro.hmc_util import initialize_model
-from numpyro.mcmc import mcmc
-from numpyro import distributions as dist
-import jax.numpy as jnp
-import jax.random as random
 import logging
 import time
 import pystan
 import deepppl
+import pytest
 import os
 import pandas as pd
 
