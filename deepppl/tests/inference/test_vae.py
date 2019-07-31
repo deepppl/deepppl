@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
 from torch import tensor
 import pyro
 from pyro import distributions as dist
@@ -24,7 +23,7 @@ def build_vae():
         def forward(self, z):
             hidden = F.relu(self.lh(z))
             mu = self.lx(hidden)
-            return F.sigmoid(mu.view(-1, 1, side, side))
+            return torch.sigmoid(mu.view(-1, 1, side, side))
 
     # define the PyTorch module that parameterizes the
     # diagonal gaussian distribution q(z|x)
