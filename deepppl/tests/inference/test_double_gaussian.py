@@ -1,9 +1,5 @@
 import torch
-from torch import nn
-from torch.nn import functional as F
-from torch import tensor
 import pyro
-from pyro import distributions as dist
 import numpy as np
 from pyro.infer import mcmc
 from pyro.infer.mcmc import MCMC, NUTS
