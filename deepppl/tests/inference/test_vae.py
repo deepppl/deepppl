@@ -21,7 +21,7 @@ def build_vae():
             self.lx = nn.Linear(nh, nx)
 
         def forward(self, z):
-            hidden = F.relu(self.lh(z))
+            hidden = torch.relu(self.lh(z))
             mu = self.lx(hidden)
             return torch.sigmoid(mu.view(-1, 1, side, side))
 
@@ -37,7 +37,7 @@ def build_vae():
 
         def forward(self, x):
             x = x.view((-1, nx))
-            hidden = F.relu(self.lh(x))
+            hidden = torch.relu(self.lh(x))
             z_mu = self.lz_mu(hidden)
             z_sigma = self.softplus(self.lz_sigma(hidden))
             return z_mu, z_sigma
