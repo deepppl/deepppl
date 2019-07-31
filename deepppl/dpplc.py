@@ -29,7 +29,8 @@ import pyro
 import pyro.distributions as dist
 
 class Config(object):
-    numpyro = False
+    def __init__(self, numpyro = False):
+        self.numpyro = numpyro
 
 class MyErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):

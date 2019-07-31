@@ -133,8 +133,7 @@ class NumPyroDPPLModel(DppplModel):
         self._updateUtilsHooks()
         
     def compile(self, **kwargs):
-        config = dpplc.Config
-        config.numpyro = True
+        config = dpplc.Config(numpyro=True)
         return super(NumPyroDPPLModel, self).compile(config=config, **kwargs)
     
     def posterior(self, num_samples=10000, warmup_steps=1000, num_chains=1, sampler='hmc'):
