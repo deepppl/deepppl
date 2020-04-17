@@ -31,21 +31,21 @@ parameters {
 
 model {
     real mu[28, 28, batch_size];
-    # zeros : 'a -> [dimension='a, component='real]
-    # Normal : [dimension='a, component='b = real/int] -> [dimension='a, component='b'] -> [dimension='a, component='b]
-    # Normal : [dimension='a, component='b = real/int] -> [dimension='a, component='b'] -> int -> [dimension=int, component=[dimension='a, component='b]]
-    # TODO: implement matrix for the second one.
+    // zeros : 'a -> [dimension='a, component='real]
+    // Normal : [dimension='a, component='b = real/int] -> [dimension='a, component='b'] -> [dimension='a, component='b]
+    // Normal : [dimension='a, component='b = real/int] -> [dimension='a, component='b'] -> int -> [dimension=int, component=[dimension='a, component='b]]
+    // TODO: implement matrix for the second one.
 
 
-    # Normal : 
-    z ~ Normal(zeros(nz), ones(nz), batch_size);
+    // Normal : 
+    z ~ normal(zeros(nz), ones(nz));
     mu = decoder(z);
-    x ~ Bernoulli(mu);
+    x ~ bernoulli(mu);
 }
 
 guide {
     real encoded[2, nz, batch_size] = encoder(x);
     real mu_z[nz, batch_size] = encoded[1];
     real sigma_z[nz, batch_size] = encoded[2];
-    z ~ Normal(mu_z, sigma_z);
+    z ~ normal(mu_z, sigma_z);
 }
