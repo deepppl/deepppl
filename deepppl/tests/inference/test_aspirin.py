@@ -8,7 +8,7 @@ import pyro
 import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 from deepppl.utils.utils import *
-from pyro.infer import mcmc, EmpiricalMarginal
+from pyro.infer import mcmc
 from pyro.infer.mcmc import MCMC, NUTS
 from torch import zeros, ones, sqrt
 import pandas as pd

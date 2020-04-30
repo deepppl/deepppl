@@ -44,17 +44,12 @@ def test_linear_regression():
     y = torch.Tensor(y)
 
     t1 = time.time()
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(
-        N=num_samples, x=X, y=y), sites=['alpha', 'beta', 'sigma'])
-    samples_fstan = [marginal() for _ in range(global_num_iterations - global_warmup_steps)]
-    stack_samples = torch.stack(samples_fstan)
-    params = torch.mean(stack_samples, 0)
+    posterior.run(N=num_samples, x=X, y=y)
+    samples_fstan = posterior.get_samples()
     t2 = time.time()
-    print('Pyro: [ alpha, beta, sigma ].mean =', params)
-    stack_samples = torch.stack(samples_fstan).numpy()
 
     params = ['alpha', 'beta', 'sigma']
-    df = pd.DataFrame(stack_samples, columns=params)
+    df = pd.DataFrame(samples_fstan)
 
     pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output(data)
 
@@ -84,7 +79,7 @@ def compare_with_stan_output(data):
 
     t1 = time.time()
     fit_stan = sm1.sampling(
-        data=data, iter=global_num_iterations, chains=global_num_chains, warmup=300)
+        data=data, iter=global_num_iterations, chains=global_num_chains, warmup=global_warmup_steps)
 
     alpha = fit_stan.extract(permuted=True)['alpha']
     beta = fit_stan.extract(permuted=True)['beta']

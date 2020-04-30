@@ -28,22 +28,19 @@ def test_double_gaussian():
         warmup_steps=global_warmup_steps)
 
     t1 = time.time()
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(), 
-        sites=['theta'])
-
-    samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
+    posterior.run()
+    samples_fstan = posterior.get_samples()['theta']
     t2 = time.time()
-    stack_samples = torch.stack(samples_fstan).numpy()
 
     pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output()
 
-    assert stack_samples.shape == pystan_output.shape
+    assert samples_fstan.shape == pystan_output.shape
     from scipy.stats import entropy, ks_2samp
-    hist1 = np.histogram(stack_samples, bins = 10)
+    hist1 = np.histogram(samples_fstan, bins = 10)
     hist2 = np.histogram(pystan_output, bins = hist1[1])
     kl = entropy(hist1[0]+1, hist2[0]+1)
     skl = kl + entropy(hist2[0]+1, hist1[0]+1)
-    ks = ks_2samp(stack_samples.squeeze(), pystan_output.squeeze())
+    ks = ks_2samp(samples_fstan, pystan_output)
     print('skl for theta is:{:.6f}'.format(skl))
     print(f'kolmogorov-smirnov for theta is: {ks}')
 
@@ -66,8 +63,6 @@ def compare_with_stan_output():
 
     t2 = time.time()
     theta = fit_stan.extract(permuted=True)['theta']
-
-    theta = np.reshape(theta, (theta.shape[0], 1))
 
     t2 = time.time()
     return theta, t2-t1, pystan_compilation_time

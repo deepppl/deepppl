@@ -24,8 +24,7 @@ def test_gaussian_inference():
                 num_samples=3000, 
                 warmup_steps=300)
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(), sites='theta')
-
-    series = pd.Series([marginal().item() for _ in range(3000)], name = r'$\theta$')
+    posterior.run()
+    series = posterior.get_samples()['theta']
     assert np.abs(series.mean() - 1000) < 1
     assert np.abs(series.std() - 1.0) < 0.1 

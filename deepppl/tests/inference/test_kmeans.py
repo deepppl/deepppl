@@ -53,16 +53,11 @@ def test_kmeans():
         method=nuts,
         num_samples=900,
         warmup_steps=100)
+    posterior.run(N=num_samples, D=num_features, K=num_clusters, y=X,
+                  transformed_data=model.transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X))
+    sample_fstan = posterior.get_samples()['mu']
 
-    marginal = pyro.infer.EmpiricalMarginal(
-        posterior.run(N=num_samples, D=num_features, K=num_clusters, y=X,
-                      transformed_data=model.transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X)),
-        sites='mu')
-
-    samples_fstan = [marginal()
-                        for _ in range(3000)]
-    stack_samples = torch.stack(samples_fstan)
-    cluster_means = stack_samples.mean(0).numpy()
+    cluster_means = sample_fstan.mean(0).numpy()
 
     cluster_centers, t_pystan = compare_with_stan_output(data)
 
