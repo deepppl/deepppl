@@ -21,12 +21,12 @@ from pyro import infer
 from pyro.optim import Adam
 import torch
 import numpy as onp
-from jax import numpy as jnp
-import numpyro 
-from numpyro import handlers
+import numpyro
+from numpyro.infer import MCMC, NUTS
+import numpyro.distributions as dist
 import jax.random as random
-from numpyro.hmc_util import initialize_model
-from numpyro.mcmc import mcmc
+from jax import numpy as jnp
+
 from torch.nn import functional as F
 import sys
 from . import dpplc
@@ -126,7 +126,7 @@ class NumPyroDPPLModel(DppplModel):
             jnp.log,
             jnp.zeros,
             jnp.ones,
-            handlers.sample]}
+            numpyro.sample]}
         hooks['softplus'] = lambda x: jnp.logaddexp(x, 0.)
         hooks['fabs'] = torch.abs
         self._updateHooksAll(hooks)
@@ -140,14 +140,14 @@ class NumPyroDPPLModel(DppplModel):
         model = self._model
         def run_inference(*args, **kwargs):
             nonlocal model
-            rng, rng_predict = random.split(random.PRNGKey(1+1))
+            rng_key, rng_predict = random.split(random.PRNGKey(0))
             if num_chains > 1:
                 rng = random.split(rng, num_chains)
-                assert False, "don't know what to do"
-            init_params, potential_fn, constrain_fn = initialize_model(rng, model, *args, **kwargs)
-            hmc_states = mcmc(warmup_steps, num_samples, init_params,
-                            sampler='hmc', potential_fn=potential_fn, constrain_fn=constrain_fn)
-            return hmc_states
+                assert False, "don't know what to do"      
+            kernel = NUTS(model)
+            mcmc = MCMC(kernel, warmup_steps, num_samples, num_chains)
+            mcmc.run(rng_key, *args, **kwargs)
+            return mcmc.get_samples()
         return run_inference
     
     def _updateUtilsHooks(self):

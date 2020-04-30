@@ -6,8 +6,6 @@ x2 = [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
 
 import pyro
 import numpy as np
-from numpyro.hmc_util import initialize_model
-from numpyro.mcmc import mcmc
 from numpyro import distributions as dist
 import jax.numpy as jnp
 import jax.random as random
