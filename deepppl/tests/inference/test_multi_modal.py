@@ -5,8 +5,6 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
@@ -20,25 +18,18 @@ global_num_iterations=3000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @skip_on_travis
 def test_multi_modal():
-    model = deepppl.DppplModel(model_file=stan_model_file)
-    #model._model = model2
-    posterior = model.posterior(
-        method=nuts,
+    model = deepppl.PyroModel(model_file=stan_model_file)
+    mcmc = model.mcmc(
         num_samples=global_num_iterations-global_warmup_steps,
         warmup_steps=global_warmup_steps)
 
     t1 = time.time()
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(), 
-        sites=['theta','cluster'])
-
-    samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
+    mcmc.run()
+    samples_fstan = mcmc.get_samples()
     t2 = time.time()
+    
     stack_samples = torch.stack(samples_fstan).numpy()
 
     pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output()

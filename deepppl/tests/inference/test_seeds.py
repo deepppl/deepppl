@@ -11,8 +11,6 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
@@ -66,16 +64,11 @@ global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @skip_on_travis
 def test_seeds():
-    model = deepppl.DppplModel(model_file=stan_model_file)
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations-global_warmup_steps,
+    model = deepppl.PyroModel(model_file=stan_model_file)
+    mcmc = model.mcmc(
+        num_samples=global_num_iterations,
         warmup_steps=global_warmup_steps)
 
     local_n = torch.Tensor(n)
@@ -84,12 +77,10 @@ def test_seeds():
     local_x2 = torch.Tensor(x2)
 
     t1 = time.time()
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(I = I, n = local_n,
-    N = local_N, x1 = local_x1, x2 = local_x2, transformed_data = 
-    transformed_data(I = I, n = local_n, N = local_N, x1 = local_x1, x2 = local_x2)), 
-        sites=['alpha0', 'alpha1', 'alpha12', 'alpha2', 'tau'])
-
-    samples_fstan = [marginal() for _ in range(global_num_iterations-global_warmup_steps)]
+    mcmc.run(I = I, n = local_n,
+             N=local_N, x1=local_x1, x2=local_x2,
+             transformed_data = transformed_data(I=I, n=local_n, N=local_N, x1=local_x1, x2=local_x2))
+    samples_fstan = mcmc.get_samples()
     t2 = time.time()
     
     stack_samples = torch.stack(samples_fstan).numpy()

@@ -71,7 +71,7 @@ class Classifier:
 def test_vae_inference():
     encoder, decoder = build_vae()
     train_loader, test_loader = loadData(batch_size)
-    model = deepppl.DppplModel(
+    model = deepppl.PyroModel(
                                 model_file = 'deepppl/tests/good/vae.stan', 
                                 encoder=encoder,
                                 decoder=decoder)

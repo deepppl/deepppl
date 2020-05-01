@@ -105,18 +105,14 @@ global_num_iterations = 1000
 global_warm_up_steps = 100
 global_num_chains = 1
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model, adapt_step_size=True)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
 
 @pytest.mark.xfail(strict=False, reason="This currently fails with type inference.  Reasons not yet investigated.")
 def test_lda_inference():
-    model = deepppl.DppplModel(
+    model = deepppl.PyroModel(
         model_file=stan_model_file)
     model._model = model2
 
-    posterior = model.posterior(
-        method=nuts,
+    mcmc = model.mcmc(
         num_samples=global_num_iterations-global_warm_up_steps,
         warmup_steps=global_warm_up_steps)
     global w, doc, alpha, beta
@@ -127,10 +123,8 @@ def test_lda_inference():
     beta_local = torch.Tensor(beta)
 
     t1 = time.time()
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(
-            K = K, V = V, M = M, N = N, w = w_local, doc = doc_local, alpha = alpha_local, beta = beta_local), 
-            sites=['theta', 'phi']) 
-    samples_fstan = [marginal() for _ in range(10)]
+    mcmc.run(K = K, V = V, M = M, N = N, w = w_local, doc = doc_local, alpha = alpha_local, beta = beta_local) 
+    samples_fstan = mcmc.get_samples()
     stack_samples = torch.stack(samples_fstan)
     params = torch.mean(stack_samples, 0)
     t2 = time.time()

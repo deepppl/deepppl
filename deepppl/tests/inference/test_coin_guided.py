@@ -8,7 +8,7 @@ import numpy as np
 
 
 def test_coin_guided_inference():
-    model = deepppl.DppplModel(
+    model = deepppl.PyroModel(
         model_file='deepppl/tests/good/coin_guide.stan')
     svi = model.svi(params={'lr': 0.1})
     x = torch.Tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0])

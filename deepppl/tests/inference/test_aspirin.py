@@ -81,11 +81,7 @@ generated quantities {
 
 global_num_iterations=10000
 global_num_chains=1
-global_warmup_steps = 3000
-
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
+global_warmup_steps = 300
 
 def build_aspirin_df(samples):
     names= [f'theta[{i+1}]' for i in range(6)] + [f'shrinkage[{i+1}]' for i in range(6)]
@@ -95,16 +91,17 @@ def build_aspirin_df(samples):
 
 @skip_on_travis
 def test_aspirin():
-    model = deepppl.DppplModel(model_code=deep_stan_code)
+    model = deepppl.PyroModel(model_code=deep_stan_code)
     aspirin_data, aspirin_data_t = create_aspirin_data()
+    
+    mcmc = model.mcmc(
+      num_samples=global_num_iterations,
+      warmup_steps=global_warmup_steps)
 
     t1 = time.time()
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations-global_warmup_steps,
-        warmup_steps=global_warmup_steps).run(**aspirin_data_t)
-    
-    samples = model.run_generated(posterior, **aspirin_data_t)
+
+    mcmc.run(**aspirin_data_t)
+    samples = model.run_generated(mcmc, **aspirin_data_t)
     t2 = time.time()
     df = build_aspirin_df(samples)
     pystan_output, time_pystan, pystan_compilation_time = compare_with_stan_output(aspirin_data)

@@ -1,7 +1,6 @@
 import torch
 import pyro
 import pyro.distributions as dist
-from pyro.infer import mcmc
 import deepppl
 import os
 import numpy as np
@@ -16,20 +15,11 @@ global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
-
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model, adapt_step_size=True)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
-
 def test_linear_regression():
-    model = deepppl.DppplModel(
+    model = deepppl.PyroModel(
         model_file=stan_array_model_file)
 
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations - global_warmup_steps,
-        warmup_steps=global_warmup_steps)
+    mcmc = model.mcmc(num_samples=global_num_iterations, warmup_steps=global_warmup_steps)
 
     # Add Data
     num_samples = 10
@@ -44,8 +34,8 @@ def test_linear_regression():
     y = torch.Tensor(y)
 
     t1 = time.time()
-    posterior.run(N=num_samples, x=X, y=y)
-    samples_fstan = posterior.get_samples()
+    mcmc.run(N=num_samples, x=X, y=y)
+    samples_fstan = mcmc.get_samples()
     t2 = time.time()
 
     params = ['alpha', 'beta', 'sigma']

@@ -6,8 +6,6 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-
 import deepppl
 import os
 import pandas as pd
@@ -21,13 +19,8 @@ stan_model_file = 'deepppl/tests/good/kmeans.stan'
 global_num_iterations=1000
 global_num_chains=1
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model, adapt_step_size=True)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
-
 def test_kmeans():
-    model = deepppl.DppplModel(model_file='deepppl/tests/good/kmeans.stan')
+    model = deepppl.PyroModel(model_file='deepppl/tests/good/kmeans.stan')
 
     num_samples = 6
     num_features = 2
@@ -49,13 +42,12 @@ def test_kmeans():
     #X = torch.tensor([[1., 1., 1., 4., 4., 4.], [2., 4., 0., 2., 4., 0.]])
     #import pdb;pdb.set_trace()
 
-    posterior = model.posterior(
-        method=nuts,
+    mcmc = model.mcmc(
         num_samples=900,
         warmup_steps=100)
-    posterior.run(N=num_samples, D=num_features, K=num_clusters, y=X,
+    mcmc.run(N=num_samples, D=num_features, K=num_clusters, y=X,
                   transformed_data=model.transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X))
-    sample_fstan = posterior.get_samples()['mu']
+    sample_fstan = mcmc.get_samples()['mu']
 
     cluster_means = sample_fstan.mean(0).numpy()
 

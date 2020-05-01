@@ -192,17 +192,12 @@ global_num_iterations=3000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @pytest.mark.skip(strict=False, reason="This currently fails with type inference.  Reasons not yet investigated.")
 def test_cockroaches():
-    model = deepppl.DppplModel(model_file=stan_model_file)
+    model = deepppl.PyroModel(model_file=stan_model_file)
     t1 = time.time()
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations-global_warmup_steps,
+    mcmc = model.mcmc(
+        num_samples=global_num_iterations,
         warmup_steps=global_warmup_steps)
 
     local_exposure2 = torch.Tensor(exposure2)
@@ -211,12 +206,12 @@ def test_cockroaches():
     local_treatment = torch.Tensor(treatment)
     local_y = torch.Tensor(y)
 
-    posterior = posterior.run(N = N, 
-                exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
-                treatment = local_treatment, y = local_y, transformed_data = transformed_data(N = N, 
-                exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
-                treatment = local_treatment, y = local_y))
-    marginal = posterior.marginal(sites=["beta"])
+    mcmc.run(N = N, 
+             exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
+             treatment = local_treatment, y = local_y, transformed_data = transformed_data(N = N, 
+             exposure2 = local_exposure2, roach1 = local_roach1, senior = local_senior,
+             treatment = local_treatment, y = local_y))
+    marginal = mcmc.get_samples()["beta"]
 
     marginal = torch.cat(list(marginal.support(
         flatten=True).values()), dim=-1).cpu().numpy()

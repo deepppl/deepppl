@@ -6,27 +6,21 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-
 import deepppl
 import os
 import pandas as pd
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model, adapt_step_size = True)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 def test_gaussian_log_density_inference():
     model = deepppl.DppplModel(model_file = 'deepppl/tests/good/gaussian_log_density.stan')
 
-    posterior = model.posterior(
-                method=nuts, 
-                num_samples=3000, 
-                warmup_steps=300)
-
-    posterior.run()
-    series = posterior.get_samples()['theta']
+    mcmc = model.mcmc(num_samples=3000, warmup_steps=300)
+    mcmc.run()
+    series = mcmc.get_samples()['theta']
 
     assert np.abs(series.mean() - 1000) < 1
-    assert np.abs(series.std() - 1.0) < 0.1 
+    assert np.abs(series.std() - 1.0) < 0.1
+    
+
+if __name__ == "__main__":
+    test_gaussian_log_density_inference()
 

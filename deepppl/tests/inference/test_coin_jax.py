@@ -11,25 +11,22 @@ import pandas as pd
 stan_model_file = 'deepppl/tests/good/coin.stan'
 global_num_iterations=10000
 global_num_chains=1
-global_warmup_steps = 1000
+global_warmup_steps = 300
 
 x = [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
 
 def test_coin():
-    model = deepppl.NumPyroDPPLModel(model_file=stan_model_file)
-    #model._model = model2
-
-    posterior = model.posterior(global_num_iterations, global_warmup_steps)
+    model = deepppl.NumPyroModel(model_file=stan_model_file)
+    mcmc = model.mcmc(global_num_iterations, global_warmup_steps)
 
     t1 = time.time()
-    states = posterior(x)
-    samples_fstan = states['theta'][global_warmup_steps:]
-
+    mcmc.run(x)
+    samples_fstan = mcmc.get_samples()['theta']
     t2 = time.time()
     
     pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output()
 
-    pystan_output = pystan_output.squeeze()
+    pystan_output = pystan_output
     assert samples_fstan.shape == pystan_output.shape
     from scipy.stats import entropy, ks_2samp
     hist1 = np.histogram(samples_fstan, bins = 10)
@@ -62,8 +59,6 @@ def compare_with_stan_output():
 
     t2 = time.time()
     theta = fit_stan.extract(permuted=True)['theta']
-
-    theta = np.reshape(theta, (theta.shape[0], 1))
 
     t2 = time.time()
     return theta, t2-t1, pystan_compilation_time

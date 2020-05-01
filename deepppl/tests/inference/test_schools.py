@@ -6,8 +6,6 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
@@ -23,13 +21,9 @@ global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @skip_on_travis
 def test_schools():
-    model = deepppl.DppplModel(model_file=stan_model_file)
+    model = deepppl.PyroModel(model_file=stan_model_file)
 
     J = 8
     y = torch.Tensor([28., 8., -3., 7., -1., 1., 18., 12.])
@@ -40,21 +34,20 @@ def test_schools():
                 'sigma': [15, 10, 16, 11, 9, 11, 10, 18]}
 
     t1 = time.time()
-    posterior = model.posterior(
-        method=nuts,
+    mcmc = model.mcmc(
         num_samples=global_num_iterations-global_warmup_steps,
         warmup_steps=global_warmup_steps).run(J=J, sigma=sigma, y=y)
 
-    marginal = posterior.marginal(sites=["mu"])
+    marginal = mcmc.get_samples()["mu"]
     marginal = torch.cat(list(marginal.support(
         flatten=True).values()), dim=-1).cpu().numpy()
     
-    marginal2 = posterior.marginal(sites=["tau"])
+    marginal2 = mcmc.get_samples()["tau"]
     marginal2 = torch.cat(list(marginal2.support(
         flatten=True).values()), dim=-1).cpu().numpy()
 
 
-    marginal1 = posterior.marginal(sites=["eta"])
+    marginal1 = mcmc.get_samples()["eta"]
     marginal1 = torch.cat(list(marginal1.support(
         flatten=True).values()), dim=-1).cpu().numpy()
     t2 = time.time()

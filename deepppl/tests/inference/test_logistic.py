@@ -6,20 +6,14 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-
 import deepppl
 import os
 import pandas as pd
 import pytest
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model, adapt_step_size = True)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @pytest.mark.xfail(strict=False, reason="This currently fails with type inference.  Reasons not yet investigated.")
 def test_logistic():
-    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/logistic.stan')
+    model = deepppl.PyroModel(model_file = 'deepppl/tests/good/logistic.stan')
 
     # Add Data
     num_samples = 7
@@ -31,14 +25,13 @@ def test_logistic():
     y = np.array([0, 1, 1, 1, 1, 1, 1])
     y = torch.from_numpy(y)
 
-    posterior = model.posterior(
-                method=nuts,
+    mcmc = model.mcmc(
                 num_samples=3000,
                 warmup_steps=300)
 
-    marginal = pyro.infer.EmpiricalMarginal(posterior.run(N=num_samples, M=num_features, y=y, x=X), sites='beta')
-
-    series = pd.Series([marginal() for _ in range(3000)], name = r'$beta$')
+    mcmc.run(N=num_samples, M=num_features, y=y, x=X)
+    
+    series = pd.Series(mcmc.get_samples()['beta'], name = r'$beta$')
     print(series)
     # assert np.abs(series.mean() - 1000) < 1
     # assert np.abs(series.std() - 1.0) < 0.1

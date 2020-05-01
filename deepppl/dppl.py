@@ -17,12 +17,10 @@
 import pandas as pd
 from collections import defaultdict
 import pyro
-from pyro import infer
 from pyro.optim import Adam
 import torch
 import numpy as onp
 import numpyro
-from numpyro.infer import MCMC, NUTS
 import numpyro.distributions as dist
 import jax.random as random
 from jax import numpy as jnp
@@ -33,8 +31,7 @@ from . import dpplc
 from .utils import utils
 import inspect
 
-
-class DppplModel(object):
+class PyroModel(object):
     def __init__(self, model_code=None, model_file=None, **kwargs):
         self._py = self.compile(model_code=model_code, model_file=model_file)
         self._load_py()
@@ -91,13 +88,16 @@ class DppplModel(object):
     def _updateUtilsHooks(self):
         self._updateHooksAll(utils.build_hooks())
 
-    def posterior(self, num_samples=3000, method=infer.Importance, **kwargs):
-        return method(self._model, num_samples=num_samples, **kwargs)
+    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
+        if kernel is None:
+            kernel = pyro.infer.NUTS(self._model, adapt_step_size=True)
+        mcmc = pyro.infer.MCMC(kernel, num_samples, warmup_steps=warmup_steps, num_chains=num_chains) 
+        return MCMCProxy(mcmc)
 
     def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
-        loss = loss if loss is not None else infer.Trace_ELBO()
-        svi = infer.SVI(self._model, self._guide, optimizer, loss)
+        loss = loss if loss is not None else pyro.infer.Trace_ELBO()
+        svi = pyro.infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi)
 
     def transformed_data(self, *args, **kwargs):
@@ -105,19 +105,34 @@ class DppplModel(object):
 
     def generated_quantities(self, *args, **kwargs):
         return self._generated_quantities(*args, **kwargs)
-
+        
     def run_generated(self, posterior, **kwargs):
-        args = dict(kwargs)
-        def convert_dict(dict):
-            return {k:_convert_to_np(dict, k) for k in dict}
-        answer = defaultdict(list)
-        for params in extract_params(posterior):
-            args['parameters'] = params
-            for k,v in convert_dict(self.generated_quantities(**args)).items():
-                answer[k].append(v)
-        return {k : pd.DataFrame(v) for k, v in answer.items()}
-    
-class NumPyroDPPLModel(DppplModel):
+        res = defaultdict(list)
+        samples = posterior.get_samples()
+        num_samples = len(list(samples.values())[0])
+        for i in range(num_samples):
+            kwargs['parameters'] = {x: samples[x][i] for x in samples}
+            d = self.generated_quantities(**kwargs)
+            for k, v in d.items():
+                res[k].append(_convert_to_np(v))
+        return {k : pd.DataFrame(v) for k, v in res.items()}
+            
+            
+        
+
+    # def run_generated(self, posterior, **kwargs):
+    #     args = dict(kwargs)
+    #     def convert_dict(dict):
+    #         return {k:_convert_to_np(dict, k) for k in dict}
+    #     answer = defaultdict(list)
+    #     for params in extract_params(posterior):
+    #         args['parameters'] = params
+    #         for k,v in convert_dict(self.generated_quantities(**args)).items():
+    #             answer[k].append(v)
+    #     return {k : pd.DataFrame(v) for k, v in answer.items()}
+
+
+class NumPyroModel(PyroModel):
     def _loadBasicHooks(self):
         hooks = {x.__name__: x for x in [
             jnp.sqrt,
@@ -134,26 +149,43 @@ class NumPyroDPPLModel(DppplModel):
         
     def compile(self, **kwargs):
         config = dpplc.Config(numpyro=True)
-        return super(NumPyroDPPLModel, self).compile(config=config, **kwargs)
+        return super(NumPyroModel, self).compile(config=config, **kwargs)
     
-    def posterior(self, num_samples=10000, warmup_steps=1000, num_chains=1, sampler='hmc'):
-        model = self._model
-        def run_inference(*args, **kwargs):
-            nonlocal model
-            rng_key, rng_predict = random.split(random.PRNGKey(0))
-            if num_chains > 1:
-                rng = random.split(rng, num_chains)
-                assert False, "don't know what to do"      
-            kernel = NUTS(model)
-            mcmc = MCMC(kernel, warmup_steps, num_samples, num_chains)
-            mcmc.run(rng_key, *args, **kwargs)
-            return mcmc.get_samples()
-        return run_inference
+    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
+        if kernel is None:
+            kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True) 
+        mcmc = numpyro.infer.MCMC(kernel, warmup_steps, num_samples, num_chains)
+        return MCMCProxy(mcmc, True)
     
     def _updateUtilsHooks(self):
         self._updateHooksAll(utils.build_hooks(npyro=True))
-        
+ 
 
+class MCMCProxy():
+    def __init__(self, mcmc, numpyro=False):
+        self.numpyro = numpyro
+        self.mcmc = mcmc
+        if numpyro:
+            self.rng_key, _ = random.split(random.PRNGKey(0))
+        
+    def run(self, *args, **kwargs):
+        if self.numpyro:
+            self.mcmc.run(self.rng_key, *args, **kwargs) 
+        else:
+            self.mcmc.run(*args, **kwargs)
+            
+    def get_samples(self):
+        # Pyro removes warmup steps from samples
+        if self.numpyro:
+            warmup = self.mcmc.num_warmup
+            samples = self.mcmc.get_samples()
+        else:
+            warmup = self.mcmc.warmup_steps
+            samples = self.mcmc.get_samples()
+        return {x: samples[x][warmup:] for x in samples}
+           
+            
+        
 class SVIProxy(object):
     def __init__(self, svi):
         self.svi = svi
@@ -167,20 +199,18 @@ class SVIProxy(object):
         return self.svi.step(*args)
 
 
-def _convert_to_np(dict, k):
-    value = dict[k]
+def _convert_to_np(value):
     if type(value) == torch.Tensor:
         return value.cpu().numpy()
     else:
         return value
 
+# def _make_params(trace):
+#     answer = {}
+#     for name, node in trace.nodes.items():
+#         if node['type'] == 'sample' and not node['is_observed']:
+#             answer[name] = _convert_to_np(node, 'value')
+#     return answer
 
-def _make_params(trace):
-    answer = {}
-    for name, node in trace.nodes.items():
-        if node['type'] == 'sample' and not node['is_observed']:
-            answer[name] = _convert_to_np(node, 'value')
-    return answer
-
-def extract_params(posterior):
-    return [_make_params(trace) for trace in posterior.exec_traces]
+# def extract_params(posterior):
+#     return [_make_params(trace) for trace in posterior.exec_traces]

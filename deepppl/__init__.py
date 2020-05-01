@@ -14,6 +14,6 @@
  * limitations under the License.
 '''
 
-from .dppl import DppplModel, NumPyroDPPLModel
+from .dppl import PyroModel, NumPyroModel
 
 __all__ = ["DppplModel", "NumPyroDPPLModel"]

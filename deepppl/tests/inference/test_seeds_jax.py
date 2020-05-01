@@ -66,9 +66,9 @@ global_warmup_steps = 1000
 
 @skip_on_travis
 def test_seeds():
-    model = deepppl.NumPyroDPPLModel(model_file=stan_model_file)
-    posterior = model.posterior(
-        num_samples=global_num_iterations-global_warmup_steps,
+    model = deepppl.NumPyroModel(model_file=stan_model_file)
+    posterior = model.mcmc(
+        num_samples=global_num_iterations,
         warmup_steps=global_warmup_steps)
 
     local_n = jnp.array(n)
@@ -77,9 +77,10 @@ def test_seeds():
     local_x2 = jnp.array(x2)
 
     t1 = time.time()
-    states = posterior(I = I, n = local_n,
+    mcmc.run(I = I, n = local_n,
             N = local_N, x1 = local_x1, x2 = local_x2, transformed_data = 
-            transformed_data(I = I, n = local_n, N = local_N, x1 = local_x1, x2 = local_x2))
+            transformed_data(I=I, n=local_n, N=local_N, x1=local_x1, x2=local_x2))
+    states = mcmc.get_samples()
     t2 = time.time()
 
     params = ['alpha0', 'alpha1', 'alpha12', 'alpha2', 'tau']

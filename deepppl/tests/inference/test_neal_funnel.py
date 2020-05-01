@@ -29,8 +29,6 @@ from torch import tensor
 import pyro
 from pyro import distributions as dist
 import numpy as np
-from pyro.infer import mcmc
-from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
@@ -44,17 +42,12 @@ global_num_iterations=3000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 @pytest.mark.xfail(strict=False, reason="There is a call to marginal that does not resolve.  Not sure what it is supposed to do.")
 def test_neals_funnel():
-    model = deepppl.DppplModel(model_file=stan_model_file)
+    model = deepppl.PyroModel(model_file=stan_model_file)
     # model._model = model2
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations-global_warmup_steps,
+    mcmc = model.mcmc(
+        num_samples=global_num_iterations,
         warmup_steps=global_warmup_steps)
 
 
@@ -64,7 +57,7 @@ def test_neals_funnel():
 
     def params_of_sample(s):
         return { 'x_std':s[0], 'y_std': s[1] }
-    samples_fstan = [marginal() for _ in range(100)]
+    samples_fstan = mcmc.get_samples()
     xy = [ model.generated_quantities(parameters=params_of_sample(sample)) for sample in samples_fstan ]
     x = [ o['x'].item() for o in xy ]
     y = [ o['y'].item() for o in xy ]

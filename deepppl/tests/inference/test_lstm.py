@@ -96,7 +96,7 @@ def evaluate_samples(svi, first_letter='w', predict_len=100, temperature=0.8):
 @pytest.mark.xfail(strict=False, reason="This currently fails with type inference.  Reasons not yet investigated.")
 def test_lstm_inference():
     rnn = build_rnn()
-    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/lstm_modified.stan', rnn=rnn)
+    model = deepppl.PyroModel(model_file = 'deepppl/tests/good/lstm_modified.stan', rnn=rnn)
     adam_params = {
         "lr": .1, #0.001,
         "betas": (0.96, 0.999),

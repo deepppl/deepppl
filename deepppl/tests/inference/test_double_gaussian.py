@@ -1,8 +1,6 @@
 import torch
 import pyro
 import numpy as np
-from pyro.infer import mcmc
-from pyro.infer.mcmc import MCMC, NUTS
 import logging
 import time
 import pystan
@@ -15,21 +13,13 @@ global_num_iterations=10000
 global_num_chains=1
 global_warmup_steps = 300
 
-def nuts(model, **kwargs):
-    nuts_kernel = mcmc.NUTS(model)
-    return mcmc.MCMC(nuts_kernel, **kwargs)
-
 def test_double_gaussian():
-    model = deepppl.DppplModel(model_file=stan_model_file)
-    #model._model = model2
-    posterior = model.posterior(
-        method=nuts,
-        num_samples=global_num_iterations-global_warmup_steps,
-        warmup_steps=global_warmup_steps)
+    model = deepppl.PyroModel(model_file=stan_model_file)
+    mcmc = model.mcmc(global_num_iterations, global_warmup_steps)
 
     t1 = time.time()
-    posterior.run()
-    samples_fstan = posterior.get_samples()['theta']
+    mcmc.run()
+    samples_fstan = mcmc.get_samples()['theta']
     t2 = time.time()
 
     pystan_output, pystan_time, pystan_compilation_time = compare_with_stan_output()
