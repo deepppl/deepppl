@@ -21,7 +21,7 @@ from numpyro.distributions import constraints as np_constraints
 import jax.numpy as jnp
 import torch
 
-# Utils to be imported by DppplModel
+# Utils to be imported by PyroModel
 
 
 def build_hooks(npyro=False):

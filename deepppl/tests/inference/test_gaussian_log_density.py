@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 def test_gaussian_log_density_inference():
-    model = deepppl.DppplModel(model_file = 'deepppl/tests/good/gaussian_log_density.stan')
+    model = deepppl.PyroModel(model_file = 'deepppl/tests/good/gaussian_log_density.stan')
 
     mcmc = model.mcmc(num_samples=3000, warmup_steps=300)
     mcmc.run()

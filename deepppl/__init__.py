@@ -16,4 +16,4 @@
 
 from .dppl import PyroModel, NumPyroModel
 
-__all__ = ["DppplModel", "NumPyroDPPLModel"]
+__all__ = ["PyroModel", "NumPyroModel"]
