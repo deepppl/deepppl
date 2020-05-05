@@ -85,7 +85,7 @@ global_warmup_steps = 300
 
 def build_aspirin_df(samples):
     names= [f'theta[{i+1}]' for i in range(6)] + [f'shrinkage[{i+1}]' for i in range(6)]
-    df = pd.concat([samples['theta'], samples['shrinkage']], axis=1, ignore_index=True)
+    df = pd.concat([pd.DataFrame(samples['theta']), pd.DataFrame(samples['shrinkage'])], axis=1, ignore_index=True)
     df.columns = names
     return df
 
@@ -99,10 +99,10 @@ def test_aspirin():
       warmup_steps=global_warmup_steps)
 
     t1 = time.time()
-
     mcmc.run(**aspirin_data_t)
-    samples = model.run_generated(mcmc, **aspirin_data_t)
+    samples = mcmc.get_samples()
     t2 = time.time()
+    
     df = build_aspirin_df(samples)
     pystan_output, time_pystan, pystan_compilation_time = compare_with_stan_output(aspirin_data)
     assert df.shape == pystan_output.shape

@@ -45,11 +45,10 @@ def test_kmeans():
     mcmc = model.mcmc(
         num_samples=900,
         warmup_steps=100)
-    mcmc.run(N=num_samples, D=num_features, K=num_clusters, y=X,
-                  transformed_data=model.transformed_data(N=num_samples, D=num_features, K=num_clusters, y=X))
+    mcmc.run(N=num_samples, D=num_features, K=num_clusters, y=X)
     sample_fstan = mcmc.get_samples()['mu']
 
-    cluster_means = sample_fstan.mean(0).numpy()
+    cluster_means = sample_fstan.mean(0)
 
     cluster_centers, t_pystan = compare_with_stan_output(data)
 
