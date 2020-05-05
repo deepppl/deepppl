@@ -315,8 +315,8 @@ matrixType
 
 type_
     : primitiveType typeConstraints? (isArray='[' ']')?
-    | vectorType typeConstraints? arrayDim?
-    | matrixType typeConstraints? arrayDim?
+    | vectorType typeConstraints? arrayDims
+    | matrixType typeConstraints? arrayDims
     ;
 
 typeConstraints

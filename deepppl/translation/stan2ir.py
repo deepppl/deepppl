@@ -85,14 +85,16 @@ class StanToIR(stanListener):
         if ctx.primitiveType() is not None:
             type_ = ctx.primitiveType().getText()
         elif ctx.vectorType() is not None:
-            type_ = ctx.vectorType().getText()
+            # type_ = ctx.vectorType().getText()
+            type_ = 'real'
         elif ctx.matrixType() is not None:
-            type_ = ctx.matrixType().getText()
+            #type_ = ctx.matrixType().getText()
+            type_ = 'real'
         else:
             assert False, f"unknown type: {ptype.getText()}"
         constraints = ctx.typeConstraints().ir if ctx.typeConstraints() else None
         is_array = ctx.isArray is not None
-        dims = ctx.arrayDim().ir if ctx.arrayDim() is not None else None
+        dims = ctx.arrayDims().ir if ctx.arrayDims() is not None else None
         ctx.ir = Type_(type_ = type_, constraints = constraints, is_array = is_array, dim = dims)
 
     def exitTypeConstraints(self, ctx):
