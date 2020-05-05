@@ -172,6 +172,7 @@ class MCMCProxy():
         if self.numpyro:
             self.mcmc.run(self.rng_key, *args, **kwargs) 
         else:
+            kwargs = {k: _convert_to_tensor(v) for k,v in kwargs.items()}
             self.mcmc.run(*args, **kwargs)
             
     def get_samples(self):
@@ -202,6 +203,12 @@ class SVIProxy(object):
 def _convert_to_np(value):
     if type(value) == torch.Tensor:
         return value.cpu().numpy()
+    else:
+        return value
+        
+def _convert_to_tensor(value):
+    if isinstance(value, (list, onp.ndarray)):
+        return torch.Tensor(value)
     else:
         return value
 
