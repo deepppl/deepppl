@@ -92,45 +92,13 @@ class PyroModel(object):
         if kernel is None:
             kernel = pyro.infer.NUTS(self._model, adapt_step_size=True)
         mcmc = pyro.infer.MCMC(kernel, num_samples, warmup_steps=warmup_steps, num_chains=num_chains) 
-        return MCMCProxy(mcmc)
+        return MCMCProxy(mcmc, False, self._generated_quantities, self._transformed_data)
 
     def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else Adam(params)
         loss = loss if loss is not None else pyro.infer.Trace_ELBO()
         svi = pyro.infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi)
-
-    def transformed_data(self, *args, **kwargs):
-        return self._transformed_data(*args, **kwargs)
-
-    def generated_quantities(self, *args, **kwargs):
-        return self._generated_quantities(*args, **kwargs)
-        
-    def run_generated(self, posterior, **kwargs):
-        res = defaultdict(list)
-        samples = posterior.get_samples()
-        num_samples = len(list(samples.values())[0])
-        for i in range(num_samples):
-            kwargs['parameters'] = {x: samples[x][i] for x in samples}
-            d = self.generated_quantities(**kwargs)
-            for k, v in d.items():
-                res[k].append(_convert_to_np(v))
-        return {k : pd.DataFrame(v) for k, v in res.items()}
-            
-            
-        
-
-    # def run_generated(self, posterior, **kwargs):
-    #     args = dict(kwargs)
-    #     def convert_dict(dict):
-    #         return {k:_convert_to_np(dict, k) for k in dict}
-    #     answer = defaultdict(list)
-    #     for params in extract_params(posterior):
-    #         args['parameters'] = params
-    #         for k,v in convert_dict(self.generated_quantities(**args)).items():
-    #             answer[k].append(v)
-    #     return {k : pd.DataFrame(v) for k, v in answer.items()}
-
 
 class NumPyroModel(PyroModel):
     def _loadBasicHooks(self):
@@ -155,27 +123,34 @@ class NumPyroModel(PyroModel):
         if kernel is None:
             kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True) 
         mcmc = numpyro.infer.MCMC(kernel, warmup_steps, num_samples, num_chains)
-        return MCMCProxy(mcmc, True)
+        return MCMCProxy(mcmc, True, self._generated_quantities, self._transformed_data)
     
     def _updateUtilsHooks(self):
         self._updateHooksAll(utils.build_hooks(npyro=True))
  
 
 class MCMCProxy():
-    def __init__(self, mcmc, numpyro=False):
-        self.numpyro = numpyro
+    def __init__(self, mcmc, numpyro=False, generated_quantities=None, transformed_data=None):
         self.mcmc = mcmc
+        self.transformed_data = transformed_data
+        self.generated_quantities = generated_quantities
+        self.numpyro = numpyro
+        self.data = None
         if numpyro:
             self.rng_key, _ = random.split(random.PRNGKey(0))
         
     def run(self, *args, **kwargs):
+        self.data = kwargs
+        if self.transformed_data:
+            self.data['transformed_data'] = self.transformed_data(**self.data)
         if self.numpyro:
+            kwargs = {k: _convert_to_np(v) for k,v in self.data.items()}
             self.mcmc.run(self.rng_key, *args, **kwargs) 
         else:
-            kwargs = {k: _convert_to_tensor(v) for k,v in kwargs.items()}
+            kwargs = {k: _convert_to_tensor(v) for k,v in self.data.items()}
             self.mcmc.run(*args, **kwargs)
             
-    def get_samples(self):
+    def sample_model(self):
         # Pyro removes warmup steps from samples
         if self.numpyro:
             warmup = self.mcmc.num_warmup
@@ -184,6 +159,27 @@ class MCMCProxy():
             warmup = self.mcmc.warmup_steps
             samples = self.mcmc.get_samples()
         return {x: samples[x][warmup:] for x in samples}
+        
+    def sample_generated(self, samples):
+        kwargs = self.data
+        res = defaultdict(list)
+        num_samples = len(list(samples.values())[0])
+        for i in range(num_samples):
+            kwargs['parameters'] = {x: samples[x][i] for x in samples}
+            d = self.generated_quantities(**kwargs)
+            for k, v in d.items():
+                res[k].append(_convert_to_np(v))
+        return res
+     
+    def get_samples(self):
+        samples = self.sample_model()
+        if self.generated_quantities:
+            gen = self.sample_generated(samples)
+            samples.update(gen)
+        return {k: _convert_to_np(v) for k, v in samples.items()}
+            
+        
+        
            
             
         
@@ -203,21 +199,15 @@ class SVIProxy(object):
 def _convert_to_np(value):
     if type(value) == torch.Tensor:
         return value.cpu().numpy()
+    if isinstance(value, list):
+        return onp.array(value)
     else:
         return value
         
 def _convert_to_tensor(value):
     if isinstance(value, (list, onp.ndarray)):
         return torch.Tensor(value)
+    elif isinstance(value, dict):
+        return {k: _convert_to_tensor(v) for k, v in value.items()}
     else:
         return value
-
-# def _make_params(trace):
-#     answer = {}
-#     for name, node in trace.nodes.items():
-#         if node['type'] == 'sample' and not node['is_observed']:
-#             answer[name] = _convert_to_np(node, 'value')
-#     return answer
-
-# def extract_params(posterior):
-#     return [_make_params(trace) for trace in posterior.exec_traces]
