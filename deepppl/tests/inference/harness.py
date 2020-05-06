@@ -8,8 +8,12 @@ from deepppl import PyroModel, NumPyroModel
 from scipy.stats import entropy, ks_2samp
 import numpy as np
 
+def _skl(s1, s2, bins=10):
+    hist1 = np.histogram(s1, bins) + 1
+    hist2 = np.histogram(s2, bins) + 1
+    return entropy(hist1[0], hist2[0]) + entropy(hist2[0], hist1[0])
 
-def distance(dist, pyro_samples, stan_samples):
+def _distance(dist, pyro_samples, stan_samples):
     if len(pyro_samples.shape) == 1:
         return dist(stan_samples, pyro_samples)
     else:
@@ -34,8 +38,8 @@ class TimeIt:
     
 @dataclass    
 class Config:
-    iterations: int = 1000
-    warmups: int = 100
+    iterations: int = 100
+    warmups: int = 10
     chains: int = 1
  
     
@@ -43,13 +47,13 @@ class Config:
 class MCMCTest:
     name: str
     model_file: str
-    data: Dict[str, Any]
+    data: Dict[str, Any] 
     compare_params: Optional[List[str]] = None
 
     pyro_samples: Dict[str, Any] = field(init=False)
     numpyro_samples: Dict[str, Any] = field(init=False)
     stan_samples: Dict[str, Any] = field(init=False)
-    timers: Dict[str, Any] = field(init=False, default_factory=dict)
+    timers: Dict[str, float] = field(init=False, default_factory=dict)
     divergences: Dict[str, Any] = field(init=False, default_factory=dict)
  
     def run_pyro(self):
@@ -81,11 +85,11 @@ class MCMCTest:
             assert self.pyro_samples[k].shape == self.stan_samples[k].shape, \
                 f'Shape mismatch for {k}, Pyro {self.pyro_samples[k].shape}, Stan {self.stan_samples[k].shape}'
             if not self.compare_params or k in self.compare_params:
-                self.divergences[k] = distance(ks_2samp,
+                self.divergences[k] = _distance(ks_2samp,
                                                self.pyro_samples[k],
                                                self.stan_samples[k])
             
-    def run(self):
+    def run(self) -> Dict[str, Dict[str, Any]]:
         self.run_pyro()
         self.run_stan()
         self.compare()
@@ -93,3 +97,5 @@ class MCMCTest:
             'divergences': self.divergences,
             'timers': self.timers
         }
+
+
