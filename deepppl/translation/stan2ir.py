@@ -68,7 +68,7 @@ class StanToIR(stanListener):
         dims = None
         if ctx.arrayDims() is not None and type_.dim is not None:
             # Avi: to check
-            dims = Tuple(exprs = [ctx.arrayDim().ir, type_.dim])
+            dims = Tuple(exprs = [ctx.arrayDims().ir, type_.dim])
         elif ctx.arrayDims() is not None:
             dims = ctx.arrayDims().ir
         elif type_.dim is not None:
