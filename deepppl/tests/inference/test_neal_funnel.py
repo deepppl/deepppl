@@ -6,7 +6,7 @@ def test_neal_funnel():
         
     test_neal_funnel = MCMCTest(
         name='neal_funnel',
-        model_file='deepppl/tests/good/paper/neal_funnel.stan',
+        model_file='deepppl/tests/good/neal_funnel.stan',
         data=data
     )
     

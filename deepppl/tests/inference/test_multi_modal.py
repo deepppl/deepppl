@@ -2,7 +2,7 @@ from .harness import MCMCTest
 from pprint import pprint
 import pytest
 
-@pytest.mark.xfail('Numpyro cannot compile boolean condition')
+@pytest.mark.xfail(reason='Numpyro cannot compile boolean condition')
 def test_multi_modal():
     data = {}
         

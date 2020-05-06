@@ -3,7 +3,7 @@ from pprint import pprint
 from sklearn.datasets import make_blobs
 import pytest
 
-@pytest.mark.xfail('In place mutation not supported in Numpyro')
+@pytest.mark.xfail(reason='In place mutation not supported in Numpyro')
 def test_kmeans():
     data = {}
     data['N'] = 6

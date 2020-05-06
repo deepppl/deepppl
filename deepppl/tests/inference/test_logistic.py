@@ -2,7 +2,7 @@ from .harness import MCMCTest
 from pprint import pprint
 import pytest
 
-@pytest.mark.xfail('Numpyro cannot find valid initial parameters')
+@pytest.mark.xfail(reason='Numpyro cannot find valid initial parameters')
 def test_logistic():
     data = {}
     data['N'] = 7
