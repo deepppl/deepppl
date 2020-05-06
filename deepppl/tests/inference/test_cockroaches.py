@@ -1,8 +1,9 @@
 from .harness import MCMCTest
 import numpy as np
 from pprint import pprint
+import pytest
 
-
+@pytest.mark.skip
 def test_cockroaches():
     data = {}
     data['N'] = 262

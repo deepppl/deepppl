@@ -1,5 +1,6 @@
 from .harness import MCMCTest
 from pprint import pprint
+import pytest
 
 @pytest.mark.xfail('Numpyro cannot find valid initial parameters')
 def test_logistic():
