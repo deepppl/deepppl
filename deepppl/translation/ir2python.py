@@ -577,7 +577,8 @@ class Ir2PythonVisitor(IRVisitor):
     renamed_distributions = {
         'multi_normal': 'MultivariateNormal',
         'logistic': 'LogisticNormal',
-        'student_t' : 'StudentT'
+        'student_t': 'StudentT',
+        'inv_gamma': 'InverseGamma'
     }
 
 
