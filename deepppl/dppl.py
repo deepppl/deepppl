@@ -98,7 +98,7 @@ class PyroModel(object):
         optimizer = optimizer if optimizer else Adam(params)
         loss = loss if loss is not None else pyro.infer.Trace_ELBO()
         svi = pyro.infer.SVI(self._model, self._guide, optimizer, loss)
-        return SVIProxy(svi)
+        return SVIProxy(svi, self._generated_quantities, self._transformed_data)
 
 class NumPyroModel(PyroModel):
     def _loadBasicHooks(self):
@@ -135,19 +135,21 @@ class MCMCProxy():
         self.transformed_data = transformed_data
         self.generated_quantities = generated_quantities
         self.numpyro = numpyro
-        self.data = None
+        self.args = []
+        self.kwargs = {}
         if numpyro:
             self.rng_key, _ = random.split(random.PRNGKey(0))
         
     def run(self, *args, **kwargs):
-        self.data = kwargs
+        self.args = [_convert_to_np(v) for v in args]
+        self.kwargs = {k: _convert_to_np(v) for k,v in kwargs.items()}
         if self.transformed_data:
-            self.data['transformed_data'] = self.transformed_data(**self.data)
+            self.kwargs['transformed_data'] = self.transformed_data(*self.args, **self.kwargs)
         if self.numpyro:
-            kwargs = {k: _convert_to_np(v) for k,v in self.data.items()}
-            self.mcmc.run(self.rng_key, *args, **kwargs) 
+            self.mcmc.run(self.rng_key, *self.args, **self.kwargs) 
         else:
-            kwargs = {k: _convert_to_tensor(v) for k,v in self.data.items()}
+            args = [_convert_to_tensor(v) for v in self.args]
+            kwargs = {k: _convert_to_tensor(v) for k,v in self.kwargs.items()}
             self.mcmc.run(*args, **kwargs)
             
     def sample_model(self):
@@ -161,12 +163,12 @@ class MCMCProxy():
         return {x: samples[x][warmup:] for x in samples}
         
     def sample_generated(self, samples):
-        kwargs = self.data
+        kwargs = self.kwargs
         res = defaultdict(list)
         num_samples = len(list(samples.values())[0])
         for i in range(num_samples):
             kwargs['parameters'] = {x: samples[x][i] for x in samples}
-            d = self.generated_quantities(**kwargs)
+            d = self.generated_quantities(*self.args, **kwargs)
             for k, v in d.items():
                 res[k].append(_convert_to_np(v))
         return res
@@ -177,23 +179,29 @@ class MCMCProxy():
             gen = self.sample_generated(samples)
             samples.update(gen)
         return {k: _convert_to_np(v) for k, v in samples.items()}
-            
-        
-        
-           
-            
-        
+
+   
 class SVIProxy(object):
-    def __init__(self, svi):
+    def __init__(self, svi, generated_quantities=None, transformed_data=None):
         self.svi = svi
+        self.transformed_data = transformed_data
+        self.generated_quantities = generated_quantities
+        self.args = []
+        self.kwargs = {}
 
     def posterior(self, n):
         signature = inspect.signature(self.svi.guide)
         args = [None for i in range(len(signature.parameters))]
         return [self.svi.guide(*args) for _ in range(n)]
 
-    def step(self, *args):
-        return self.svi.step(*args)
+    def step(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+        if self.transformed_data:
+            self.kwargs['transformed_data'] = self.transformed_data(**self.args, **self.kwargs)
+        args = [_convert_to_tensor(v) for v in self.args]
+        kwargs = {k: _convert_to_tensor(v) for k,v in self.kwargs.items()}
+        return self.svi.step(*args, **kwargs)
 
 
 def _convert_to_np(value):
