@@ -12,7 +12,7 @@ def test_linear_regression():
 
     t_linear_regression = MCMCTest(
         name='linear_regression',
-        model_file='deepppl/tests/good/paper/linear_regression_array.stan',
+        model_file='deepppl/tests/good/linear_regression_array.stan',
         data=data
     )
     

@@ -62,9 +62,7 @@ def compile(filename):
 
  
 compile_tests = [
-    ('coin', None), 
     ('coin_vectorized', None), 
-    ('coin_guide', None), 
     ('coin_guide_init', None), 
     ('gaussian', None), 
     ('gaussian_log_density', None), 
@@ -73,11 +71,8 @@ compile_tests = [
     ('operators', None), 
     ('operators-expr', None),
     ('simple_init', None), 
-    ('vae', None),
     ('missing_data', None),
     ('neal_funnel', None), 
-    ('cockroaches', None), 
-    ('seeds', None),
     ('coin_reverted', 'In stan lines are not ordered'),
     ('coin_transformed_data', 'Type Inference'), 
     ('lstm', 'Type inference'),
@@ -96,22 +91,24 @@ def test_normalize_and_compare(test_name, fail):
     normalize_and_compare(filename, target_file)
     
 compile_tests_notype = [
+    ('aspirin', None),
     ('mlp', None), 
     ('mlp_default_init', None),
     ('kmeans', None),
     ('schools', None),
     ('logistic', 'Type infernce'), 
     ('lda', None),
-    ('paper/bayes_nn', None),
-    ('paper/coin_guide', None),
-    ('paper/seeds', None),
-    ('paper/coin_vect', None),
-    ('paper/coin', None),
-    ('paper/multimodal', None),
-    ('paper/multimodal_guide', None),
-    ('paper/posterior_twice', None),
-    ('paper/vae_inferred_shape', None),
-    ('paper/vae', None)  
+    ('bayes_nn', None),  
+    ('coin', None),
+    ('coin_guide', None),
+    ('coin_vect', None),
+    ('cockroaches', None), 
+    ('multimodal', None),
+    ('multimodal_guide', None),
+    ('posterior_twice', None),
+    ('seeds', None),
+    ('vae_inferred_shape', None),
+    ('vae', None)  
 ]
 @pytest.mark.parametrize('test_name, fail', compile_tests_notype)   
 def test_normalize_and_compare_notype(test_name, fail):

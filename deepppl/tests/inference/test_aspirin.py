@@ -17,7 +17,7 @@ def test_aspirin():
      
     t_aspirin = MCMCTest(
         name='aspirin',
-        model_file='deepppl/tests/good/paper/aspirin.stan',
+        model_file='deepppl/tests/good/aspirin.stan',
         data=data,
         compare_params=['theta', 'shrinkage']
     )

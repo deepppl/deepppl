@@ -147,10 +147,10 @@ def test_cockroaches():
         
     t_cockroaches = MCMCTest(
         name='cockroaches',
-        model_file='deepppl/tests/good/paper/cockroaches.stan',
+        model_file='deepppl/tests/good/cockroaches.stan',
         data=data,
         compare_params=['beta'],
-        with_pyro= not on_travis() # Pyro is too slow for travis
+        with_pyro = False # Pyro is too slow
     )
     
     return t_cockroaches.run()

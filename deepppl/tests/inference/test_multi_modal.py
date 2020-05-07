@@ -6,7 +6,7 @@ def test_multi_modal():
         
     t_multi_modal = MCMCTest(
         name='multi_modal',
-        model_file='deepppl/tests/good/paper/multimodal.stan',
+        model_file='deepppl/tests/good/multimodal.stan',
         data=data,
         numpyro=False # Numpyro cannot compile boolean condition
     )

@@ -3,6 +3,7 @@ from pprint import pprint
 
 def test_coin():
     data = {}
+    data['N'] = 10
     data['x'] = [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
     
     t_coin = MCMCTest(

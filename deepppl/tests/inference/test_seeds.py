@@ -15,7 +15,7 @@ def test_seeds():
 
     test_seeds = MCMCTest(
         name='seeds',
-        model_file='deepppl/tests/good/paper/seeds.stan',
+        model_file='deepppl/tests/good/seeds.stan',
         data=data
     )
     

@@ -5,23 +5,25 @@ import torch.distributions.constraints as constraints
 import pyro.distributions as dist
 
 
-def model(J=None, sigma=None, y=None):
-    mu = sample('mu', ImproperUniform(shape=1))
-    tau = sample('tau', LowerConstrainedImproperUniform(zeros(1), shape=1)
-        )
-    eta = sample('eta', ImproperUniform(shape=J))
-    theta = zeros(J)
-    for j in range(1, J + 1):
-        theta[j - 1] = mu[0 - 1] + tau[0 - 1] * eta[j - 1]
-    sample('eta' + '__1', dist.Normal(zeros(J), ones(J)), obs=eta)
-    sample('y' + '__2', dist.Normal(theta, sigma), obs=y)
+def model(N=None, sigma_y=None, y=None):
+    eta = sample('eta', ImproperUniform(shape=N))
+    mu_theta = sample('mu_theta', ImproperUniform())
+    sigma_eta = sample('sigma_eta', dist.Uniform(0.0, 100.0))
+    xi = sample('xi', ImproperUniform())
+    theta = zeros(N)
+    theta = mu_theta + xi * eta
+    sample('mu_theta' + '__1', dist.Normal(0, 100), obs=mu_theta)
+    sample('sigma_eta' + '__2', dist.InverseGamma(1, 1), obs=sigma_eta)
+    sample('eta' + '__3', dist.Normal(zeros(N), sigma_eta), obs=eta)
+    sample('xi' + '__4', dist.Normal(0, 5), obs=xi)
+    sample('y' + '__5', dist.Normal(theta, sigma_y), obs=y)
 
 
-def generated_quantities(J=None, sigma=None, y=None, parameters=None):
+def generated_quantities(N=None, sigma_y=None, y=None, parameters=None):
     eta = parameters['eta']
-    mu = parameters['mu']
-    tau = parameters['tau']
-    theta = zeros(J)
-    for j in range(1, J + 1):
-        theta[j - 1] = mu[0 - 1] + tau[0 - 1] * eta[j - 1]
+    mu_theta = parameters['mu_theta']
+    sigma_eta = parameters['sigma_eta']
+    xi = parameters['xi']
+    theta = zeros(N)
+    theta = mu_theta + xi * eta
     return {'theta': theta}

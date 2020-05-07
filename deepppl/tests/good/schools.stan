@@ -15,21 +15,25 @@
  */
 
 data {
-    int<lower=0> J; // number of schools
-    real y[J]; // estimated treatment effects
-    real<lower=0> sigma[J]; // s.e. of effect estimates
-}
+  int<lower=0> N;
+  vector[N] y;
+  vector[N] sigma_y;
+} 
 parameters {
-    real mu[1];
-    real<lower=0> tau[1];
-    real eta[J];
-}
+  vector[N] eta;
+  real mu_theta;
+  real<lower=0,upper=100> sigma_eta;
+  real xi;
+} 
 transformed parameters {
-    real theta[J];
-    for (j in 1:J)
-        theta[j] = mu[0] + tau[0] * eta[j];
+  vector[N] theta;
+  theta = mu_theta + xi * eta;
 }
 model {
-    eta ~ normal(zeros(J), ones(J));
-    y ~ normal(theta, sigma);
+  mu_theta ~ normal(0, 100);
+  sigma_eta ~ inv_gamma(1, 1); //prior distribution can be changed to uniform
+
+  eta ~ normal(0, sigma_eta);
+  xi ~ normal(0, 5);
+  y ~ normal(theta,sigma_y);
 }

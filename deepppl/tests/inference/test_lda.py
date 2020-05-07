@@ -53,7 +53,7 @@ def test_lda():
      
     t_lda = MCMCTest(
         name='lda',
-        model_file='deepppl/tests/good/paper/lda.stan',
+        model_file='deepppl/tests/good/lda.stan',
         data=data,
         compare_params=['theta', 'shrinkage']
     )

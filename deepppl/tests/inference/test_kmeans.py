@@ -14,8 +14,9 @@ def test_kmeans():
     
     t_kmeans = MCMCTest(
         name='kmeans',
-        model_file='deepppl/tests/good/paper/kmeans.stan',
+        model_file='deepppl/tests/good/kmeans.stan',
         data=data,
+        compare_params=['mu'],
         with_numpyro=False # In place mutation not supported in Numpyro
     )
     

@@ -16,7 +16,7 @@ def test_logistic():
 
     t_logistic = MCMCTest(
         name='logistic',
-        model_file='deepppl/tests/good/paper/logistic.stan',
+        model_file='deepppl/tests/good/logistic.stan',
         data=data,
         with_numpyro=False # Numpyro cannot find valid initial parameters
     )

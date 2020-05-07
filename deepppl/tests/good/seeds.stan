@@ -2,11 +2,11 @@ data {
     int I;
     int n[I];
     int N[I];
-    real x1[I];
-    real x2[I];
+    vector[I] x1;
+    vector[I] x2;
 }
 transformed data {
-    real x1x2[I];
+    vector[I] x1x2;
     x1x2 = x1 .* x2;
 }
 parameters {
@@ -15,7 +15,7 @@ parameters {
     real alpha12;
     real alpha2;
     real<lower=0> tau;
-    real b[I];
+    vector[I] b;
 }
 transformed parameters {
     real sigma = 1.0 / sqrt(tau);

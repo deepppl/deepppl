@@ -9,7 +9,7 @@ def test_schools():
         
     test_schools = MCMCTest(
         name='schools',
-        model_file='deepppl/tests/good/paper/schools.stan',
+        model_file='deepppl/tests/good/schools.stan',
         data=data
     )
     

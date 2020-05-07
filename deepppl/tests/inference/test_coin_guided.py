@@ -7,9 +7,10 @@ def test_coin_guided_inference():
     model = deepppl.PyroModel(
         model_file='deepppl/tests/good/coin_guide.stan')
     svi = model.svi(params={'lr': 0.1})
-    x = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0]
+    N = 10
+    x = [0, 0, 0, 0, 0, 0, 1, 0, 0, 1]
     for step in range(10000):
-        svi.step(x)
+        svi.step(N, x)
         if step % 100 == 0:
             print('.', end='')
     alpha_q = pyro.param("alpha_q").item()
