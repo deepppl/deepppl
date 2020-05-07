@@ -5,8 +5,7 @@ import numpy as np
 def test_gaussian_log_density():
     t_gaussian_log_density = MCMCTest(
         name='gaussian_log_density',
-        model_file='deepppl/tests/good/gaussian_log_density.stan',
-        data={},
+        model_file='deepppl/tests/good/gaussian_log_density.stan'
     )
     
     res = t_gaussian_log_density.run()

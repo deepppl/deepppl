@@ -1,9 +1,7 @@
 from .harness import MCMCTest
 from pprint import pprint
 from sklearn.datasets import make_blobs
-import pytest
 
-@pytest.mark.xfail(reason='In place mutation not supported in Numpyro')
 def test_kmeans():
     data = {}
     data['N'] = 6
@@ -18,7 +16,7 @@ def test_kmeans():
         name='kmeans',
         model_file='deepppl/tests/good/paper/kmeans.stan',
         data=data,
-        compare_params=['mu']
+        with_numpyro=False # In place mutation not supported in Numpyro
     )
     
     return t_kmeans.run()

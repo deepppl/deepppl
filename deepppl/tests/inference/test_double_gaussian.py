@@ -4,8 +4,7 @@ from pprint import pprint
 def test_double_gaussian():
     t_double_gaussian = MCMCTest(
         name='double_gaussian',
-        model_file='deepppl/tests/good/double_gaussian.stan',
-        data={},
+        model_file='deepppl/tests/good/double_gaussian.stan'
     )
     
     return t_double_gaussian.run()

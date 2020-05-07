@@ -47,8 +47,10 @@ class Config:
 class MCMCTest:
     name: str
     model_file: str
-    data: Dict[str, Any] 
+    data: Dict[str, Any] = field(default_factory=dict) 
     compare_params: Optional[List[str]] = None
+    with_pyro: bool = True
+    with_numpyro: bool = True
 
     pyro_samples: Dict[str, Any] = field(init=False)
     numpyro_samples: Dict[str, Any] = field(init=False)
@@ -57,15 +59,20 @@ class MCMCTest:
     divergences: Dict[str, Any] = field(init=False, default_factory=dict)
  
     def run_pyro(self):
-        with TimeIt('NumPyro_Runtime', self.timers):
-            model = NumPyroModel(model_file=self.model_file)
-            mcmc = model.mcmc(Config.iterations, Config.warmups)
-            mcmc.run(**self.data)
-        with TimeIt('Pyro_Runtime', self.timers):
-            model = PyroModel(model_file=self.model_file)
-            mcmc = model.mcmc(Config.iterations, Config.warmups)
-            mcmc.run(**self.data)
-            self.pyro_samples = mcmc.get_samples()
+        assert self.with_pyro or self.with_numpyro, \
+               'Should run either Pyro or Numpyro'
+        if self.with_numpyro:
+            with TimeIt('NumPyro_Runtime', self.timers):
+                model = NumPyroModel(model_file=self.model_file)
+                mcmc = model.mcmc(Config.iterations, Config.warmups)
+                mcmc.run(**self.data)
+        if self.with_pyro:
+            with TimeIt('Pyro_Runtime', self.timers):
+                model = PyroModel(model_file=self.model_file)
+                mcmc = model.mcmc(Config.iterations, Config.warmups)
+                mcmc.run(**self.data)
+        self.pyro_samples = mcmc.get_samples()
+                    
             
     def run_stan(self):
         with TimeIt('Stan_Compilation', self.timers):
@@ -82,12 +89,12 @@ class MCMCTest:
         for k in self.pyro_samples:
             assert k in self.stan_samples, \
                 f'{k} is not in stan samples'
-            assert self.pyro_samples[k].shape == self.stan_samples[k].shape, \
-                f'Shape mismatch for {k}, Pyro {self.pyro_samples[k].shape}, Stan {self.stan_samples[k].shape}'
+            p = self.pyro_samples[k]
+            s = self.stan_samples[k]
+            assert p.shape == s.shape, \
+                f'Shape mismatch for {k}, Pyro {p.shape}, Stan {s.shape}'
             if not self.compare_params or k in self.compare_params:
-                self.divergences[k] = _distance(ks_2samp,
-                                               self.pyro_samples[k],
-                                               self.stan_samples[k])
+                self.divergences[k] = _distance(ks_2samp, p, s)
             
     def run(self) -> Dict[str, Dict[str, Any]]:
         self.run_pyro()

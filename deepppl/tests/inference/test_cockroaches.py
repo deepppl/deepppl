@@ -1,9 +1,8 @@
 from .harness import MCMCTest
+from ..utils import on_travis
 import numpy as np
 from pprint import pprint
-import pytest
 
-@pytest.mark.skip
 def test_cockroaches():
     data = {}
     data['N'] = 262
@@ -145,12 +144,13 @@ def test_cockroaches():
         48, 293, 7, 10, 19, 24, 91, 1, 0, 0, 0, 0,
         148, 3, 26, 12, 77, 0, 7, 0, 1, 0, 17, 0,
         7, 11, 6, 50, 1, 0, 0, 0, 171, 8]
-
+        
     t_cockroaches = MCMCTest(
         name='cockroaches',
         model_file='deepppl/tests/good/paper/cockroaches.stan',
         data=data,
-        compare_params=['beta']
+        compare_params=['beta'],
+        with_pyro= not on_travis() # Pyro is too slow for travis
     )
     
     return t_cockroaches.run()

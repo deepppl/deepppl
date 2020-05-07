@@ -1,8 +1,6 @@
 from .harness import MCMCTest
 from pprint import pprint
-import pytest
 
-@pytest.mark.xfail(reason='Numpyro cannot find valid initial parameters')
 def test_logistic():
     data = {}
     data['N'] = 7
@@ -19,7 +17,8 @@ def test_logistic():
     t_logistic = MCMCTest(
         name='logistic',
         model_file='deepppl/tests/good/paper/logistic.stan',
-        data=data
+        data=data,
+        with_numpyro=False # Numpyro cannot find valid initial parameters
     )
     
     return t_logistic.run_pyro()

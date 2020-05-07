@@ -5,8 +5,7 @@ import numpy as np
 def test_gaussian():
     t_gaussian = MCMCTest(
         name='gaussian',
-        model_file='deepppl/tests/good/gaussian.stan',
-        data={},
+        model_file='deepppl/tests/good/gaussian.stan'
     )
     
     res = t_gaussian.run()

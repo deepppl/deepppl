@@ -2,6 +2,9 @@ from .harness import MCMCTest
 import numpy as np
 from pprint import pprint
 
+# Warning: Generated quantities does not work with numpyro on this example
+# (In place mutation of array)
+
 def test_aspirin():
     data = {}
     data['y'] = [2.77, 2.50, 1.84, 2.56, 2.31, -1.15]
