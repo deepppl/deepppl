@@ -15,10 +15,12 @@ def test_coin_guided_inference():
             print('.', end='')
     alpha_q = pyro.param("alpha_q").item()
     beta_q = pyro.param("beta_q").item()
+    
+    print(f'alpha: {alpha_q} beta: {beta_q}')
 
-    # The posterior distribution should be a Beta(10 + 2, 10 + 8)
-    assert np.abs(alpha_q - (10 + 2)) < 2.0
-    assert np.abs(beta_q - (10 + 8)) < 2.0
+    # The posterior distribution should be a Beta(1 + 2, 1 + 8)
+    assert np.abs(alpha_q - (1 + 2)) < 2.0
+    assert np.abs(beta_q - (1 + 8)) < 2.0
 
 if __name__ == "__main__":
     test_coin_guided_inference()

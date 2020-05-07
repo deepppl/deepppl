@@ -16,11 +16,13 @@ def _skl(s1, s2, bins=10):
 def _distance(dist, pyro_samples, stan_samples):
     if len(pyro_samples.shape) == 1:
         return dist(stan_samples, pyro_samples)
-    else:
+    if len(pyro_samples.shape) == 2:
         res = {}
         for i, (p, s) in enumerate(zip(pyro_samples.T, stan_samples.T)):
             res[i] = dist(p, s)
         return res
+    # Don't know what to compute here
+    return {}
     
 
 
@@ -94,6 +96,7 @@ class MCMCTest:
             assert p.shape == s.shape, \
                 f'Shape mismatch for {k}, Pyro {p.shape}, Stan {s.shape}'
             if not self.compare_params or k in self.compare_params:
+                print('XXXXX', p.shape, s.shape)
                 self.divergences[k] = _distance(ks_2samp, p, s)
             
     def run(self) -> Dict[str, Dict[str, Any]]:
