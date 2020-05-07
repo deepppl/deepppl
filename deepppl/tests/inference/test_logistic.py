@@ -1,6 +1,8 @@
 from .harness import MCMCTest
 from pprint import pprint
+import pytest
 
+@pytest.mark.xfail(reason="Pyro stuck forever")
 def test_logistic():
     data = {}
     data['N'] = 7
