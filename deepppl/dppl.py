@@ -16,24 +16,25 @@
 
 from collections import defaultdict
 from types import FunctionType
+import inspect
+import builtins
 
 import torch
-import jax.random
+import jax
 import numpy as onp
 from jax import numpy as jnp
 
 import pyro
 import numpyro
-from pyro.optim import Adam
 
 from . import dpplc
 from .utils import utils
-import inspect
+
 
 
 class PyroModel(object):
     def __init__(self, model_code=None, model_file=None, **kwargs):
-        self._init_scope = kwargs
+        self._scope = kwargs
         self._py = self.compile(model_code=model_code, model_file=model_file)
         self._load_py()
 
@@ -44,23 +45,24 @@ class PyroModel(object):
         """Load the python object into `_model`"""
         locals_ = {}
         eval(self._py, globals(), locals_)
-        self._model = self._stan_scoped('model', locals_['model'])
+        self._scope.update(locals_)
         self._guide = None
+        self._prior = None
         self._transformed_data = None
         self._generated_quantities = None
         for k in locals_.keys():
             if k.startswith('guide_'):
-                self._guide = self._stan_scoped('guide', locals_[k])
+                self._guide = self._stan_scoped(k)
+            if k.startswith('prior'):
+                self._scope[k] = self._stan_scoped(k)
             if k.startswith('transformed_data'):
-                self._transformed_data = self._np_scoped(
-                    'transformed_data', locals_[k])
+                self._transformed_data = self._np_scoped(k)
             if k.startswith('generated_quantities'):
-                self._generated_quantities = self._np_scoped(
-                    'generated_quantities', locals_[k])
+                self._generated_quantities = self._np_scoped(k)
+        self._model = self._stan_scoped('model')
 
-    def _stan_scoped(self, name, f):
-        scoped = {x: v for x, v in f.__globals__.items()}
-        scoped.update(self._init_scope)
+    def _stan_scoped(self, name):
+        scoped = {k: v for k, v in builtins.__dict__.items()}
         scoped.update(utils.build_hooks())
         scoped['dist'] = pyro.distributions
         scoped['constraints'] = torch.distributions.constraints
@@ -76,12 +78,14 @@ class PyroModel(object):
                                  torch.nn.functional.softplus,
                                  pyro.sample]})
         scoped['fabs'] = torch.abs
+        scoped.update(self._scope)
+        f = self._scope[name]
         scoped[name] = FunctionType(f.__code__, scoped, name)
         return scoped[name]
 
-    def _np_scoped(self, name, f):
-        scoped = {x: v for x, v in f.__globals__.items()}
-        scoped.update(self._init_scope)
+    def _np_scoped(self, name):
+        f = self._scope[name]
+        scoped = {k: v for k, v in builtins.__dict__.items()}
         scoped.update({x.__name__: x
                        for x in [onp.sqrt,
                                  onp.random.randn,
@@ -90,6 +94,7 @@ class PyroModel(object):
                                  onp.zeros,
                                  onp.ones]})
         scoped['dot_self'] = lambda x: onp.dot(x, x)
+        f = self._scope[name]
         scoped[name] = FunctionType(f.__code__, scoped, name)
         return scoped[name]
 
@@ -101,16 +106,16 @@ class PyroModel(object):
         return MCMCProxy(mcmc, False, self._generated_quantities, self._transformed_data)
 
     def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
-        optimizer = optimizer if optimizer else Adam(params)
+        optimizer = optimizer if optimizer else pyro.optim.Adam(params)
         loss = loss if loss is not None else pyro.infer.Trace_ELBO()
         svi = pyro.infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi, self._generated_quantities, self._transformed_data)
 
 
 class NumPyroModel(PyroModel):
-    def _stan_scoped(self, name, f):
-        scoped = {x: v for x, v in f.__globals__.items()}
-        scoped.update(self._init_scope)
+    def _stan_scoped(self, name):
+        f = self._scope[name]
+        scoped = {k: v for k, v in builtins.__dict__.items()}
         scoped.update(utils.build_hooks(npyro=True))
         scoped['dist'] = numpyro.distributions
         scoped['constraints'] = numpyro.distributions.constraints
@@ -122,7 +127,9 @@ class NumPyroModel(PyroModel):
                                  jnp.ones,
                                  numpyro.sample]})
         scoped['softplus'] = lambda x: jnp.logaddexp(x, 0.)
-        scoped['fabs'] = torch.abs
+        scoped['fabs'] = jnp.abs
+        scoped.update(self._scope)
+        f = self._scope[name]
         scoped[name] = FunctionType(f.__code__, scoped, name)
         return scoped[name]
 
