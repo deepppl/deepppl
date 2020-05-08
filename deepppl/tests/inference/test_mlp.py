@@ -48,6 +48,7 @@ def test_mlp_inference():
         for j, (imgs, lbls) in enumerate(train_loader, 0):
             # calculate the loss and take a gradient step
             loss = svi.step(batch_size, imgs, lbls)
+            print('.', end="", flush=True)
     posterior = svi.posterior(30)
 
     for j, data in enumerate(test_loader):

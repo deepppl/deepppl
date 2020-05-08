@@ -9,11 +9,16 @@ from scipy.stats import entropy, ks_2samp
 import numpy as np
 
 def _skl(s1, s2, bins=10):
-    hist1 = np.histogram(s1, bins) + 1
-    hist2 = np.histogram(s2, bins) + 1
-    return entropy(hist1[0], hist2[0]) + entropy(hist2[0], hist1[0])
+    hist1 = np.histogram(s1, bins)
+    hist2 = np.histogram(s2, bins)
+    return entropy(hist1[0] + 1, hist2[0] + 1) \
+           + entropy(hist2[0] + 1, hist1[0] + 1)
 
-def _distance(dist, pyro_samples, stan_samples):
+def _ks(s1, s2):
+    s, p = ks_2samp(s1, s2)
+    return s, p
+
+def _distance(pyro_samples, stan_samples, dist):
     if len(pyro_samples.shape) == 1:
         return dist(stan_samples, pyro_samples)
     if len(pyro_samples.shape) == 2:
@@ -21,8 +26,20 @@ def _distance(dist, pyro_samples, stan_samples):
         for i, (p, s) in enumerate(zip(pyro_samples.T, stan_samples.T)):
             res[i] = dist(p, s)
         return res
-    # Don't know what to compute here
+    # Don't know what to compute here. Too many dimensions.
     return {}
+    
+def _compare(res, ref, compare_params, dist):
+    divergence = {}
+    for k, a in res.items():
+        assert k in ref, \
+            f'{k} is not in Stan results'
+        b = ref[k] 
+        assert a.shape == b.shape, \
+            f'Shape mismatch for {k}, Pyro {a.shape}, Stan {b.shape}'
+        if not compare_params or k in compare_params:
+            divergence[k] = _distance(a, b, dist)
+    return divergence
     
 
 
@@ -68,12 +85,14 @@ class MCMCTest:
                 model = PyroModel(model_file=self.model_file)
                 mcmc = model.mcmc(Config.iterations, Config.warmups)
                 mcmc.run(**self.data)
+                self.pyro_samples = mcmc.get_samples()
         if self.with_numpyro:
             with TimeIt('NumPyro_Runtime', self.timers):
                 model = NumPyroModel(model_file=self.model_file)
                 mcmc = model.mcmc(Config.iterations, Config.warmups)
                 mcmc.run(**self.data)
-        self.pyro_samples = mcmc.get_samples()
+                self.numpyro_samples = mcmc.get_samples()
+        
                     
             
     def run_stan(self):
@@ -88,15 +107,26 @@ class MCMCTest:
         
 
     def compare(self):
-        for k in self.pyro_samples:
-            assert k in self.stan_samples, \
-                f'{k} is not in stan samples'
-            p = self.pyro_samples[k]
-            s = self.stan_samples[k]
-            assert p.shape == s.shape, \
-                f'Shape mismatch for {k}, Pyro {p.shape}, Stan {s.shape}'
-            if not self.compare_params or k in self.compare_params:
-                self.divergences[k] = _distance(ks_2samp, p, s)
+        self.divergences = {'pyro':{}, 'numpyro':{}}
+        if self.with_pyro:
+            self.divergences['pyro']['ks'] = _compare(self.pyro_samples,
+                                                      self.stan_samples,
+                                                      self.compare_params,
+                                                      _ks)
+            self.divergences['pyro']['skl'] = _compare(self.pyro_samples,
+                                                       self.stan_samples,
+                                                       self.compare_params,
+                                                       _skl)
+        if self.with_numpyro:
+            self.divergences['numpyro']['ks'] = _compare(self.numpyro_samples,
+                                                      self.stan_samples,
+                                                      self.compare_params,
+                                                      _ks)
+            self.divergences['numpyro']['skl'] = _compare(self.numpyro_samples,
+                                                       self.stan_samples,
+                                                       self.compare_params,
+                                                       _skl)
+        
             
     def run(self) -> Dict[str, Dict[str, Any]]:
         self.run_pyro()
