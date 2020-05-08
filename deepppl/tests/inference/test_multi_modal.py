@@ -8,7 +8,7 @@ def test_multi_modal():
         name='multi_modal',
         model_file='deepppl/tests/good/multimodal.stan',
         data=data,
-        numpyro=False # Numpyro cannot compile boolean condition
+        with_numpyro=False # Numpyro cannot compile boolean condition
     )
     
     return t_multi_modal.run()
