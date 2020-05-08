@@ -63,14 +63,14 @@ class MCMCTest:
     def run_pyro(self):
         assert self.with_pyro or self.with_numpyro, \
                'Should run either Pyro or Numpyro'
-        if self.with_numpyro:
-            with TimeIt('NumPyro_Runtime', self.timers):
-                model = NumPyroModel(model_file=self.model_file)
-                mcmc = model.mcmc(Config.iterations, Config.warmups)
-                mcmc.run(**self.data)
         if self.with_pyro:
             with TimeIt('Pyro_Runtime', self.timers):
                 model = PyroModel(model_file=self.model_file)
+                mcmc = model.mcmc(Config.iterations, Config.warmups)
+                mcmc.run(**self.data)
+        if self.with_numpyro:
+            with TimeIt('NumPyro_Runtime', self.timers):
+                model = NumPyroModel(model_file=self.model_file)
                 mcmc = model.mcmc(Config.iterations, Config.warmups)
                 mcmc.run(**self.data)
         self.pyro_samples = mcmc.get_samples()
@@ -96,7 +96,6 @@ class MCMCTest:
             assert p.shape == s.shape, \
                 f'Shape mismatch for {k}, Pyro {p.shape}, Stan {s.shape}'
             if not self.compare_params or k in self.compare_params:
-                print('XXXXX', p.shape, s.shape)
                 self.divergences[k] = _distance(ks_2samp, p, s)
             
     def run(self) -> Dict[str, Dict[str, Any]]:

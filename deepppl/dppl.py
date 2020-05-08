@@ -14,84 +14,90 @@
 #  * limitations under the License.
 #  */
 
-import pandas as pd
 from collections import defaultdict
-import pyro
-from pyro.optim import Adam
+from types import FunctionType
+
 import torch
+import jax.random
 import numpy as onp
-import numpyro
-import numpyro.distributions as dist
-import jax.random as random
 from jax import numpy as jnp
 
-from torch.nn import functional as F
-import sys
+import pyro
+import numpyro
+from pyro.optim import Adam
+
 from . import dpplc
 from .utils import utils
 import inspect
 
+
 class PyroModel(object):
     def __init__(self, model_code=None, model_file=None, **kwargs):
+        self._init_scope = kwargs
         self._py = self.compile(model_code=model_code, model_file=model_file)
         self._load_py()
-        self._updateHooksAll(kwargs)
 
     def compile(self, **kwargs):
         return dpplc.do_compile(**kwargs)
-
-    def _updateHooksAll(self, hooks):
-        [self._updateHooks(f, hooks) for f in (self._model,
-                                               self._guide,
-                                               self._transformed_data,
-                                               self._generated_quantities)]
-
-    def _updateHooks(self, f, hooks):
-        if f:
-            f.__globals__.update(hooks)
 
     def _load_py(self):
         """Load the python object into `_model`"""
         locals_ = {}
         eval(self._py, globals(), locals_)
-        self._model = locals_['model']
-        self._updateHooks(self._model, locals_)
+        self._model = self._stan_scoped('model', locals_['model'])
         self._guide = None
         self._transformed_data = None
         self._generated_quantities = None
         for k in locals_.keys():
             if k.startswith('guide_'):
-                self._guide = locals_[k]
-                self._updateHooks(self._model, locals_)
+                self._guide = self._stan_scoped('guide', locals_[k])
             if k.startswith('transformed_data'):
-                self._transformed_data = locals_[k]
-                self._updateHooks(self._model, locals_)
+                self._transformed_data = self._np_scoped(
+                    'transformed_data', locals_[k])
             if k.startswith('generated_quantities'):
-                self._generated_quantities = locals_[k]
-                self._updateHooks(self._model, locals_)
-        self._loadBasicHooks()
+                self._generated_quantities = self._np_scoped(
+                    'generated_quantities', locals_[k])
 
-    def _loadBasicHooks(self):
-        hooks = {x.__name__: x for x in [
-            torch.sqrt,
-            torch.randn,
-            torch.exp,
-            torch.log,
-            torch.zeros,
-            torch.ones,
-            F.softplus, 
-            pyro.sample]}
-        hooks['fabs'] = torch.abs
-        self._updateHooksAll(hooks)
-        self._updateUtilsHooks()
-        
-    def _updateUtilsHooks(self):
-        self._updateHooksAll(utils.build_hooks())
+    def _stan_scoped(self, name, f):
+        scoped = {x: v for x, v in f.__globals__.items()}
+        scoped.update(self._init_scope)
+        scoped.update(utils.build_hooks())
+        scoped['dist'] = pyro.distributions
+        scoped['constraints'] = torch.distributions.constraints
+        scoped.update({x.__name__: x
+                       for x in [torch.tensor,
+                                 torch.sqrt,
+                                 torch.rand,
+                                 torch.randn,
+                                 torch.exp,
+                                 torch.log,
+                                 torch.zeros,
+                                 torch.ones,
+                                 torch.nn.functional.softplus,
+                                 pyro.sample]})
+        scoped['fabs'] = torch.abs
+        scoped[name] = FunctionType(f.__code__, scoped, name)
+        return scoped[name]
+
+    def _np_scoped(self, name, f):
+        scoped = {x: v for x, v in f.__globals__.items()}
+        scoped.update(self._init_scope)
+        scoped.update({x.__name__: x
+                       for x in [onp.sqrt,
+                                 onp.random.randn,
+                                 onp.exp,
+                                 onp.log,
+                                 onp.zeros,
+                                 onp.ones]})
+        scoped['dot_self'] = lambda x: onp.dot(x, x)
+        scoped[name] = FunctionType(f.__code__, scoped, name)
+        return scoped[name]
 
     def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
         if kernel is None:
             kernel = pyro.infer.NUTS(self._model, adapt_step_size=True)
-        mcmc = pyro.infer.MCMC(kernel, num_samples, warmup_steps=warmup_steps, num_chains=num_chains) 
+        mcmc = pyro.infer.MCMC(
+            kernel, num_samples, warmup_steps=warmup_steps, num_chains=num_chains)
         return MCMCProxy(mcmc, False, self._generated_quantities, self._transformed_data)
 
     def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
@@ -100,34 +106,37 @@ class PyroModel(object):
         svi = pyro.infer.SVI(self._model, self._guide, optimizer, loss)
         return SVIProxy(svi, self._generated_quantities, self._transformed_data)
 
+
 class NumPyroModel(PyroModel):
-    def _loadBasicHooks(self):
-        hooks = {x.__name__: x for x in [
-            jnp.sqrt,
-            onp.random.randn,
-            jnp.exp,
-            jnp.log,
-            jnp.zeros,
-            jnp.ones,
-            numpyro.sample]}
-        hooks['softplus'] = lambda x: jnp.logaddexp(x, 0.)
-        hooks['fabs'] = torch.abs
-        self._updateHooksAll(hooks)
-        self._updateUtilsHooks()
-        
+    def _stan_scoped(self, name, f):
+        scoped = {x: v for x, v in f.__globals__.items()}
+        scoped.update(self._init_scope)
+        scoped.update(utils.build_hooks(npyro=True))
+        scoped['dist'] = numpyro.distributions
+        scoped['constraints'] = numpyro.distributions.constraints
+        scoped.update({x.__name__: x
+                       for x in [jnp.sqrt,
+                                 jnp.exp,
+                                 jnp.log,
+                                 jnp.zeros,
+                                 jnp.ones,
+                                 numpyro.sample]})
+        scoped['softplus'] = lambda x: jnp.logaddexp(x, 0.)
+        scoped['fabs'] = torch.abs
+        scoped[name] = FunctionType(f.__code__, scoped, name)
+        return scoped[name]
+
     def compile(self, **kwargs):
         config = dpplc.Config(numpyro=True)
         return super(NumPyroModel, self).compile(config=config, **kwargs)
-    
+
     def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
         if kernel is None:
-            kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True) 
-        mcmc = numpyro.infer.MCMC(kernel, warmup_steps, num_samples, num_chains)
+            kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True)
+        mcmc = numpyro.infer.MCMC(
+            kernel, warmup_steps, num_samples, num_chains)
         return MCMCProxy(mcmc, True, self._generated_quantities, self._transformed_data)
-    
-    def _updateUtilsHooks(self):
-        self._updateHooksAll(utils.build_hooks(npyro=True))
- 
+
 
 class MCMCProxy():
     def __init__(self, mcmc, numpyro=False, generated_quantities=None, transformed_data=None):
@@ -138,20 +147,21 @@ class MCMCProxy():
         self.args = []
         self.kwargs = {}
         if numpyro:
-            self.rng_key, _ = random.split(random.PRNGKey(0))
-        
+            self.rng_key, _ = jax.random.split(jax.random.PRNGKey(0))
+
     def run(self, *args, **kwargs):
         self.args = [_convert_to_np(v) for v in args]
-        self.kwargs = {k: _convert_to_np(v) for k,v in kwargs.items()}
+        self.kwargs = {k: _convert_to_np(v) for k, v in kwargs.items()}
         if self.transformed_data:
-            self.kwargs['transformed_data'] = self.transformed_data(*self.args, **self.kwargs)
+            self.kwargs['transformed_data'] = self.transformed_data(
+                *self.args, **self.kwargs)
         if self.numpyro:
-            self.mcmc.run(self.rng_key, *self.args, **self.kwargs) 
+            self.mcmc.run(self.rng_key, *self.args, **self.kwargs)
         else:
             args = [_convert_to_tensor(v) for v in self.args]
-            kwargs = {k: _convert_to_tensor(v) for k,v in self.kwargs.items()}
+            kwargs = {k: _convert_to_tensor(v) for k, v in self.kwargs.items()}
             self.mcmc.run(*args, **kwargs)
-            
+
     def sample_model(self):
         # Pyro removes warmup steps from samples
         if self.numpyro:
@@ -161,7 +171,7 @@ class MCMCProxy():
             warmup = self.mcmc.warmup_steps
             samples = self.mcmc.get_samples()
         return {x: samples[x][warmup:] for x in samples}
-        
+
     def sample_generated(self, samples):
         kwargs = self.kwargs
         res = defaultdict(list)
@@ -172,7 +182,7 @@ class MCMCProxy():
             for k, v in d.items():
                 res[k].append(_convert_to_np(v))
         return res
-     
+
     def get_samples(self):
         samples = self.sample_model()
         if self.generated_quantities:
@@ -180,7 +190,7 @@ class MCMCProxy():
             samples.update(gen)
         return {k: _convert_to_np(v) for k, v in samples.items()}
 
-   
+
 class SVIProxy(object):
     def __init__(self, svi, generated_quantities=None, transformed_data=None):
         self.svi = svi
@@ -198,20 +208,22 @@ class SVIProxy(object):
         self.args = args
         self.kwargs = kwargs
         if self.transformed_data:
-            self.kwargs['transformed_data'] = self.transformed_data(**self.args, **self.kwargs)
+            self.kwargs['transformed_data'] = self.transformed_data(
+                **self.args, **self.kwargs)
         args = [_convert_to_tensor(v) for v in self.args]
-        kwargs = {k: _convert_to_tensor(v) for k,v in self.kwargs.items()}
+        kwargs = {k: _convert_to_tensor(v) for k, v in self.kwargs.items()}
         return self.svi.step(*args, **kwargs)
 
 
 def _convert_to_np(value):
     if type(value) == torch.Tensor:
         return value.cpu().numpy()
-    if isinstance(value, list):
+    if isinstance(value, (list, jnp.ndarray)):
         return onp.array(value)
     else:
         return value
-        
+
+
 def _convert_to_tensor(value):
     if isinstance(value, (list, onp.ndarray)):
         return torch.Tensor(value)
