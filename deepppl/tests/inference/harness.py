@@ -11,8 +11,8 @@ import numpy as np
 def _skl(s1, s2, bins=10):
     hist1 = np.histogram(s1, bins)
     hist2 = np.histogram(s2, bins)
-    return entropy(hist1[0] + 1, hist2[0] + 1) \
-           + entropy(hist2[0] + 1, hist1[0] + 1)
+    return entropy(hist1[0], hist2[0]) \
+           + entropy(hist2[0], hist1[0])
 
 def _ks(s1, s2):
     s, p = ks_2samp(s1, s2)
