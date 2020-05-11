@@ -16,7 +16,6 @@ def test_kmeans():
         name='kmeans',
         model_file='deepppl/tests/good/kmeans.stan',
         data=data,
-        compare_params=['mu'],
         with_numpyro=False # In place mutation not supported in Numpyro
     )
     

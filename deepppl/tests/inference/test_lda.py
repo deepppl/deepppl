@@ -55,7 +55,6 @@ def test_lda():
         name='lda',
         model_file='deepppl/tests/good/lda.stan',
         data=data,
-        compare_params=['theta', 'shrinkage']
     )
 
     return t_lda.run()

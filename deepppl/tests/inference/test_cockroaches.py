@@ -149,7 +149,6 @@ def test_cockroaches():
         name='cockroaches',
         model_file='deepppl/tests/good/cockroaches.stan',
         data=data,
-        compare_params=['beta'],
         with_pyro = False # Pyro is too slow
     )
     

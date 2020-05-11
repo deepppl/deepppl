@@ -8,15 +8,18 @@ from deepppl import PyroModel, NumPyroModel
 from scipy.stats import entropy, ks_2samp
 import numpy as np
 
+
 def _skl(s1, s2, bins=10):
     hist1 = np.histogram(s1, bins)
     hist2 = np.histogram(s2, bins)
     return entropy(hist1[0], hist2[0]) \
-           + entropy(hist2[0], hist1[0])
+        + entropy(hist2[0], hist1[0])
+
 
 def _ks(s1, s2):
     s, p = ks_2samp(s1, s2)
     return s, p
+
 
 def _distance(pyro_samples, stan_samples, dist):
     if len(pyro_samples.shape) == 1:
@@ -28,45 +31,45 @@ def _distance(pyro_samples, stan_samples, dist):
         return res
     # Don't know what to compute here. Too many dimensions.
     return {}
-    
+
+
 def _compare(res, ref, compare_params, dist):
     divergence = {}
     for k, a in res.items():
         assert k in ref, \
             f'{k} is not in Stan results'
-        b = ref[k] 
+        b = ref[k]
         assert a.shape == b.shape, \
             f'Shape mismatch for {k}, Pyro {a.shape}, Stan {b.shape}'
         if not compare_params or k in compare_params:
             divergence[k] = _distance(a, b, dist)
     return divergence
-    
 
 
 @dataclass
 class TimeIt:
     name: str
     timers: Dict[str, float]
-    
+
     def __enter__(self):
         self.start = time.perf_counter()
-        
+
     def __exit__(self, *exc_info):
         self.timers[self.name] = time.perf_counter() - self.start
-  
-    
-@dataclass    
+
+
+@dataclass
 class Config:
     iterations: int = 100
     warmups: int = 10
     chains: int = 1
- 
-    
+
+
 @dataclass
 class MCMCTest:
     name: str
     model_file: str
-    data: Dict[str, Any] = field(default_factory=dict) 
+    data: Dict[str, Any] = field(default_factory=dict)
     compare_params: Optional[List[str]] = None
     with_pyro: bool = True
     with_numpyro: bool = True
@@ -76,10 +79,10 @@ class MCMCTest:
     stan_samples: Dict[str, Any] = field(init=False)
     timers: Dict[str, float] = field(init=False, default_factory=dict)
     divergences: Dict[str, Any] = field(init=False, default_factory=dict)
- 
+
     def run_pyro(self):
         assert self.with_pyro or self.with_numpyro, \
-               'Should run either Pyro or Numpyro'
+            'Should run either Pyro or Numpyro'
         if self.with_pyro:
             with TimeIt('Pyro_Runtime', self.timers):
                 model = PyroModel(model_file=self.model_file)
@@ -92,22 +95,19 @@ class MCMCTest:
                 mcmc = model.mcmc(Config.iterations, Config.warmups)
                 mcmc.run(**self.data)
                 self.numpyro_samples = mcmc.get_samples()
-        
-                    
-            
+
     def run_stan(self):
         with TimeIt('Stan_Compilation', self.timers):
             mcmc = pystan.StanModel(file=self.model_file)
         with TimeIt('Stan_Runtime', self.timers):
             fit = mcmc.sampling(data=self.data,
                                 iter=Config.iterations,
-                                chains=Config.chains, 
+                                chains=Config.chains,
                                 warmup=Config.warmups)
             self.stan_samples = fit.extract(permuted=True)
-        
 
     def compare(self):
-        self.divergences = {'pyro':{}, 'numpyro':{}}
+        self.divergences = {'pyro': {}, 'numpyro': {}}
         if self.with_pyro:
             self.divergences['pyro']['ks'] = _compare(self.pyro_samples,
                                                       self.stan_samples,
@@ -119,15 +119,14 @@ class MCMCTest:
                                                        _skl)
         if self.with_numpyro:
             self.divergences['numpyro']['ks'] = _compare(self.numpyro_samples,
-                                                      self.stan_samples,
-                                                      self.compare_params,
-                                                      _ks)
+                                                         self.stan_samples,
+                                                         self.compare_params,
+                                                         _ks)
             self.divergences['numpyro']['skl'] = _compare(self.numpyro_samples,
-                                                       self.stan_samples,
-                                                       self.compare_params,
-                                                       _skl)
-        
-            
+                                                          self.stan_samples,
+                                                          self.compare_params,
+                                                          _skl)
+
     def run(self) -> Dict[str, Dict[str, Any]]:
         self.run_pyro()
         self.run_stan()
@@ -136,5 +135,4 @@ class MCMCTest:
             'divergences': self.divergences,
             'timers': self.timers
         }
-
 
