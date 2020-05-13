@@ -8,24 +8,19 @@ data {
 }
 transformed data {
   vector[N] log_expo;
+  vector[N] sqrt_roach;
+
   log_expo = log(exposure2);
+  sqrt_roach = sqrt(roach1);
 }
 parameters {
   vector[4] beta;
-  vector[N] lambda_;
-  real<lower=0> tau;
 } 
-transformed parameters {
-  real<lower=0> sigma;
-
-  sigma = 1.0 / sqrt(tau);
-}
 model {
-  tau ~ gamma(0.001, 0.001);
-  lambda_ ~ normal(0, sigma);
-   y ~ poisson_log(lambda_ + log_expo 
-                   + beta[1] 
-                   + beta[2] * roach1 
-                   + beta[3] * senior 
-                   + beta[4] * treatment);
+  beta[1] ~ normal(0, 5);
+  beta[2] ~ normal(0, 2.5);
+  beta[3] ~ normal(0, 2.5);
+  beta[4] ~ normal(0, 2.5);
+  y ~ poisson_log(log_expo + beta[1] + beta[2] * sqrt_roach + beta[3] * treatment
+                  + beta[4] * senior);
 }

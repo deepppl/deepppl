@@ -148,8 +148,7 @@ def test_cockroaches():
     t_cockroaches = MCMCTest(
         name='cockroaches',
         model_file='deepppl/tests/good/cockroaches.stan',
-        data=data,
-        with_pyro = False # Pyro is too slow
+        data=data
     )
     
     return t_cockroaches.run()
