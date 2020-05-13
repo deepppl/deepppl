@@ -10,10 +10,10 @@ data {
 }
 
 parameters {
-    real[] mlp.l1.weight;
-    real[] mlp.l1.bias;
-    real[] mlp.l2.weight;
-    real[] mlp.l2.bias;
+    real mlp.l1.weight[*];
+    real mlp.l1.bias[*];
+    real mlp.l2.weight[*];
+    real mlp.l2.bias[*];
 }
 
 model {

@@ -116,11 +116,15 @@ class StanToIR(stanListener):
 
     def exitInferredArrayShape(self, ctx):
         ctx.ir = AnonymousShapeProperty()
+        
     def exitArrayDim(self, ctx):
         if is_active(ctx.expression):
             ctx.ir = ctx.expression().ir
         elif is_active(ctx.inferredArrayShape):
             ctx.ir = ctx.inferredArrayShape().ir
+
+    def exitInferredTensorShape(self, ctx):
+        ctx.ir = AnonymousShapeProperty()
 
     def exitArrayDimCommaList(self, ctx):
         ctx.ir = gatherChildrenIR(ctx)

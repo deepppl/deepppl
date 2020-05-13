@@ -364,6 +364,10 @@ inferredArrayShape
     : '_'
     ;
 
+inferredTensorShape
+    : '*'
+    ;
+
 arrayDim
     : expression
     | inferredArrayShape
@@ -371,6 +375,7 @@ arrayDim
 
 arrayDimCommaList
     : arrayDim (',' arrayDim)*
+    | inferredTensorShape
     ;
 
 arrayDims
