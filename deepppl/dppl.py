@@ -141,7 +141,7 @@ class NumPyroModel(PyroModel):
         if kernel is None:
             kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True)
         mcmc = numpyro.infer.MCMC(
-            kernel, warmup_steps, num_samples - warmup_steps, num_chains)
+            kernel, warmup_steps, num_samples - warmup_steps, num_chains=num_chains)
         return MCMCProxy(mcmc, True, self._generated_quantities, self._transformed_data)
 
 
@@ -171,10 +171,8 @@ class MCMCProxy():
 
     def sample_model(self):
         if self.numpyro:
-            warmup = self.mcmc.num_warmup
             samples = self.mcmc.get_samples()
         else:
-            warmup = self.mcmc.warmup_steps
             samples = self.mcmc.get_samples()
         return {x: samples[x] for x in samples}
 

@@ -86,13 +86,13 @@ class MCMCTest:
         if self.with_pyro:
             with TimeIt('Pyro_Runtime', self.timers):
                 model = PyroModel(model_file=self.model_file)
-                mcmc = model.mcmc(Config.iterations, Config.warmups)
+                mcmc = model.mcmc(Config.iterations, Config.warmups, num_chains=Config.chains)
                 mcmc.run(**self.data)
                 self.pyro_samples = mcmc.get_samples()
         if self.with_numpyro:
             with TimeIt('NumPyro_Runtime', self.timers):
                 model = NumPyroModel(model_file=self.model_file)
-                mcmc = model.mcmc(Config.iterations, Config.warmups)
+                mcmc = model.mcmc(Config.iterations, Config.warmups, num_chains=Config.chains)
                 mcmc.run(**self.data)
                 self.numpyro_samples = mcmc.get_samples()
 
