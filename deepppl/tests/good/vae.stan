@@ -1,4 +1,3 @@
-// Figure 5
 networks {
   Decoder decoder;
   Encoder encoder;
