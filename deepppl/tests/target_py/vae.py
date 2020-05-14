@@ -14,7 +14,7 @@ def guide_(nz=None, x=None):
 def model(nz=None, x=None):
     pyro.module('decoder', decoder)
     z = sample('z', ImproperUniform(shape=nz))
-    mu = zeros(())
+    mu = zeros((28, 28))
     sample(('z' + '__1'), dist.Normal(zeros(nz), 1), obs=z)
     mu = decoder(z)
-    sample(('x' + '__2'), dist.Bernoulli((mu * ones(28, 28))), obs=x)
+    sample(('x' + '__2'), dist.Bernoulli(mu), obs=x)
