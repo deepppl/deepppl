@@ -1,4 +1,3 @@
-// Figure 2
 data {
   int N;
   int<lower=0,upper=1> x[N];
