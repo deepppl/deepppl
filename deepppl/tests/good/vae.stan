@@ -11,7 +11,7 @@ parameters {
     real z[*];
 }
 model {
-  real mu[*];
+  real mu[_, _];
   z ~ normal(0, 1);
   mu = decoder(z);
   x ~ bernoulli(mu);
