@@ -344,7 +344,8 @@ class SubscriptedShapeDimension(ShapeDimension):
         return f"{self.path}$shape[{self.index}]"
 
     def expr(self)->str:
-        return f"{self.path}[{self.index}].size()"
+        return f"{self.path}[{self.index}].size()" # if hasattr({self.path}, \'size\') else {self.path}.size()
+#        return f"{self.path}.size()"
 
     __repr__ = __str__
 

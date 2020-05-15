@@ -105,10 +105,13 @@ class Type_(object):
 
             if isinstance(other._desc, Indexed):
                 # If it is any other indexed type (an Array or SomeIndexed)
+                od = other._desc.dimensions()
+                if len(od) > 1:
+                    my_rest = me._desc.next()
                 my_dim = me._desc.dim()
-                my_rest = me._desc.next()
                 my_dim.unify(other._desc.dimension, equalities=equalities)
-                my_rest.unify(other._desc.component(), equalities=equalities, tenv=tenv)
+                if len(od) > 1:
+                    my_rest.unify(other._desc.component(), equalities=equalities, tenv=tenv)
                 return                
 
             assert False, f"Unknown type: {other}"
@@ -168,6 +171,11 @@ class Type_(object):
 
                     me._desc = TypeLink(c)
                     me.unify(other, equalities=equalities, tenv=tenv)
+                    return
+                elif isinstance(other._desc, NonArrayIndexed):
+                    if me._desc.component.isNonArrayIndexed():
+                        me._desc.component.unify(other, equalities=equalities, tenv=tenv)
+                    me._desc = TypeLink(other)
                     return
                 else:
                     # TENSORTYPEHACK: This does not correctly handle SomeIndexed that could be an array
@@ -688,15 +696,22 @@ class NetworkTensor(TypeDesc):
         super(NetworkTensor, self).__init__()
         self.path = path
         self.index = index
+        self.indexUsed = index != 0
 
     def next(self)->Type_:
+        self.indexUsed = True
         return Type_.network(self.path, index=self.index+1)
 
     def dim(self)->Dimension:
-        return Dimension.shapeDimension(self.path, self.index)
+        idx = self.index if self.indexUsed else None
+        return Dimension.shapeDimension(self.path, idx)
 
     def __str__(self):
-        return f"??{self.path}@{self.index}"
+        if self.indexUsed:
+            return f"??{self.path}@{self.index}"
+        else:
+            return f"??{self.path}"
+
 
     __repr__ = __str__
 

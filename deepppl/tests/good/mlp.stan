@@ -28,14 +28,14 @@ model {
 }
 
 guide parameters {
-    real l1wloc[mlp.l1.weight$shape];
-    real l1wscale[mlp.l1.weight$shape];
-    real l1bloc[mlp.l1.bias$shape];
-    real l1bscale[mlp.l1.bias$shape];
-    real l2wloc[mlp.l2.weight$shape];
-    real l2wscale[mlp.l2.weight$shape];
-    real l2bloc[mlp.l2.bias$shape];
-    real l2bscale[mlp.l2.bias$shape];
+    real l1wloc[*];
+    real l1wscale[*];
+    real l1bloc[*];
+    real l1bscale[*];
+    real l2wloc[*];
+    real l2wscale[*];
+    real l2bloc[*];
+    real l2bscale[*];
 }
 
 guide {
