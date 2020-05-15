@@ -98,12 +98,12 @@ class PyroModel(object):
         scoped[name] = FunctionType(f.__code__, scoped, name)
         return scoped[name]
 
-    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
+    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, thin=1, kernel=None):
         if kernel is None:
             kernel = pyro.infer.NUTS(self._model, adapt_step_size=True)
         mcmc = pyro.infer.MCMC(
             kernel, num_samples - warmup_steps, warmup_steps=warmup_steps, num_chains=num_chains)
-        return MCMCProxy(mcmc, False, self._generated_quantities, self._transformed_data)
+        return MCMCProxy(mcmc, False, self._generated_quantities, self._transformed_data, thin)
 
     def svi(self, optimizer=None, loss=None, params={'lr': 0.0005, "betas": (0.90, 0.999)}):
         optimizer = optimizer if optimizer else pyro.optim.Adam(params)
@@ -137,19 +137,20 @@ class NumPyroModel(PyroModel):
         config = dpplc.Config(numpyro=True)
         return super(NumPyroModel, self).compile(config=config, **kwargs)
 
-    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, kernel=None):
+    def mcmc(self, num_samples=10000, warmup_steps=1000, num_chains=1, thin=1, kernel=None):
         if kernel is None:
             kernel = numpyro.infer.NUTS(self._model, adapt_step_size=True)
         mcmc = numpyro.infer.MCMC(
             kernel, warmup_steps, num_samples - warmup_steps, num_chains=num_chains)
-        return MCMCProxy(mcmc, True, self._generated_quantities, self._transformed_data)
+        return MCMCProxy(mcmc, True, self._generated_quantities, self._transformed_data, thin)
 
 
 class MCMCProxy():
-    def __init__(self, mcmc, numpyro=False, generated_quantities=None, transformed_data=None):
+    def __init__(self, mcmc, numpyro=False, generated_quantities=None, transformed_data=None, thin=1):
         self.mcmc = mcmc
         self.transformed_data = transformed_data
         self.generated_quantities = generated_quantities
+        self.thin = thin
         self.numpyro = numpyro
         self.args = []
         self.kwargs = {}
@@ -174,7 +175,7 @@ class MCMCProxy():
             samples = self.mcmc.get_samples()
         else:
             samples = self.mcmc.get_samples()
-        return {x: samples[x] for x in samples}
+        return {x: samples[x][::self.thin] for x in samples}
 
     def sample_generated(self, samples):
         kwargs = self.kwargs
