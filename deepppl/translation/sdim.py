@@ -1,5 +1,7 @@
+
+
 """ 
- Copyright 2018 IBM Corporation
+ Copyright 2018 
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -52,7 +54,7 @@ class Groups(Generic[T]):
     def __str__(self):
         return "; ".join(["<"+",".join([str(k) for k in i])+">" for i in self.groups()])
 
-# TODO Avi: expand this.  In particular, 
+# TODO: expand this.  In particular, 
 # we should allow runtime expressions that don't have
 # function calls in them (e.g. path expressions).
 # Doing this will require differentiating these in the types

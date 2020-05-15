@@ -1,5 +1,5 @@
-# /*
-#  * Copyright 2018 IBM Corporation
+
+# /* Copyright 2018 
 #  *
 #  * Licensed under the Apache License, Version 2.0 (the "License");
 #  * you may not use this file except in compliance with the License.
@@ -1017,7 +1017,7 @@ class Ir2PythonVisitor(IRVisitor):
             raise UnderspecifiedDimension(dim, "unknown")
         elif dim.isKnown():
             dd = dim.description()
-            # TODO Avi: If this lookup fails
+            # TODO  If this lookup fails
             # We probably want to verify that the original is a reasonable canonical element
             dcanon = self.type_infer.dims_canon_map.get(dd, dd)
             return self.knownDimensionToAST(dcanon)

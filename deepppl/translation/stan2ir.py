@@ -1,5 +1,7 @@
+
+
 """
- Copyright 2018 IBM Corporation
+ Copyright 2018 
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -67,7 +69,7 @@ class StanToIR(stanListener):
         type_ = ctx.type_().ir
         dims = None
         if ctx.arrayDims() is not None and type_.dim is not None:
-            # Avi: to check
+            #  to check
             dims = Tuple(exprs = [ctx.arrayDims().ir, type_.dim])
         elif ctx.arrayDims() is not None:
             dims = ctx.arrayDims().ir

@@ -1,3 +1,4 @@
+
 # Adapted from https://github.com/spro/practical-pytorch/blob/master/char-rnn-generation/char-rnn-generation.ipynb
 import torch
 from torch import nn

@@ -1,3 +1,5 @@
+
+
 from setuptools import setup
 
 setup(name='DeepPPL',
@@ -5,6 +7,6 @@ setup(name='DeepPPL',
       description='Deep Probabilistic Programming Language',
       url='https://github.com/deepppl/deepppl',
       author='Many Authors',
-      author_email='many.authors@ibm.com',
+      author_email='',
       license='Apache License 2.0',
       packages=['deepppl', 'deepppl.parser', 'deepppl.translation', 'deepppl.utils'])
