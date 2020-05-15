@@ -16,8 +16,8 @@ def transformed_data(N=None, exposure2=None, roach1=None, senior=None,
 
 def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
     y=None, transformed_data=None):
-    sqrt_roach = transformed_data['sqrt_roach']
     log_expo = transformed_data['log_expo']
+    sqrt_roach = transformed_data['sqrt_roach']
     beta = sample('beta', ImproperUniform(shape=4))
     sample('beta' + '__{}'.format(1 - 1) + '__1', dist.Normal(0, 5), obs=
         beta[1 - 1])

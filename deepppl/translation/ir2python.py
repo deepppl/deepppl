@@ -1290,7 +1290,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def buildTransformedDataAccess(self):
         td_access = []
-        for td_name in self._transformed_data_names:
+        for td_name in sorted(self._transformed_data_names):
             access = ast.Subscript(value = self.loadName('transformed_data'),
                                    slice = ast.Index(value = ast.Str(td_name)),
                                    ctx = ast.Load())
