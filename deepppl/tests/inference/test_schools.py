@@ -1,8 +1,8 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 from pprint import pprint
 
-def test_schools():
+def test_schools(config=Config()):
     data = {}
     data['N'] = 8
     data['y'] = [28, 8, -3, 7, -1, 1, 18, 12]
@@ -11,7 +11,8 @@ def test_schools():
     test_schools = MCMCTest(
         name='schools',
         model_file='deepppl/tests/good/schools.stan',
-        data=data
+        data=data,
+        config=config
     )
     
     return test_schools.run()

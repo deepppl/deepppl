@@ -1,8 +1,8 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 from pprint import pprint
 
-def test_seeds():
+def test_seeds(config=Config()):
     data = {}
     data['I'] = 21
     data['n'] = [10, 23, 23, 26, 17, 5, 53, 55, 32,
@@ -17,7 +17,8 @@ def test_seeds():
     test_seeds = MCMCTest(
         name='seeds',
         model_file='deepppl/tests/good/seeds.stan',
-        data=data
+        data=data,
+        config=config
     )
     
     return test_seeds.run()

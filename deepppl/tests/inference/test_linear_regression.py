@@ -1,11 +1,11 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 from pprint import pprint
 import pyro.distributions as dist
 import numpy as np
 
 
-def test_linear_regression():
+def test_linear_regression(config=Config()):
     data = {}
     data['N'] = 10
     data['x'] = np.arange(data['N'])
@@ -14,7 +14,8 @@ def test_linear_regression():
     t_linear_regression = MCMCTest(
         name='linear_regression',
         model_file='deepppl/tests/good/linear_regression_array.stan',
-        data=data
+        data=data,
+        config=config
     )
     
     return t_linear_regression.run()

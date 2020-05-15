@@ -5,20 +5,18 @@ It contains a compiler for Stan an extended version of Stan with variational inf
 
 ## Installation
 
+DeepPPL requires python 3.7, and ANTLR 4.7
+
 ```
-cd deepppl
-make
+make -C deepppl
 pip install -r requirements.txt
-cd ..
 pip install .
 ```
 
-To create a symbolic link to the code use: `pip install -e ..` instead
-
-
 ## Try
 
-Some examples of Python notebooks using the compiler are available in the directory `deepppl/examples`. To launch the notebooks use the following command:
+Notebook examples are available in the directory `examples`. 
+To launch the notebooks use the following command:
 
 ```
 jupyter notebook
@@ -33,33 +31,62 @@ python -m deepppl.dpplc --print --noinfer deepppl/tests/good/coin.stan
 
 ## Experiments: Comparison Stan/DeepStan
 
-The directory `logs` contains the logs for the experiments used in the paper.
-The logs are in the following formats:
+To reproduce the experiments comparing Stan and DeepStan you first need to install PyStan:
+```
+pip install pystan
+```
+
+Then simply run the following with command.
+```
+python -m deepppl.tests.inference.experiments
+```
+
+```
+usage: experiments.py [-h] [--logdir LOGDIR] [--iterations ITERATIONS]
+                      [--warmups WARMUPS] [--thin THIN] [--runs N_RUNS]
+                      [--no-run] [--to-tex]
+
+Compare the output of NUTS for DeepStan (with Pyro and Numpyro) and Stan on
+the following experiments: coin, double normal, reparameterization, linear
+regression, aspirin, roaches, 8 schools, seeds
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --logdir LOGDIR       Directory name to store the results
+  --iterations ITERATIONS
+                        Total number of iterations
+  --warmups WARMUPS     Number of warmup steps (included in iterations)
+  --thin THIN           Thining factor
+  --runs N_RUNS         Number of run for each experiment
+  --no-run              Analyse logdir without re-running the experiments
+  --to-tex              Print results in tex format
+```
+
+The default configuration is the one described in Section 6.1.
+```
+--iterations 10000 --warmups 1000 --runs 10 --logdir logs
+```
+
+:warning: With the default configuration experiments may take a while to complete depending on your hardware.
+Consider decreasing the number of iterations, warmup steps, and runs.
+
+When the experiments complete, the directory logdir contains one file for each run of each experiments in the following format:
 
 ```python
 {
     'divergences': { # distance between stan and deepstan results
         'numpyro': { # with numpyro runtime
             'ks': { # 2 samples KS test
-                param1: (KS, p_value)
-                param2: (KS, p_value)
-            },
-            'skl': { # Symmetric KL
-                param1: skl_value
-                param2: skl_value
+                param1: {'statistic': ..., 'pvalue': ...}
+                param2: {'statistic': ..., 'pvalue': ...}
             }
         }
     }
         'pyro': { # with pyro runtime
             'ks': { # 2 samples KS test
-                param1: (KS, p_value)
-                param2: (KS, p_value)
-            },
-            'skl': { # Symmetric KL
-                param1: skl_value
-                param2: skl_value
+                param1: {'statistic': ..., 'pvalue': ...}
+                param2: {'statistic': ..., 'pvalue': ...}
             }
-
         }
     }
     'timers': {
@@ -71,29 +98,4 @@ The logs are in the following formats:
 }
 ```
 
-### Run the experiments
-
-To reproduce the experiments run the following command:
-
-```
-python -m deepppl.tests.inference.experiments
-```
-
-This will launch in parallel 5 runs of all experiments.
-Note that skl values are computed on histograms with 10 bins (hence the infinite values).
-
-Optional:
-- change `logdir` variable
-- change the configuration in `deepppl/tests/inference/harness.py` (`Config` class)
-
-
-### Building a summary
-
-To build a summary of the experiments, run the following command:
-
-```
-python parser.py
-```
-
-This will return a LaTex table with the execution time information for Stan, DeepStan/Pyro, and DeepStan/NumPyro, and the max KS across all the parameters (with the associated parameter name).
-Everything is averaged over all the runs (typically 5).
+The experiments script output a summary, averaging the results accross all the log files.

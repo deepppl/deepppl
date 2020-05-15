@@ -1,12 +1,9 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 import numpy as np
 from pprint import pprint
 
-# Warning: Generated quantities does not work with numpyro on this example
-# (In place mutation of array)
-
-def test_aspirin():
+def test_aspirin(config=Config()):
     data = {}
     data['y'] = [2.77, 2.50, 1.84, 2.56, 2.31, -1.15]
     data['s'] = [1.65, 1.31, 2.34, 1.67, 1.98, 0.90]
@@ -19,7 +16,8 @@ def test_aspirin():
     t_aspirin = MCMCTest(
         name='aspirin',
         model_file='deepppl/tests/good/aspirin.stan',
-        data=data
+        data=data,
+        config=config
     )
 
     return t_aspirin.run()

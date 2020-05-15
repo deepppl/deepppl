@@ -1,10 +1,10 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 from ..utils import on_travis
 import numpy as np
 from pprint import pprint
 
-def test_cockroaches():
+def test_cockroaches(config=Config()):
     data = {}
     data['N'] = 262
     data['exposure2'] = [
@@ -149,7 +149,8 @@ def test_cockroaches():
     t_cockroaches = MCMCTest(
         name='cockroaches',
         model_file='deepppl/tests/good/cockroaches.stan',
-        data=data
+        data=data,
+        config=config
     )
     
     return t_cockroaches.run()
