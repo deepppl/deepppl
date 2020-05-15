@@ -1101,8 +1101,9 @@ class Ir2PythonVisitor(IRVisitor):
         body = []
         body.extend(self.buildBasicHeaders())
         body.extend(self._visitChildren(transformed_data))
-        k = [ast.Str(td_name) for td_name in self._transformed_data_names]
-        v = [self.loadName(td_name) for td_name in self._transformed_data_names]
+        dd = sorted(self._transformed_data_names)
+        k = [ast.Str(td_name) for td_name in dd]
+        v = [self.loadName(td_name) for td_name in dd]
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,
@@ -1150,12 +1151,14 @@ class Ir2PythonVisitor(IRVisitor):
         body.extend(self.getParametersSample('parameters', self._parameters_names))
         body.extend(self.buildBasicHeaders())
         body.extend(self._transformed_parameters)
-        k = [ast.Str(name) for name in self._transformed_parameters_names]
-        v = [self.loadName(name) for name in self._transformed_parameters_names]
+        dd = sorted(self._transformed_parameters_names)
+        k = [ast.Str(name) for name in dd]
+        v = [self.loadName(name) for name in dd]
         if not (generated_quantities is None):
             body.extend(self._visitChildren(generated_quantities))
-            k.extend([ast.Str(gq_name) for gq_name in sorted(self._generated_quantities_names)])
-            v.extend([self.loadName(gq_name) for gq_name in sorted(self._generated_quantities_names)])
+            gqn = sorted(self._generated_quantities_names)
+            k.extend([ast.Str(gq_name) for gq_name in gqn])
+            v.extend([self.loadName(gq_name) for gq_name in gqn])
         body.append(ast.Return(ast.Dict(k, v)))
         body = self._ensureStmtList(body)
         f = self._funcDef(name = name,

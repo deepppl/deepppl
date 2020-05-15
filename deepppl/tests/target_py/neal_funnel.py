@@ -19,4 +19,4 @@ def generated_quantities(parameters=None):
     y_std = parameters['y_std']
     y: 'real' = 3.0 * y_std
     x: 'real' = exp(y / 2) * x_std
-    return {'y': y, 'x': x}
+    return {'x': x, 'y': y}

@@ -11,7 +11,7 @@ def transformed_data(N=None, exposure2=None, roach1=None, senior=None,
     sqrt_roach = zeros(N)
     log_expo = log(exposure2)
     sqrt_roach = sqrt(roach1)
-    return {'sqrt_roach': sqrt_roach, 'log_expo': log_expo}
+    return {'log_expo': log_expo, 'sqrt_roach': sqrt_roach}
 
 
 def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
