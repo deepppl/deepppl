@@ -358,6 +358,16 @@ class Type_(object):
     def isReal(self):
         return isinstance(self.description(), Real)
 
+    def isNonArrayIndexed(self):
+        return isinstance(self.description(), NonArrayIndexed)
+    
+    def intrinsicDimensions(self):
+        s = self.target()
+        if s.isNonArrayIndexed():
+            return s.description().intrinsicDimensions()
+        else:
+            return []
+
     def isArray(self):
         return isinstance(self.description(), Array)
     
@@ -367,6 +377,10 @@ class Type_(object):
     def isTensor(self):
         return isinstance(self.description(), Tensor)
 
+    def all_dimensions(self) -> List[Dimension]:
+        dims = list(self.intrinsicDimensions())
+        dims.extend(self.dimensions())
+        return dims
 
     def dimensions(self) -> List[Dimension] :
         ## TODO: Note again the choice that only arrays have "dimensions".  This may need to be revisited.
@@ -389,6 +403,8 @@ class Type_(object):
             return self
         elif self.isInt():
             return self.real()
+        elif self.isNonArrayIndexed():
+            return self
         elif self.isArray():
             t = self.description().component().asRealArray()
             if t is self.description().component():
@@ -551,6 +567,9 @@ class SomeIndexed(Indexed):
 class NonArrayIndexed(Indexed):
     def __init__(self, dimension:Dimension):
         super(NonArrayIndexed, self).__init__(dimension)
+    
+    def intrinsicDimensions(self)->int:
+        return None
 
 class Vector(NonArrayIndexed):
     """Represents a Stan column vector"""
@@ -561,7 +580,10 @@ class Vector(NonArrayIndexed):
         return Type_.real()
 
     def __str__(self):
-        return "vector"
+        return "vector[{}]".format(self.dimension)
+
+    def intrinsicDimensions(self)->int:
+        return [self.dimension]
 
     __repr__ = __str__
 
@@ -572,9 +594,12 @@ class RowVector(NonArrayIndexed):
 
     def component(self) -> Type_:
         return Type_.real()
-    
+
+    def intrinsicDimensions(self)->int:
+        return [self.dimension]
+
     def __str__(self):
-        return "row_vector"
+        return "row_vector[{}]".format(self.dimension)
 
     __repr__ = __str__
 
@@ -586,6 +611,9 @@ class MatrixSlice(NonArrayIndexed):
     def component(self) -> Type_:
         return Type_.real()
     
+    def intrinsicDimensions(self)->int:
+        return [self.dimension]
+
     def __str__(self):
         return "matrix/slice[{}]".format(self.dimension)
 
@@ -608,6 +636,9 @@ class Matrix(NonArrayIndexed):
             return self
         else:
             return self.__class__(c1, c2)
+
+    def intrinsicDimensions(self)->int:
+        return [self.dimension, self.sliceDim]
 
     def __str__(self):
         return "matrix[{},{}]".format(self.dimension, self.sliceDim)

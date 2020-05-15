@@ -85,11 +85,12 @@ class StanToIR(stanListener):
         if ctx.primitiveType() is not None:
             type_ = ctx.primitiveType().getText()
         elif ctx.vectorType() is not None:
+            # TODO: differentiate row_vector
             # type_ = ctx.vectorType().getText()
-            type_ = 'real'
+            type_ = 'vector'
         elif ctx.matrixType() is not None:
             #type_ = ctx.matrixType().getText()
-            type_ = 'real'
+            type_ = 'matrix'
         else:
             assert False, f"unknown type: {ptype.getText()}"
         constraints = ctx.typeConstraints().ir if ctx.typeConstraints() else None

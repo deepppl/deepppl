@@ -706,7 +706,7 @@ class Ir2PythonVisitor(IRVisitor):
 
     def visitConstant(self, const):
         if hasattr(const, 'expr_type'):
-            dims = const.expr_type.dimensions()
+            dims = const.expr_type.all_dimensions()
             if not dims:
                 return ast.Num(const.value)
             args = [self.dimensionToAST(d) for d in dims]
@@ -915,13 +915,13 @@ class Ir2PythonVisitor(IRVisitor):
 
     def samplingDist(self, sampling):
         kwds = []
-        result_shape = sampling.expr_type.dimensions()
+        result_shape = sampling.expr_type.all_dimensions()
 
         def fitShape(arg, id, argIndex, arg_type, target_shape):
             if target_shape:
                 if id == 'normal' and argIndex > 0:
                     return arg
-                arg_shape = arg_type.dimensions()
+                arg_shape = arg_type.all_dimensions()
                 arg_dims = len(arg_shape)
                 if len(target_shape) > arg_dims:
                     target_dims = target_shape[arg_dims:]
@@ -1030,7 +1030,7 @@ class Ir2PythonVisitor(IRVisitor):
         if hasattr(prop, 'expr_dim'):
             dims = prop.expr_dim
         else:
-            dims = prop.var.expr_type.dimensions()
+            dims = prop.var.expr_type.all_dimensions()
         if isinstance(dims, list):
             elts = [self.dimToAST(d) for d in dims]
             if len(elts) == 1:

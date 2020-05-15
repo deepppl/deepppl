@@ -547,6 +547,8 @@ class Type_(IR):
                 f = lambda x: x.ensureReal()
             elif self.type_ == 'vector':
                 f = lambda x: x.ensureReal()
+            elif self.type_ == 'matrix':
+                f = lambda x: x.ensureReal()
             else:
                 assert False, f"Unknown type: {self.type_}"
             [f(constraint) for constraint in self.constraints]

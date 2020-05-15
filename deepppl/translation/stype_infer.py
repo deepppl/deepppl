@@ -81,7 +81,7 @@ class DimensionInferenceVisitor(IRVisitor):
         prop.expr_dim = d
         return d
 
-    def visitVariableProperty(self, prop:VariableProperty) -> Dimension:
+    def visitVariableProperty(self, prop:VariableProperty):
         if prop.prop != 'shape':
             raise UnsupportedProperty(prop)
         t = Tnamed(self.outer.tenv, prop.var.id)
@@ -90,13 +90,15 @@ class DimensionInferenceVisitor(IRVisitor):
 
         ## TODO: this does not allow vector/matrix shapes.  This is by design, however it might be the wrong design.
         ## If they are to be handled, we need to decide what the shape of int[3] x[4] should be.
-        if not t.isArray() and not t.isPrimitive() and not t.isTensor():
-            raise IncompatibleTypes(t, Tindexed(Tnew()))
-        else:
-            d = t.dimensions()
+#            raise IncompatibleTypes(t, Tindexed(Tnew()))
+#        else:
+        d = t.dimensions()
+        prop.expr_dim = t.all_dimensions()
 
-        prop.expr_dim = d
-        return d
+        if t.isNonArrayIndexed():
+            return (t, d)
+        else:
+            return d
 
     def visitNetVariableProperty(self, prop:NetVariableProperty) -> Union[Sequence[Dimension], Dimension]:
         if prop.prop != 'shape':
@@ -169,6 +171,9 @@ class TypeInferenceVisitor(IRVisitor):
             res = Treal()
             for arg in stmt.args.children:
                 dim = self.inferDims(arg)
+                if isinstance(dim, tuple):
+                    res = dim[0]
+                    dim = dim[1]
                 if isinstance(dim, list):
                     dim = dim.copy()
                     dim.reverse()
@@ -202,12 +207,12 @@ class TypeInferenceVisitor(IRVisitor):
         if isinstance(sh, Variable) or isinstance(sh, Constant) or isinstance(sh, VariableProperty):
             dim_type = self.toSDim(sh)
             var_type = Treal()
-            return Tarray(component=var_type, dimension=dim_type)
+            return Tindexed(component=var_type, dimension=dim_type)
         elif sh.children:
             var_type = Treal()
             for d in reversed(sh.children):
                 dim_type = self.toSDim(d)
-                var_type = Tarray(component=var_type, dimension=dim_type)
+                var_type = Tindexed(component=var_type, dimension=dim_type)
             return var_type
 
     def visitSamplingStmt(self, stmt:SamplingStmt):
@@ -385,6 +390,13 @@ class TypeInferenceVisitor(IRVisitor):
             return Tint()
         elif t.type_ == 'real':
             return Treal()
+        elif t.type_ == 'vector':
+            dim1 = self.toSDim(t.dim)
+            return Tvector(dimension=dim1)
+        elif t.type_ == 'matrix':
+            dim1 = self.toSDim(t.dim[0])
+            dim2 = self.toSDim(t.dim[1])
+            return Tmatrix(dimension1=dim1, dimension2=dim2)
         else:
             assert False, f"Unknown type: {self.type_}"
 
@@ -396,7 +408,7 @@ class TypeInferenceVisitor(IRVisitor):
             return Druntime(d.id)
         elif isinstance(d, AnonymousShapeProperty):
             # TODO: really, this should probably be an actual anonymous dimension
-            return Dnamed(self.denv, d.var.id)
+            return Dnamed(self.denv, d.var.id) 
         elif isinstance(d, VariableProperty):
             if d.prop != 'shape':
                 raise UnsupportedProperty(d.prop)
@@ -406,14 +418,19 @@ class TypeInferenceVisitor(IRVisitor):
 
     def visitVariableDecl(self, decl:VariableDecl):
         var_type:Type_ = self.toSType(decl.type_)
-        if decl.dim:
-            if isinstance(decl.dim, AnonymousShapeProperty):
+        dims = decl.dim
+        intrinsicDims = len(var_type.intrinsicDimensions())
+        if dims:
+            if intrinsicDims == 0 and isinstance(dims, AnonymousShapeProperty):
                 var_type = Ttensor(var_type)
-            elif isinstance(decl.dim, Variable) or isinstance(decl.dim, Constant) or isinstance(decl.dim, VariableProperty):
-                dim_type = self.toSDim(decl.dim)
+            elif intrinsicDims == 0 and (isinstance(dims, Variable) or isinstance(dims, Constant) or isinstance(dims, VariableProperty)):
+                dim_type = self.toSDim(dims)
                 var_type = Tarray(component=var_type, dimension=dim_type)
-            elif decl.dim.children:
-                for d in reversed(decl.dim.children):
+            elif dims.children:
+                for d in reversed(dims.children):
+                    if intrinsicDims > 0:
+                        intrinsicDims = intrinsicDims - 1
+                        continue
                     dim_type = self.toSDim(d)
                     var_type = Tarray(component=var_type, dimension=dim_type)
         var = Tnamed(self.tenv, decl.id)
