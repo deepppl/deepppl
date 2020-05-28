@@ -226,7 +226,7 @@ class TypeInferenceVisitor(IRVisitor):
             # TODO: if given an int array, then add an IR node to change
             # the int array into a real array to make pyro happy
             t0 = stmt.args[0].accept(self).asRealArray()
-            t1 = stmt.args[1].accept(self).asRealArray()
+            t1 = Ttensor(stmt.args[1].accept(self).asRealArray())
             self.Tunify(t0, t1)
             if stmt.shape is not None:
                 t2 = stmt.shape.accept(self)
