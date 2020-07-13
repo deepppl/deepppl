@@ -92,6 +92,18 @@ def get_log(f):
             "numpyro": flatten(log["divergences"]["numpyro"]["ks"]),
             "pyro": flatten(log["divergences"]["pyro"]["ks"]),
         }
+        if log["divergences"]["numpyro_naive"]:
+            res["divergences"]["numpyro_naive"] = flatten(
+                log["divergences"]["numpyro_naive"]["ks"]
+            )
+        else:
+            res["divergences"]["numpyro_naive"] = {}
+        if log["divergences"]["pyro_naive"]:
+            res["divergences"]["pyro_naive"] = flatten(
+                log["divergences"]["pyro_naive"]["ks"]
+            )
+        else:
+            res["divergences"]["pyro_naive"] = {}
         return res
 
 
@@ -117,7 +129,6 @@ def crunch(dirname):
         ]
         logs = [get_log(f) for f in files]
         for l in logs:
-            print(l)
             for k, v in l["timers"].items():
                 timers[k].append(v)
             for k, v in l["divergences"]["pyro"].items():

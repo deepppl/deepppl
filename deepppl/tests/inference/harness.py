@@ -30,7 +30,6 @@ def _compare(res, ref, compare_params, dist):
     divergence = {}
     for k, a in res.items():
         if not compare_params or k in compare_params:
-            print(k, a)
             assert k in ref, f"{k} is not in Stan results"
             b = ref[k]
             assert (
