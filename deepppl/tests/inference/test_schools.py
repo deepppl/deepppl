@@ -11,6 +11,7 @@ def test_schools(config=Config()):
     test_schools = MCMCTest(
         name='schools',
         model_file='deepppl/tests/good/schools.stan',
+        pyro_file='deepppl/tests/naive/schools_naive.py',
         data=data,
         config=config
     )

@@ -149,6 +149,7 @@ def test_cockroaches(config=Config()):
     t_cockroaches = MCMCTest(
         name='cockroaches',
         model_file='deepppl/tests/good/cockroaches.stan',
+        pyro_file='deepppl/tests/naive/cockroaches_naive.py',
         data=data,
         config=config
     )

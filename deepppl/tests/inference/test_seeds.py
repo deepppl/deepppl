@@ -17,6 +17,7 @@ def test_seeds(config=Config()):
     test_seeds = MCMCTest(
         name='seeds',
         model_file='deepppl/tests/good/seeds.stan',
+        pyro_file='deepppl/tests/naive/seeds_naive.py',
         data=data,
         config=config
     )

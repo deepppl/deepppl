@@ -1,12 +1,13 @@
 
-from .harness import MCMCTest
+from .harness import MCMCTest, Config
 from pprint import pprint
 import numpy as np
 
-def test_gaussian_log_density():
+def test_gaussian_log_density(config=Config()):
     t_gaussian_log_density = MCMCTest(
         name='gaussian_log_density',
-        model_file='deepppl/tests/good/gaussian_log_density.stan'
+        model_file='deepppl/tests/good/gaussian_log_density.stan',
+        config=config
     )
     
     res = t_gaussian_log_density.run()

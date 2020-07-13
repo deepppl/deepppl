@@ -1,4 +1,3 @@
-
 import time
 from typing import Any, Callable, ClassVar, Dict, Optional, List
 from dataclasses import dataclass, field
@@ -12,7 +11,7 @@ import numpy as np
 
 def _ks(s1, s2):
     s, p = ks_2samp(s1, s2)
-    return {'statistic': s, 'pvalue': p}
+    return {"statistic": s, "pvalue": p}
 
 
 def _distance(pyro_samples, stan_samples, dist):
@@ -30,12 +29,13 @@ def _distance(pyro_samples, stan_samples, dist):
 def _compare(res, ref, compare_params, dist):
     divergence = {}
     for k, a in res.items():
-        assert k in ref, \
-            f'{k} is not in Stan results'
-        b = ref[k]
-        assert a.shape == b.shape, \
-            f'Shape mismatch for {k}, Pyro {a.shape}, Stan {b.shape}'
         if not compare_params or k in compare_params:
+            print(k, a)
+            assert k in ref, f"{k} is not in Stan results"
+            b = ref[k]
+            assert (
+                a.shape == b.shape
+            ), f"Shape mismatch for {k}, Pyro {a.shape}, Stan {b.shape}"
             divergence[k] = _distance(a, b, dist)
     return divergence
 
@@ -64,6 +64,7 @@ class Config:
 class MCMCTest:
     name: str
     model_file: str
+    pyro_file: Optional[str] = None
     data: Dict[str, Any] = field(default_factory=dict)
     compare_params: Optional[List[str]] = None
     config: Config = Config()
@@ -71,62 +72,109 @@ class MCMCTest:
     with_numpyro: bool = True
 
     pyro_samples: Dict[str, Any] = field(init=False)
+    pyro__naive_samples: Dict[str, Any] = field(init=False)
     numpyro_samples: Dict[str, Any] = field(init=False)
+    numpyro_naive_samples: Dict[str, Any] = field(init=False)
     stan_samples: Dict[str, Any] = field(init=False)
     timers: Dict[str, float] = field(init=False, default_factory=dict)
     divergences: Dict[str, Any] = field(init=False, default_factory=dict)
 
     def run_pyro(self):
-        assert self.with_pyro or self.with_numpyro, \
-            'Should run either Pyro or Numpyro'
+        assert self.with_pyro or self.with_numpyro, "Should run either Pyro or Numpyro"
         if self.with_pyro:
-            with TimeIt('Pyro_Runtime', self.timers):
+            with TimeIt("Pyro_Compilation", self.timers):
                 model = PyroModel(model_file=self.model_file)
-                mcmc = model.mcmc(self.config.iterations,
-                                  self.config.warmups,
-                                  num_chains=self.config.chains,
-                                  thin=self.config.thin)
+            with TimeIt("Pyro_Runtime", self.timers):
+                mcmc = model.mcmc(
+                    self.config.iterations,
+                    self.config.warmups,
+                    num_chains=self.config.chains,
+                    thin=self.config.thin,
+                )
                 mcmc.run(**self.data)
                 self.pyro_samples = mcmc.get_samples()
         if self.with_numpyro:
-            with TimeIt('NumPyro_Runtime', self.timers):
+            with TimeIt("NumPyro_Compilation", self.timers):
                 model = NumPyroModel(model_file=self.model_file)
-                mcmc = model.mcmc(self.config.iterations,
-                                  self.config.warmups,
-                                  num_chains=self.config.chains,
-                                  thin=self.config.thin)
+            with TimeIt("NumPyro_Runtime", self.timers):
+                mcmc = model.mcmc(
+                    self.config.iterations,
+                    self.config.warmups,
+                    num_chains=self.config.chains,
+                    thin=self.config.thin,
+                )
                 mcmc.run(**self.data)
                 self.numpyro_samples = mcmc.get_samples()
 
+    def run_naive_pyro(self):
+        assert self.with_pyro or self.with_numpyro, "Should run either Pyro or Numpyro"
+        if self.with_pyro:
+            model = PyroModel(pyro_file=self.pyro_file)
+            with TimeIt("Pyro_naive_Runtime", self.timers):
+                mcmc = model.mcmc(
+                    self.config.iterations,
+                    self.config.warmups,
+                    num_chains=self.config.chains,
+                    thin=self.config.thin,
+                )
+                mcmc.run(**self.data)
+                self.pyro_naive_samples = mcmc.get_samples()
+        if self.with_numpyro:
+            model = NumPyroModel(pyro_file=self.pyro_file)
+            with TimeIt("NumPyro_naive_Runtime", self.timers):
+                mcmc = model.mcmc(
+                    self.config.iterations,
+                    self.config.warmups,
+                    num_chains=self.config.chains,
+                    thin=self.config.thin,
+                )
+                mcmc.run(**self.data)
+                self.numpyro_naive_samples = mcmc.get_samples()
+
     def run_stan(self):
-        with TimeIt('Stan_Compilation', self.timers):
+        with TimeIt("Stan_Compilation", self.timers):
             mcmc = pystan.StanModel(file=self.model_file)
-        with TimeIt('Stan_Runtime', self.timers):
-            fit = mcmc.sampling(data=self.data,
-                                iter=self.config.iterations,
-                                chains=self.config.chains,
-                                warmup=self.config.warmups,
-                                thin=self.config.thin)
+        with TimeIt("Stan_Runtime", self.timers):
+            fit = mcmc.sampling(
+                data=self.data,
+                iter=self.config.iterations,
+                chains=self.config.chains,
+                warmup=self.config.warmups,
+                thin=self.config.thin,
+            )
             self.stan_samples = fit.extract(permuted=True)
 
     def compare(self):
-        self.divergences = {'pyro': {}, 'numpyro': {}}
+        self.divergences = {
+            "pyro": {},
+            "numpyro": {},
+            "pyro_naive": {},
+            "numpyro_naive": {},
+        }
         if self.with_pyro:
-            self.divergences['pyro']['ks'] = _compare(self.pyro_samples,
-                                                      self.stan_samples,
-                                                      self.compare_params,
-                                                      _ks)
+            self.divergences["pyro"]["ks"] = _compare(
+                self.pyro_samples, self.stan_samples, self.compare_params, _ks
+            )
+            if self.pyro_file:
+                self.divergences["pyro_naive"]["ks"] = _compare(
+                    self.pyro_naive_samples, self.stan_samples, self.compare_params, _ks
+                )
         if self.with_numpyro:
-            self.divergences['numpyro']['ks'] = _compare(self.numpyro_samples,
-                                                         self.stan_samples,
-                                                         self.compare_params,
-                                                         _ks)
+            self.divergences["numpyro"]["ks"] = _compare(
+                self.numpyro_samples, self.stan_samples, self.compare_params, _ks
+            )
+            if self.pyro_file:
+                self.divergences["numpyro_naive"]["ks"] = _compare(
+                    self.numpyro_naive_samples,
+                    self.stan_samples,
+                    self.compare_params,
+                    _ks,
+                )
 
     def run(self) -> Dict[str, Dict[str, Any]]:
         self.run_pyro()
         self.run_stan()
+        if self.pyro_file:
+            self.run_naive_pyro()
         self.compare()
-        return {
-            'divergences': self.divergences,
-            'timers': self.timers
-        }
+        return {"divergences": self.divergences, "timers": self.timers}

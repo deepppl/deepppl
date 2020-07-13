@@ -16,6 +16,7 @@ def test_aspirin(config=Config()):
     t_aspirin = MCMCTest(
         name='aspirin',
         model_file='deepppl/tests/good/aspirin.stan',
+        pyro_file='deepppl/tests/naive/aspirin_naive.py',
         data=data,
         config=config
     )

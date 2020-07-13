@@ -1,5 +1,3 @@
-
-
 import torch
 from torch import tensor, rand
 import pyro
@@ -18,16 +16,15 @@ def transformed_data(N=None, exposure2=None, roach1=None, senior=None,
 
 def model(N=None, exposure2=None, roach1=None, senior=None, treatment=None,
     y=None, transformed_data=None):
-    sqrt_roach = transformed_data['sqrt_roach']
     log_expo = transformed_data['log_expo']
-    beta = sample('beta', ImproperUniform(shape=4))
-    sample('beta' + '__{}'.format(1 - 1) + '__1', dist.Normal(0, 5), obs=
-        beta[1 - 1])
-    sample('beta' + '__{}'.format(2 - 1) + '__2', dist.Normal(0, 2.5), obs=
-        beta[2 - 1])
-    sample('beta' + '__{}'.format(3 - 1) + '__3', dist.Normal(0, 2.5), obs=
-        beta[3 - 1])
-    sample('beta' + '__{}'.format(4 - 1) + '__4', dist.Normal(0, 2.5), obs=
-        beta[4 - 1])
-    sample('y' + '__5', poisson_log(log_expo + beta[1 - 1] + beta[2 - 1] *
-        sqrt_roach + beta[3 - 1] * treatment + beta[4 - 1] * senior), obs=y)
+    sqrt_roach = transformed_data['sqrt_roach']
+    beta_1 = sample('beta_1', ImproperUniform())
+    beta_2 = sample('beta_2', ImproperUniform())
+    beta_3 = sample('beta_3', ImproperUniform())
+    beta_4 = sample('beta_4', ImproperUniform())
+    sample('beta_1' + '__1', dist.Normal(0, 5), obs=beta_1)
+    sample('beta_2' + '__2', dist.Normal(0, 2.5), obs=beta_2)
+    sample('beta_3' + '__3', dist.Normal(0, 2.5), obs=beta_3)
+    sample('beta_4' + '__4', dist.Normal(0, 2.5), obs=beta_4)
+    sample('y' + '__5', poisson_log(log_expo + beta_1 + beta_2 * sqrt_roach +
+        beta_3 * treatment + beta_4 * senior), obs=y)
