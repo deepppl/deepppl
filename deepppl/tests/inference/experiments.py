@@ -243,26 +243,26 @@ def summarize(dirname):
 
 def to_md(summary):
     print("| ".ljust(20), end=" | ")
-    print("Stan".ljust(10), end=" | ")
-    print("DS(pyro)   | ".ljust(23), end=" | ")
-    print("DS(numpyro)| ".ljust(23), end=" | ")
+    print("Stan".ljust(13), end=" | ")
+    print("DS(pyro)      | ".ljust(26), end=" | ")
+    print("DS(numpyro)   | ".ljust(26), end=" | ")
     print("Pyro  | ".ljust(18), end=" | ")
     print("Numpyro | ".ljust(18), end=" |\n")
     print(
-        "|--------------------|------------|------------|------------|------------|------------|--------------------|---------|----------|"
+        "|--------------------|---------------|---------------|------------|---------------|------------|-------|------------|---------|----------|"
     )
     print(
-        "|                    | Comp + Run | Comp + Run | p-value    | Comp + Run | p-value    | run   | p-value    | run     | p-value  |"
+        "|                    | Comp + Run    | Comp + Run    | p-value    | Comp + Run    | p-value    | run   | p-value    | run     | p-value  |"
     )
     for ex, _ in summary.iteritems():
         s = summary[ex].stan
         dp = summary[ex].pyro
         dn = summary[ex].numpyro
         print(f"| {name_map[ex]}".ljust(20), end=" | ")
-        print(f"{s['compilation']:,.0f} + {s['runtime']:,.2f}".ljust(10), end=" | ")
-        print(f"{dp['compilation']:,.2f} + {dp['runtime']:,.0f}".ljust(10), end=" | ")
+        print(f"{s['compilation']:,.0f} + {s['runtime']:,.2f}".ljust(13), end=" | ")
+        print(f"{dp['compilation']:,.2f} + {dp['runtime']:,.0f}".ljust(13), end=" | ")
         print(f"{dp['pvalue']:,.2f} ".ljust(10), end=" | ")
-        print(f"{dn['compilation']:,.2f} + {dn['runtime']:,.0f}".ljust(10), end=" | ")
+        print(f"{dn['compilation']:,.2f} + {dn['runtime']:,.0f}".ljust(13), end=" | ")
         print(f"{dn['pvalue']:,.2f} ".ljust(10), end=" | ")
         if "pyro_naive" in summary[ex] and "numpyro_naive" in summary[ex]:
             p = summary[ex].pyro_naive
