@@ -214,9 +214,7 @@ def to_frame(dirname):
         ]
         data = {}
         for k in logs[0].keys():
-            data[k] = [pd.DataFrame(d[k], index=[i]) for (i, d) in enumerate(logs)]
-        for k in data.keys():
-            data[k] = pd.concat(data[k])
+            data[k] = pd.DataFrame([pd.Series(d[k]) for d in logs])
         summary[x] = pd.Series(data)
     return pd.Series(summary)
 
@@ -224,13 +222,10 @@ def to_frame(dirname):
 def backend_results(df):
     df = df.mean()
     params = df.drop(labels=["runtime", "compilation"], errors="ignore")
-    res = {}
-    if "compilation" in df:
-        res["compilation"] = df.compilation
-    res["runtime"] = df.runtime
+    res = df.reindex(["compilation", "runtime"])
     res["pvalue"] = params.min()
     res["param"] = params.idxmin()
-    return pd.Series(res)
+    return res
 
 
 def example_results(df):
