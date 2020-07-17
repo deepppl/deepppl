@@ -1,0 +1,12 @@
+{'divergences': {'numpyro': {'ks': {'theta': {'pvalue': 0.9872607039915287,
+                                              'statistic': 0.02111111111111119}}},
+                 'numpyro_naive': {},
+                 'pyro': {'ks': {'theta': {'pvalue': 0.09565841591763351,
+                                           'statistic': 0.057777777777777706}}},
+                 'pyro_naive': {}},
+ 'timers': {'NumPyro_Compilation': 0.012294052168726921,
+            'NumPyro_Runtime': 48.877989334985614,
+            'Pyro_Compilation': 0.02595183439552784,
+            'Pyro_Runtime': 55.95068453066051,
+            'Stan_Compilation': 95.6389498859644,
+            'Stan_Runtime': 0.10281578171998262}}
