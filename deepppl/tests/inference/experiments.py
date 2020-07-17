@@ -4,12 +4,9 @@ import time
 from datetime import datetime
 from pprint import pprint
 from pathlib import Path
-import numpy as np
-from numpy import nan, inf
-from collections import defaultdict
 import argparse
 import pandas as pd
-from math import isnan
+from pytablewriter import MarkdownTableWriter
 
 from .test_aspirin import test_aspirin
 from .test_cockroaches import test_cockroaches
@@ -73,97 +70,6 @@ def run_all(config=Config(), logdir="logs", n_runs=5):
     pool.join()
 
 
-def flatten(d):
-    res = {}
-    for k, v in d.items():
-        if set(v.keys()) == {"statistic", "pvalue"}:  # leaf values
-            res[k] = v
-        else:
-            for kk, vv in flatten(v).items():
-                res[f"{k}[{kk}]"] = vv
-    return res
-
-
-def get_log(f):
-    with open(f, "r") as log_file:
-        raw = log_file.read()
-        log = eval(raw)
-        res = {}
-        res["timers"] = log["timers"]
-        res["divergences"] = {
-            "numpyro": flatten(log["divergences"]["numpyro"]["ks"]),
-            "pyro": flatten(log["divergences"]["pyro"]["ks"]),
-        }
-        if log["divergences"]["numpyro_naive"]:
-            res["divergences"]["numpyro_naive"] = flatten(
-                log["divergences"]["numpyro_naive"]["ks"]
-            )
-        else:
-            res["divergences"]["numpyro_naive"] = {}
-        if log["divergences"]["pyro_naive"]:
-            res["divergences"]["pyro_naive"] = flatten(
-                log["divergences"]["pyro_naive"]["ks"]
-            )
-        else:
-            res["divergences"]["pyro_naive"] = {}
-        return res
-
-
-def get_min(d):
-    k = min(d, key=lambda key: d[key])
-    return {"parameter": k, "pvalue": d[k]}
-
-
-def crunch(dirname):
-    summary = {}
-    for x in name_map:
-        results = {"timers": {}}
-        divergences = {"pyro": {}, "numpyro": {}, "pyro_naive": {}, "numpyro_naive": {}}
-        pyro = defaultdict(list)
-        numpyro = defaultdict(list)
-        pyro_naive = defaultdict(list)
-        numpyro_naive = defaultdict(list)
-        timers = defaultdict(list)
-        files = [
-            os.path.join(dirname, f)
-            for f in os.listdir(dirname)
-            if f.startswith(f"test_{x}")
-        ]
-        logs = [get_log(f) for f in files]
-        for l in logs:
-            for k, v in l["timers"].items():
-                timers[k].append(v)
-            for k, v in l["divergences"]["pyro"].items():
-                pyro[k].append(v["pvalue"])
-            for k, v in l["divergences"]["numpyro"].items():
-                numpyro[k].append(v["pvalue"])
-            for k, v in l["divergences"]["pyro_naive"].items():
-                pyro_naive[k].append(v["pvalue"])
-            for k, v in l["divergences"]["numpyro_naive"].items():
-                numpyro_naive[k].append(v["pvalue"])
-        for k, v in timers.items():
-            results["timers"][k] = np.mean(v)
-        for k, v in pyro.items():
-            divergences["pyro"][k] = np.mean(v)
-        results["Pyro_KS"] = get_min(divergences["pyro"])
-        for k, v in numpyro.items():
-            divergences["numpyro"][k] = np.mean(v)
-        results["NumPyro_KS"] = get_min(divergences["numpyro"])
-        for k, v in pyro_naive.items():
-            divergences["pyro_naive"][k] = np.mean(v)
-        if pyro_naive:
-            results["Pyro_naive_KS"] = get_min(divergences["pyro_naive"])
-        for k, v in numpyro_naive.items():
-            divergences["numpyro_naive"][k] = np.mean(v)
-        if numpyro_naive:
-            results["NumPyro_naive_KS"] = get_min(divergences["numpyro_naive"])
-        summary[x] = results
-    return summary
-
-
-###### NEW
-
-
 def flatten_scalar(d):
     res = {}
     for k, v in d.items():
@@ -184,20 +90,25 @@ def clean_log(f):
             "compilation": log["timers"]["Stan_Compilation"],
             "runtime": log["timers"]["Stan_Runtime"],
         }
-        if log["divergences"]["numpyro"]:
+        if "numpyro" in log["divergences"]:
             res["numpyro"] = flatten_scalar(log["divergences"]["numpyro"]["ks"])
-            res["numpyro"]["compilation"] = log["timers"]["NumPyro_Compilation"]
+            if "NumPyro_Compilation" in log["timers"]:
+                res["numpyro"]["compilation"] = log["timers"]["NumPyro_Compilation"]
             res["numpyro"]["runtime"] = log["timers"]["NumPyro_Runtime"]
-        if log["divergences"]["pyro"]:
+        if "pyro" in log["divergences"]:
             res["pyro"] = flatten_scalar(log["divergences"]["pyro"]["ks"])
-            res["pyro"]["compilation"] = log["timers"]["Pyro_Compilation"]
+            if "Pyro_Compilation" in log["timers"]:
+                res["pyro"]["compilation"] = log["timers"]["Pyro_Compilation"]
             res["pyro"]["runtime"] = log["timers"]["Pyro_Runtime"]
-        if log["divergences"]["pyro_naive"]:
+        if (
+            "numpyro_naive" in log["divergences"]
+            and log["divergences"]["numpyro_naive"]
+        ):
             res["numpyro_naive"] = flatten_scalar(
                 log["divergences"]["numpyro_naive"]["ks"]
             )
             res["numpyro_naive"]["runtime"] = log["timers"]["NumPyro_naive_Runtime"]
-        if log["divergences"]["numpyro_naive"]:
+        if "pyro_naive" in log["divergences"] and log["divergences"]["pyro_naive"]:
             res["pyro_naive"] = flatten_scalar(log["divergences"]["pyro_naive"]["ks"])
             res["pyro_naive"]["runtime"] = log["timers"]["Pyro_naive_Runtime"]
     return res
@@ -241,75 +152,47 @@ def summarize(dirname):
     return data.apply(example_results)
 
 
-def to_md(summary):
-    print("| ".ljust(20), end=" | ")
-    print("Stan".ljust(13), end=" | ")
-    print("DS(pyro)      | ".ljust(26), end=" | ")
-    print("DS(numpyro)   | ".ljust(26), end=" | ")
-    print("Pyro  | ".ljust(18), end=" | ")
-    print("Numpyro | ".ljust(18), end=" |\n")
-    print(
-        "|--------------------|---------------|---------------|------------|---------------|------------|-------|------------|---------|----------|"
+def to_md(s):
+    writer = MarkdownTableWriter()
+    writer.headers = (
+        [""]
+        + ["Stan", ""]
+        + ["DS(pyro)", "", "", ""]
+        + ["DS(numpyro)", "", "", ""]
+        + ["Pyro", "", ""]
+        + ["Numpyro", "", ""]
     )
-    print(
-        "|                    | Comp + Run    | Comp + Run    | p-value    | Comp + Run    | p-value    | run   | p-value    | run     | p-value  |"
-    )
-    for ex, _ in summary.iteritems():
-        s = summary[ex].stan
-        dp = summary[ex].pyro
-        dn = summary[ex].numpyro
-        print(f"| {name_map[ex]}".ljust(20), end=" | ")
-        print(f"{s['compilation']:,.0f} + {s['runtime']:,.2f}".ljust(13), end=" | ")
-        print(f"{dp['compilation']:,.2f} + {dp['runtime']:,.0f}".ljust(13), end=" | ")
-        print(f"{dp['pvalue']:,.2f} ".ljust(10), end=" | ")
-        print(f"{dn['compilation']:,.2f} + {dn['runtime']:,.0f}".ljust(13), end=" | ")
-        print(f"{dn['pvalue']:,.2f} ".ljust(10), end=" | ")
-        if "pyro_naive" in summary[ex] and "numpyro_naive" in summary[ex]:
-            p = summary[ex].pyro_naive
-            n = summary[ex].numpyro_naive
-            print(f"{p['runtime']:,.0f}".ljust(5), end=" | ")
-            print(f"{p['pvalue']:,.2f} ".ljust(10), end=" | ")
-            print(f"{n['runtime']:,.0f}".ljust(7), end=" | ")
-            print(f"{n['pvalue']:,.2f} ".ljust(8), end=" |\n")
-        else:
-            print("      |            |         |          |")
-
-
-def to_tex(summary):
-    print(r"\begin{tabular}{@{}lr@{ }lrr@{ }lrr@{ }l@{}}\\")
-    print(
-        r"&\multicolumn{2}{c}{\textsc{Stan}}& \multicolumn{3}{c}{\textsc{DeepStan/Pyro}} & \multicolumn{3}{c}{\textsc{DeepStan/NumPyro}}\\"
-    )
-    print(r"\cmidrule(lr){2-3}")
-    print(r"\cmidrule(lr){4-6}")
-    print(r"\cmidrule(lr){7-9}")
-    print(
-        r"&\multicolumn{2}{c}{time(s)} & time(s) & \multicolumn{2}{l}{KS p-value} & time(s) & \multicolumn{2}{l}{KS p-value}\\"
-    )
-    print(r"\toprule")
-    for t in name_map:
-        if t == "aspirin":
-            print(r"\midrule")
-        name = name_map[t]
-        d = summary[t]
-        t_stan = f"{d['timers']['Stan_Compilation']:,.0f} &+ {d['timers']['Stan_Runtime']:,.1f}"
-        t_numpyro = f"{d['timers']['NumPyro_Compilation']:,.0f} + {d['timers']['NumPyro_Runtime']:,.0f}"
-        nks_value = d["NumPyro_KS"]["pvalue"]
-        nks_param = d["NumPyro_KS"]["parameter"]
-        ks_numpyro = f"{nks_value:,.2f} & (\\stans|{nks_param}|)"
-        if "Pyro_Runtime" in d["timers"]:
-            t_pyro = f"{d['timers']['Pyro_Compilation']:,.0f} + {d['timers']['Pyro_Runtime']:,.0f}"
-            pks_value = d["Pyro_KS"]["pvalue"]
-            pks_param = d["Pyro_KS"]["parameter"]
-            ks_pyro = f"{pks_value:,.2f} & (\\stans|{pks_param}|)"
-        else:
-            t_pyro = r"\_"
-            ks_pyro = r"\_ & \_"
-        print(
-            f"{name} & {t_stan} & {t_pyro} & {ks_pyro} & {t_numpyro} & {ks_numpyro}\\\\"
-        )
-    print(r"\bottomrule")
-    print(r"\end{tabular}")
+    writer.value_matrix = [
+        [""]
+        + ["comp", "run",]
+        + ["comp", "run", "p-value", "param",] * 2
+        + ["run", "p-value", "param",] * 2
+    ]
+    writer.value_matrix += [
+        [name_map[x]]
+        + [f"{s[x].stan.compilation:,.0f}", f"{s[x].stan.runtime:,.2f}",]
+        + [
+            c
+            for b in ["pyro", "numpyro"]
+            for c in [
+                f"{s[x][b].compilation:,.2f}",
+                f"{s[x][b].runtime:,.0f}",
+                f"{s[x][b].pvalue:,.2f}",
+                s[x][b].param,
+            ]
+        ]
+        + [
+            c
+            for b in ["pyro_naive", "numpyro_naive"]
+            for c in (
+                [f"{s[x][b].runtime:,.0f}", f"{s[x][b].pvalue:,.2f}", s[x][b].param,]
+                if b in s[x]
+                else ["", "", ""]
+            )
+        ]
+        for x in s.index
+    ]
+    writer.write_table()
 
 
 if __name__ == "__main__":
@@ -369,14 +252,6 @@ if __name__ == "__main__":
         help="Analyse logdir without re-running the experiments",
     )
 
-    parser.add_argument(
-        "--to-tex",
-        action="store_true",
-        dest="tex",
-        default=False,
-        help="Print results in tex format",
-    )
-
     args = parser.parse_args()
     config = Config(iterations=args.iterations, warmups=args.warmups, thin=args.thin)
 
@@ -386,11 +261,5 @@ if __name__ == "__main__":
         print(f"Total experiment time {time.perf_counter() - start}")
         print(f"Config: {config}")
 
-    res_old = crunch(args.logdir)
-    res_new = summarize(args.logdir)
-
-    if args.tex:
-        pprint(to_tex(res_old))
-    else:
-        pprint(res_old)
-        to_md(res_new)
+    res = summarize(args.logdir)
+    to_md(res)
