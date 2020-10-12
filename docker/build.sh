@@ -23,5 +23,4 @@ else
   > context/.Dockerfile 
 fi
 
-./get-drivers.sh drivers 
 docker build -t "$tag" -f context/.Dockerfile context
