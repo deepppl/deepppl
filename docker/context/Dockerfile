@@ -214,8 +214,7 @@ RUN set -eux ; \
   cd $InstallPath ; . miniconda3/bin/activate ; conda activate deepppl ; \
   mkdir -p $InstallPath/bazel/install ; \
   cd $InstallPath/bazel/install ; \
-#  curl -LO https://github.com/bazelbuild/bazel/releases/download/3.5.0/bazel-3.5.0-dist.zip ; \
-  curl -LO http://9.20.24.153/install/applications/bazel-3.5.0-dist.zip ; \
+  curl -LO https://github.com/bazelbuild/bazel/releases/download/3.5.0/bazel-3.5.0-dist.zip ; \
   echo "334429059cf82e222ca8a9d9dbbd26f8e1eb308613463c2b8655dd4201b127ec  bazel-3.5.0-dist.zip" | sha256sum -c - ; \
   unzip bazel-3.5.0-dist.zip ; \
   env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" bash ./compile.sh ; \
