@@ -2,7 +2,7 @@
 
 This folder implements a docker image that runs DeepPPL with the require dependencies
 to enable GPU runs. The default command is a jupyter notebook for which an example
-is provided ot ilustrate how it works.
+is provided to ilustrate how it works.
 
 To build this image execute in your command line:
 ```
@@ -44,4 +44,4 @@ docker run \
   <selected tag>
 ```
 
-This will sping a jupyter notebook that is exposed at port 8888.
+This will spin a jupyter notebook that is exposed at port 8888.
