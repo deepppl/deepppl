@@ -352,7 +352,7 @@ WORKDIR $InstallPath
 
 # Copy the relevant bits - pytorch is installed in miniconda so not need to copy it over 
 # separately.
-COPY --chown=user:user --from=0 /opt/user/antlr4 /opt/user/antlr4
+COPY --chown=user:user --from=dev /opt/user/antlr4 /opt/user/antlr4
 
 COPY --chown=user:user --from=dev /opt/user/deepppl /opt/user/deepppl
 
