@@ -374,6 +374,13 @@ COPY --chown=user:user --from=dev /opt/user/miniconda3 /opt/user/miniconda3
 RUN set -eux ; \
   cd $InstallPath ; . miniconda3/bin/activate ; conda activate deepppl ; \
   conda install -y jupyter
+
+RUN set -eux ; \
+  cd $InstallPath ; . miniconda3/bin/activate ; conda activate deepppl ; \
+  pip install torchdiffeq
+
+# In x86_64 we need LD_LIBRARY_PATH to point to MKL.
+ENV LD_LIBRARY_PATH $InstallPath/miniconda3/envs/deepppl/lib
   
 # Copy example notebook
 COPY notebook $InstallPath/notebook
