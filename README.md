@@ -1,3 +1,5 @@
+# * This project is deprecated. The new compiler available at https://github.com/deepppl/stanc3 (branch deep) *
+
 [![Build Status](https://travis-ci.com/deepppl/deepppl.svg?branch=master)](https://travis-ci.com/deepppl/deepppl)
 <img src="logo/logo.jpg" alt="logo" width="55px"/>
 
