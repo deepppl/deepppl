@@ -1,4 +1,4 @@
-# * This project is deprecated. The new compiler available at https://github.com/deepppl/stanc3 *
+# * This project is deprecated. The new compiler available at https://github.com/deepppl/stanc3 (branch deep) *
 
 # DeepPPL
 
