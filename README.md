@@ -1,3 +1,5 @@
+# * This project is deprecated. The new compiler available at https://github.com/deepppl/stanc3 *
+
 # DeepPPL
 
 This directory contains the code associated to the paper entitled _Compiling Stan to Generative Probabilistic Languages_.
